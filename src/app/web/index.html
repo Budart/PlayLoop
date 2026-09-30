@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>​</title>
+<meta name="theme-color" content="#0B1020">
+<link rel="icon" href="/logo.png">
+<link rel="stylesheet" href="/css/fonts.css">
+<link rel="stylesheet" href="/css/app.css">
+</head>
+</head>
+<body>
+<div id="wbar"><div class="wdrag" id="wdrag"></div><button data-w="min" title="Minimizar">&#xE921;</button><button data-w="max" title="Maximizar">&#xE922;</button><button data-w="close" class="x" title="Fechar">&#xE8BB;</button></div>
+<section id="systems" class="screen">
+  <div class="bg" id="sysBg"></div>
+  <div class="brand"><img src="/sym.png" alt=""><span>Play<b>Loop</b></span></div>
+  <div class="topsearch"><input id="gq" placeholder="🔍  Buscar em todos os jogos... (é só começar a digitar)" autocomplete="off"><button class="gear" id="gear" title="Configuração">⚙</button><button class="gear" id="mute" title="Som ligado/desligado">🔊</button><button class="gear" id="crtBtn" title="Layout para TV de tubo (CRT)"></button></div>
+  <div class="stage">
+    <div class="strip"><span class="arrow l" id="prev">‹</span><div class="track" id="track"></div><span class="arrow r" id="next">›</span></div>
+    <div class="sysinfo" id="sysInfo"></div>
+  </div>
+  <img class="ctrl" id="sysCtrl" alt="">
+  <div class="helpbar"><span><b>← →</b>escolher</span><span><b>Enter</b>entrar</span><span><b>A-Z</b>buscar em todos os jogos</span></div>
+</section>
+
+<section id="games" class="screen">
+  <header id="gHead"></header>
+  <button class="homebtn" id="homeBtn" title="Voltar para a tela inicial (Esc)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/></svg></button>
+  <div class="body">
+    <div class="left">
+      <div class="search"><input id="q" placeholder="Digite para buscar..." autocomplete="off"><div class="sortwrap"><button class="sortbtn" id="sortBtn" title="Mudar ordenação"></button><div class="sortmenu" id="sortMenu"></div></div><span class="count" id="count"></span></div>
+      <div class="list" id="list"></div>
+    </div>
+    <div class="right">
+      <div id="gameBg"></div>
+      <div class="art" id="art"></div>
+      <div id="vidBox"></div>
+      <div class="details" id="details"></div>
+    </div>
+  </div>
+  <div class="helpbar"><span><b>↑ ↓</b>navegar</span><span><b>PgUp PgDn</b>pular</span><span><b>Enter</b>jogar</span><span><b>Esc</b>voltar</span><span><b>A-Z</b>buscar</span></div>
+</section>
+<section id="config" class="screen">
+  <div class="cfhead"><h1>⚙ Configuração</h1><span class="msg" id="cfSaved" style="margin-right:10px"></span><button class="btn" id="cfCancel">Voltar (Esc)</button></div>
+  <div class="cfbody" id="cfBody"></div>
+</section>
+<section id="welcome" class="screen">
+  <div class="wsplash" id="wSplash"><img src="/sym.png" alt=""><span>Play<b>Loop</b></span><small>TODOS OS SEUS JOGOS, EM UM SÓ LUGAR.</small></div>
+  <div class="wcard" id="wCard">
+    <div class="wstep" id="wStepN"></div>
+    <h1 id="wTitle"></h1>
+    <p id="wText"></p>
+    <div class="wpath" id="wPath">Nenhuma pasta escolhida</div>
+    <div class="wbtns"><button class="btn sec" id="wPick">Escolher pasta...</button><span style="flex:1"></span><button class="btn sec" id="wSkip">Pular</button><button class="btn" id="wNext">Continuar</button></div>
+  </div>
+</section>
+<div id="toast"></div>
+<div id="ctx" class="ctx"></div>
+<div class="modal" id="askModal"><div class="mbox ask"><h3 id="askTitle"></h3><p id="askText"></p><div class="mfoot"><button class="sec" id="askNo">Cancelar</button><button class="sec" id="askAlt" style="display:none"></button><button id="askYes" class="danger">Excluir</button></div></div></div>
+<div id="dropPanel"></div>
+<div class="modal" id="coverModal"><div class="mbox">
+  <h3><span id="ctitle">🖼 Escolher capa</span> — <span id="cgame"></span></h3>
+  <div class="mrow"><input id="cq" placeholder="Nome do jogo para buscar"><button id="cgo">Buscar</button></div>
+  <div class="mrow"><input id="curl" placeholder="...ou cole aqui o link de uma imagem da internet"><button id="cuse">Usar link</button><button id="cfile">📁 Arquivo do computador...</button></div>
+  <div class="msg" id="cmsg"></div>
+  <div class="cgrid" id="cres"></div>
+  <div class="mfoot"><button class="sec" id="creset">Voltar para a capa automática</button><button class="sec" id="cclose">Fechar (Esc)</button></div>
+</div></div>
+
+<script src="/js/core.js"></script>
+<script src="/js/systems.js"></script>
+<script src="/js/list.js"></script>
+<script src="/js/art.js"></script>
+<script src="/js/video.js"></script>
+<script src="/js/covers.js"></script>
+<script src="/js/thumbs.js"></script>
+<script src="/js/audio.js"></script>
+<script src="/js/window.js"></script>
+<script src="/js/config.js"></script>
+<script src="/js/input.js"></script>
+<script src="/js/welcome.js"></script>
+<script src="/js/main.js"></script>
+</body>
+</html>

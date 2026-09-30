@@ -1,0 +1,21 @@
+{
+  "port": 8765,
+  "root": "D:\\1 - EMULADORES",
+  "consoles": [
+    {"id": "snes", "name": "Super Nintendo", "art": "snes", "thumbs": "Nintendo_-_Super_Nintendo_Entertainment_System", "emulator": "Super Nintendo/snes9x-1.63-win32-x64/snes9x-x64.exe", "args": "\"{rom}\"", "romDirs": ["Super Nintendo/ROMS favoritos", "Super Nintendo/ROMs"], "extensions": ["sfc", "smc"]},
+    {"id": "n64", "name": "Nintendo 64", "art": "n64", "thumbs": "Nintendo_-_Nintendo_64", "emulator": "Nintendo 64/Project64.exe", "args": "\"{rom}\"", "romDirs": ["Nintendo 64/ROMs"], "extensions": ["z64", "zip", "7z"]},
+    {"id": "gbc", "name": "Game Boy Color", "art": "gbc", "thumbs": "Nintendo_-_Game_Boy_Color", "emulator": "Game Boy Color/bgb.exe", "args": "\"{rom}\"", "romDirs": ["Game Boy Color/ROMs"], "extensions": ["gbc", "zip", "7z"]},
+    {"id": "gba", "name": "Game Boy Advance", "art": "gba", "thumbs": "Nintendo_-_Game_Boy_Advance", "emulator": "", "args": "\"{rom}\"", "romDirs": ["gba"], "extensions": ["gba", "zip", "7z"]},
+    {"id": "nds", "name": "Nintendo DS", "art": "nds", "thumbs": "Nintendo_-_Nintendo_DS", "emulator": "", "args": "\"{rom}\"", "romDirs": ["Nintendo DS/ROMS"], "extensions": ["nds"]},
+    {"id": "3ds", "name": "Nintendo 3DS", "art": "3ds", "thumbs": "Nintendo_-_Nintendo_3DS", "emulator": "Nintendo 3DS/Emulador/azahar.exe", "args": "\"{rom}\"", "romDirs": ["Nintendo 3DS"], "extensions": ["3ds", "cia"]},
+    {"id": "wii", "name": "Nintendo Wii", "art": "wii", "thumbs": "Nintendo_-_Wii", "emulator": "Nintendo Wii/Dolphin-x64/Dolphin.exe", "args": "-e \"{rom}\"", "romDirs": ["Nintendo Wii/ROMS"], "extensions": ["iso", "wbfs", "rvz"]},
+    {"id": "switch", "name": "Nintendo Switch", "art": "switch", "thumbs": "", "emulator": "Nintendo Switch/Eden-Windows-dc95cd09ee-amd64-clang-pgo/eden.exe", "args": "-g \"{rom}\"", "romDirs": ["Nintendo Switch/ROMS"], "extensions": ["nsp", "xci"], "nameFromFolder": true, "switchBaseOnly": true},
+    {"id": "sms", "name": "Master System", "art": "mastersystem", "thumbs": "Sega_-_Master_System_-_Mark_III", "emulator": "", "args": "\"{rom}\"", "romDirs": ["Master System/ROMs"], "extensions": ["sms"]},
+    {"id": "genesis", "name": "Sega Genesis", "art": "genesis", "thumbs": "Sega_-_Mega_Drive_-_Genesis", "emulator": "Sega Genesis/sandopolis-windows-x86_64/sandopolis.exe", "args": "\"{rom}\"", "romDirs": ["Sega Genesis/ROMs"], "extensions": ["md", "bin"], "nameFromFolder": true},
+    {"id": "neogeo", "name": "Neo-Geo", "art": "neogeo", "thumbs": "SNK_-_Neo_Geo", "emulator": "", "args": "\"{rom}\"", "romDirs": ["NEO-GEO/Roms"], "extensions": ["zip", "7z"]},
+    {"id": "ps1", "name": "PlayStation", "art": "psx", "thumbs": "Sony_-_PlayStation", "emulator": "Sony PlayStation/Duckstation/duckstation-qt-x64-ReleaseLTCG.exe", "args": "\"{rom}\"", "romDirs": ["Sony PlayStation/ROMs"], "extensions": ["cue", "chd"], "nameFromFolder": true},
+    {"id": "ps2", "name": "PlayStation 2", "art": "ps2", "thumbs": "Sony_-_PlayStation_2", "emulator": "Sony PlayStation 2/PCSX2/pcsx2-qt.exe", "args": "\"{rom}\"", "romDirs": ["Sony PlayStation 2/ROMs"], "extensions": ["iso", "chd"], "nameFromFolder": true},
+    {"id": "psp", "name": "PSP", "art": "psp", "thumbs": "Sony_-_PlayStation_Portable", "emulator": "Sony PSP/PPSSPPWindows64.exe", "args": "\"{rom}\"", "romDirs": ["Sony PSP/ROMs"], "extensions": ["iso", "cso"]},
+    {"id": "ps3", "name": "PlayStation 3", "art": "ps3", "thumbs": "Sony_-_PlayStation_3", "emulator": "", "args": "\"{rom}\"", "romDirs": ["PS3"], "extensions": ["iso", "pkg"]}
+  ]
+}

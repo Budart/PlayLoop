@@ -1,0 +1,297 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.IO;
+using System.Media;
+using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Threading;
+using System.Web.Script.Serialization;
+using System.Windows.Forms;
+using Microsoft.Win32;
+
+[assembly: AssemblyTitle("PlayLoop - Instalador")]
+[assembly: AssemblyProduct("PlayLoop")]
+[assembly: AssemblyVersion("1.0.0.0")]
+
+class Setup : Form
+{
+    [DllImport("user32.dll")] static extern bool ReleaseCapture();
+    [DllImport("user32.dll")] static extern IntPtr SendMessage(IntPtr h, int msg, int wp, int lp);
+
+    static readonly Color Bg = Color.FromArgb(11, 16, 32), Panel2 = Color.FromArgb(30, 41, 59), Txt = Color.FromArgb(229, 231, 235), Muted = Color.FromArgb(148, 163, 184);
+    static readonly Color Cyan = Color.FromArgb(0, 209, 255), Pink = Color.FromArgb(139, 92, 246);
+    const string EmuRoot = @"D:\1 - EMULADORES";
+
+    SoundPlayer player; bool muted;
+    TextBox pathBox; CheckBox cDesk, cStart, cAuto, cRun;
+    Button installBtn, browseBtn, muteBtn; Label status; ProgressBar bar; Panel art;
+    Image logo; float phase; bool done;
+
+    // WebView2 Runtime (motor do Edge usado pela janela do PlayLoop): instala sozinho se faltar
+    static bool HasWebView2()
+    {
+        const string id = @"\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}";
+        foreach (var p in new[] { @"SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients" + id, @"SOFTWARE\Microsoft\EdgeUpdate\Clients" + id })
+            foreach (var hive in new[] { Registry.LocalMachine, Registry.CurrentUser })
+                try { using (var k = hive.OpenSubKey(p)) { var v = k == null ? null : k.GetValue("pv") as string; if (!string.IsNullOrEmpty(v) && v != "0.0.0.0") return true; } } catch { }
+        return false;
+    }
+    static void EnsureWebView2()
+    {
+        if (HasWebView2()) return;
+        try
+        {
+            System.Net.ServicePointManager.SecurityProtocol = (System.Net.SecurityProtocolType)3072;
+            string f = Path.Combine(Path.GetTempPath(), "MicrosoftEdgeWebview2Setup.exe");
+            using (var wc = new System.Net.WebClient()) wc.DownloadFile("https://go.microsoft.com/fwlink/p/?LinkId=2124703", f);
+            var p = Process.Start(new ProcessStartInfo(f, "/silent /install") { UseShellExecute = true });
+            p.WaitForExit(10 * 60 * 1000);
+        }
+        catch { }
+    }
+    static Stream Res(string n) { return Assembly.GetExecutingAssembly().GetManifestResourceStream(n); }
+
+    [STAThread]
+    static void Main() { Application.EnableVisualStyles(); Application.Run(new Setup()); }
+
+    Setup()
+    {
+        Text = "PlayLoop - Instalador"; FormBorderStyle = FormBorderStyle.None; StartPosition = FormStartPosition.CenterScreen;
+        ClientSize = new Size(780, 470); BackColor = Bg; ForeColor = Txt; Font = new Font("Segoe UI", 10f);
+        Icon = Icon.ExtractAssociatedIcon(Assembly.GetExecutingAssembly().Location);
+        DoubleBuffered = true;
+        logo = Image.FromStream(Res("logo.png"));
+
+        // painel da esquerda: arte animada + logo
+        art = new DBPanel { Location = new Point(0, 0), Size = new Size(300, 470) };
+        art.Paint += PaintArt; art.MouseDown += Drag;
+        Controls.Add(art);
+        var t = new System.Windows.Forms.Timer { Interval = 33 };
+        t.Tick += (s, e) => { phase += 0.012f; art.Invalidate(); };
+        t.Start();
+
+        // barra superior: mute e fechar
+        var close = TopBtn("\uE8BB", 735); close.Click += (s, e) => Close();
+        close.FlatAppearance.MouseOverBackColor = Color.FromArgb(196, 43, 28);
+        var dragBar = new Panel { Location = new Point(300, 0), Size = new Size(390, 40), BackColor = Color.Transparent };
+        dragBar.MouseDown += Drag; Controls.Add(dragBar);
+
+        int x = 336;
+        Controls.Add(new Label { Text = "Instalar o PlayLoop", Font = new Font("Segoe UI Semibold", 20f), Location = new Point(x - 2, 44), AutoSize = true });
+        Controls.Add(new Label { Text = "Todos os seus emuladores e jogos num só lugar.", ForeColor = Muted, Location = new Point(x, 88), AutoSize = true });
+
+        Controls.Add(new Label { Text = "Pasta de instalação", ForeColor = Muted, Font = new Font("Segoe UI", 9f), Location = new Point(x, 130), AutoSize = true });
+        pathBox = new TextBox { Location = new Point(x, 152), Width = 300, BackColor = Panel2, ForeColor = Txt, BorderStyle = BorderStyle.FixedSingle,
+            Text = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "PlayLoop") };
+        Controls.Add(pathBox);
+        browseBtn = Btn("Procurar...", new Point(x + 308, 150), 96, false);
+        browseBtn.Click += (s, e) => { using (var d = new FolderBrowserDialog()) if (d.ShowDialog(this) == DialogResult.OK) pathBox.Text = Path.Combine(d.SelectedPath, "PlayLoop"); };
+
+        cDesk = Chk("Criar atalho na Área de Trabalho", 196);
+        cStart = Chk("Criar atalho no menu Iniciar", 224);
+        cAuto = Chk("Abrir na inicialização do Windows", 252);
+        cRun = Chk("Abrir o PlayLoop ao terminar", 280);
+
+        bar = new ProgressBar { Location = new Point(x, 330), Size = new Size(404, 8), Style = ProgressBarStyle.Continuous, Visible = false };
+        Controls.Add(bar);
+        status = new Label { Text = "", ForeColor = Muted, Font = new Font("Segoe UI", 9f), Location = new Point(x, 344), Size = new Size(404, 20) };
+        Controls.Add(status);
+
+        installBtn = Btn("Instalar", new Point(x + 244, 400), 160, true);
+        installBtn.Click += (s, e) => { if (done) { if (cRun.Checked) Launch(); Close(); } else Install(); };
+        Controls.Add(new Label { Text = "v1.0", ForeColor = Muted, Font = new Font("Segoe UI", 8.5f), Location = new Point(x, 412), AutoSize = true });
+
+        MouseDown += Drag;
+    }
+
+    void Drag(object s, MouseEventArgs e) { if (e.Button == MouseButtons.Left) { ReleaseCapture(); SendMessage(Handle, 0xA1, 2, 0); } }
+
+    void ToggleMute()
+    {
+        muted = !muted;
+        try { if (muted) player.Stop(); else player.PlayLooping(); } catch { }
+        muteBtn.Text = muted ? "\uE74F" : "\uE767";
+    }
+
+    Button TopBtn(string glyph, int left)
+    {
+        var b = new Button { Text = glyph, Font = new Font("Segoe MDL2 Assets", 10f), Location = new Point(left, 0), Size = new Size(45, 34),
+            FlatStyle = FlatStyle.Flat, BackColor = Bg, ForeColor = Txt, TabStop = false };
+        b.FlatAppearance.BorderSize = 0; b.FlatAppearance.MouseOverBackColor = Color.FromArgb(45, 40, 70);
+        Controls.Add(b); return b;
+    }
+    Button Btn(string text, Point p, int w, bool primary)
+    {
+        var b = new Button { Text = text, Location = p, Size = new Size(w, primary ? 42 : 27), FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand,
+            BackColor = primary ? Color.FromArgb(59, 130, 246) : Panel2, ForeColor = Color.White,
+            Font = primary ? new Font("Segoe UI Semibold", 11f) : new Font("Segoe UI", 9f) };
+        b.FlatAppearance.BorderSize = primary ? 0 : 1; b.FlatAppearance.BorderColor = Color.FromArgb(70, 60, 100);
+        b.FlatAppearance.MouseOverBackColor = primary ? Color.FromArgb(99, 102, 241) : Color.FromArgb(45, 58, 80);
+        Controls.Add(b); return b;
+    }
+    CheckBox Chk(string text, int y)
+    {
+        var c = new CheckBox { Text = text, Checked = true, Location = new Point(336, y), AutoSize = true, ForeColor = Txt, FlatStyle = FlatStyle.Flat };
+        Controls.Add(c); return c;
+    }
+
+    void PaintArt(object s, PaintEventArgs e)
+    {
+        var g = e.Graphics; g.SmoothingMode = SmoothingMode.AntiAlias; g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+        var r = art.ClientRectangle;
+        using (var br = new LinearGradientBrush(r, Color.FromArgb(22, 38, 96), Color.FromArgb(11, 16, 32), 90f)) g.FillRectangle(br, r);
+        // bolhas de luz se movendo
+        for (int i = 0; i < 3; i++)
+        {
+            float a = phase * (1 + i * .3f) + i * 2.1f;
+            float cx = 150 + (float)Math.Cos(a) * 90, cy = 230 + (float)Math.Sin(a * 1.3) * 140, rad = 170 - i * 30;
+            using (var path = new GraphicsPath())
+            {
+                path.AddEllipse(cx - rad, cy - rad, rad * 2, rad * 2);
+                using (var pb = new PathGradientBrush(path))
+                {
+                    pb.CenterColor = i == 0 ? Color.FromArgb(90, 150, 60, 255) : i == 1 ? Color.FromArgb(70, 0, 200, 255) : Color.FromArgb(70, 255, 40, 170);
+                    pb.SurroundColors = new[] { Color.FromArgb(0, 0, 0, 0) };
+                    g.FillPath(pb, path);
+                }
+            }
+        }
+        // linhas de "scanline"
+        using (var p = new Pen(Color.FromArgb(14, 255, 255, 255))) for (int y = 0; y < r.Height; y += 4) g.DrawLine(p, 0, y, r.Width, y);
+        float bob = (float)Math.Sin(phase * 3) * 6;
+        g.DrawImage(logo, new RectangleF(70, 110 + bob, 160, 160));
+        using (var f = new Font("Segoe UI", 30f, FontStyle.Bold))
+        using (var white = new SolidBrush(Color.White))
+        {   // "Play" branco + "Loop" em degradê, como no logo
+            var s1 = g.MeasureString("Play", f, 999, StringFormat.GenericTypographic); var s2 = g.MeasureString("Loop", f, 999, StringFormat.GenericTypographic);
+            float x0 = (r.Width - s1.Width - s2.Width) / 2;
+            g.DrawString("Play", f, white, x0, 292, StringFormat.GenericTypographic);
+            using (var br = new LinearGradientBrush(new RectangleF(x0 + s1.Width, 292, s2.Width, 50), Cyan, Pink, 0f)) g.DrawString("Loop", f, br, x0 + s1.Width, 292, StringFormat.GenericTypographic);
+        }
+        using (var f = new Font("Segoe UI", 9f)) using (var b2 = new SolidBrush(Color.FromArgb(160, 200, 190, 230)))
+        {
+            string t = "TODOS OS SEUS JOGOS, EM UM SÓ LUGAR";
+            var sz = g.MeasureString(t, f); g.DrawString(t, f, b2, (r.Width - sz.Width) / 2, 350);
+        }
+    }
+
+    void SetStatus(string t, int p) { Invoke((Action)(() => { status.Text = t; bar.Value = Math.Min(100, p); })); Thread.Sleep(220); }
+
+    string InstallDir()
+    {
+        string d = pathBox.Text.Trim();
+        if (!Path.GetFileName(d.TrimEnd('\\')).Equals("PlayLoop", StringComparison.OrdinalIgnoreCase)) d = Path.Combine(d, "PlayLoop");   // sempre numa pasta própria
+        return d;
+    }
+
+    void Install()
+    {
+        string dir = InstallDir();
+        bool desk = cDesk.Checked, start = cStart.Checked, auto = cAuto.Checked;
+        installBtn.Enabled = false; browseBtn.Enabled = false; pathBox.Enabled = false; bar.Visible = true;
+        new Thread(() =>
+        {
+            try
+            {
+                SetStatus("Fechando versões abertas...", 8);
+                foreach (var n in new[] { "PlayLoop", "Joggo", "Jogo", "Central de Jogos" }) foreach (var p in Process.GetProcessesByName(n)) try { p.Kill(); p.WaitForExit(3000); } catch { }
+                foreach (var p in Process.GetProcesses()) try { if (p.ProcessName.StartsWith(".central-antigo")) p.Kill(); } catch { }
+                Thread.Sleep(500);
+
+                SetStatus("Copiando arquivos...", 30);
+                Directory.CreateDirectory(dir);
+                string exe = Path.Combine(dir, "PlayLoop.exe");
+                using (var s = Res("PlayLoop.exe")) using (var o = File.Create(exe)) s.CopyTo(o);
+
+                SetStatus("Criando atalhos...", 50);
+                if (desk) Shortcut(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "PlayLoop.lnk"), exe);
+                // menu Iniciar: pasta "PlayLoop" com o app e o desinstalador
+                string sm = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "PlayLoop");
+                if (start) { Directory.CreateDirectory(sm); Shortcut(Path.Combine(sm, "PlayLoop.lnk"), exe); Shortcut(Path.Combine(sm, "Desinstalar PlayLoop.lnk"), exe, "--uninstall", "Desinstalar o PlayLoop"); }
+                try { var old = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "PlayLoop.lnk"); if (File.Exists(old)) File.Delete(old); } catch { }
+                // desinstalador também na pasta de instalação
+                Shortcut(Path.Combine(dir, "Desinstalar PlayLoop.lnk"), exe, "--uninstall", "Desinstalar o PlayLoop");
+
+                SetStatus("Verificando o componente WebView2...", 60);
+                EnsureWebView2();
+
+                SetStatus("Registrando no Windows...", 68);
+                using (var k = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\PlayLoop"))
+                {
+                    k.SetValue("DisplayName", "PlayLoop"); k.SetValue("DisplayIcon", exe); k.SetValue("DisplayVersion", "1.0");
+                    k.SetValue("Publisher", "PlayLoop"); k.SetValue("InstallLocation", dir);
+                    k.SetValue("UninstallString", "\"" + exe + "\" --uninstall"); k.SetValue("NoModify", 1); k.SetValue("NoRepair", 1);
+                }
+                using (var k = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true))
+                {
+                    try { k.DeleteValue("CentralDeJogos", false); k.DeleteValue("Jogo", false); } catch { }
+                    if (auto) k.SetValue("PlayLoop", "\"" + exe + "\" silent"); else k.DeleteValue("PlayLoop", false);
+                }
+                SaveAutostart(auto);
+
+                SetStatus("Removendo a versão antiga...", 86);
+                // versões anteriores ("Joggo")
+                try { Registry.CurrentUser.DeleteSubKeyTree(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\Joggo", false); } catch { }
+                foreach (var l in new[] { Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "Joggo.lnk") }) try { if (File.Exists(l)) File.Delete(l); } catch { }
+                try { var sm0 = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "Joggo"); if (Directory.Exists(sm0)) Directory.Delete(sm0, true); } catch { }
+                try { var od = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "Joggo"); foreach (var f in new[] { "Joggo.exe", "Desinstalar Joggo.lnk" }) { var p = Path.Combine(od, f); if (File.Exists(p)) File.Delete(p); } try { Directory.Delete(od); } catch { } } catch { }
+                try { using (var k = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true)) k.DeleteValue("Joggo", false); } catch { }
+                // versão anterior com o nome "Jogo"
+                try { Registry.CurrentUser.DeleteSubKeyTree(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\Jogo", false); } catch { }
+                foreach (var l in new[] { Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "Jogo.lnk"), Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "Jogo.lnk") }) try { if (File.Exists(l)) File.Delete(l); } catch { }
+                try { var od = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "Jogo"); var oe = Path.Combine(od, "Jogo.exe"); if (File.Exists(oe)) { File.Delete(oe); try { Directory.Delete(od); } catch { } } } catch { }
+                string dsk = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+                foreach (var f in new[] { "Central de Jogos.exe" }) try { var p = Path.Combine(dsk, f); if (File.Exists(p)) File.Delete(p); } catch { }
+                try { foreach (var f in Directory.GetFiles(dsk, ".central-antigo*.exe")) try { File.Delete(f); } catch { } } catch { }
+
+                SetStatus("Pronto! O PlayLoop foi instalado.", 100);
+                Invoke((Action)(() => { done = true; installBtn.Text = cRun.Checked ? "Abrir o PlayLoop" : "Concluir"; installBtn.Enabled = true; }));
+            }
+            catch (Exception ex)
+            {
+                Invoke((Action)(() => { status.Text = "Erro: " + ex.Message; status.ForeColor = Color.FromArgb(255, 120, 140); installBtn.Enabled = true; browseBtn.Enabled = true; pathBox.Enabled = true; }));
+            }
+        }) { IsBackground = true }.Start();
+    }
+
+    // grava a opção na configuração do app (para ele respeitar a escolha)
+    static void SaveAutostart(bool on)
+    {
+        try
+        {
+            string app = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CentralDeJogos", "config.json");
+            string f = File.Exists(app) ? app : Path.Combine(EmuRoot, "central-config.json");
+            if (!File.Exists(f)) return;   // primeira instalação: o app pergunta as pastas na primeira abertura
+            var js = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
+            var cfg = (Dictionary<string, object>)js.DeserializeObject(File.ReadAllText(f));
+            cfg["autostart"] = on;
+            File.WriteAllText(f, js.Serialize(cfg));
+        }
+        catch { }
+    }
+
+    void Launch() { try { Process.Start(new ProcessStartInfo(Path.Combine(InstallDir(), "PlayLoop.exe")) { UseShellExecute = true }); } catch { } }
+
+    static void Shortcut(string lnk, string target, string args = "", string desc = "PlayLoop")
+    {
+        try
+        {
+            var t = Type.GetTypeFromProgID("WScript.Shell");
+            object sh = Activator.CreateInstance(t);
+            object sc = t.InvokeMember("CreateShortcut", BindingFlags.InvokeMethod, null, sh, new object[] { lnk });
+            var st = sc.GetType();
+            st.InvokeMember("TargetPath", BindingFlags.SetProperty, null, sc, new object[] { target });
+            st.InvokeMember("WorkingDirectory", BindingFlags.SetProperty, null, sc, new object[] { Path.GetDirectoryName(target) });
+            st.InvokeMember("IconLocation", BindingFlags.SetProperty, null, sc, new object[] { target + ",0" });
+            st.InvokeMember("Description", BindingFlags.SetProperty, null, sc, new object[] { desc });
+            if (args != "") st.InvokeMember("Arguments", BindingFlags.SetProperty, null, sc, new object[] { args });
+            st.InvokeMember("Save", BindingFlags.InvokeMethod, null, sc, null);
+        }
+        catch { }
+    }
+
+    class DBPanel : Panel { public DBPanel() { DoubleBuffered = true; } }
+}
