@@ -62,6 +62,24 @@ function cfgPad(a) {
     openOsk(cur);   // campo de texto: abre o teclado virtual
   }
 }
+/* ---------- barra do topo na home (busca, config, som, TV) via ↑ ---------- */
+let topSel = -1;
+const TOP_IDS = ['gq', 'gear', 'mute', 'crtBtn'];
+function topMark(i) {
+  topSel = i; TOP_IDS.forEach((id, k) => $(id) && $(id).classList.toggle('padsel', k === i));
+  if (i >= 0) sfx('tick');
+}
+function topInput(a) {
+  if (a === 'left' && topSel > 0) topMark(topSel - 1);
+  else if (a === 'right' && topSel < TOP_IDS.length - 1) topMark(topSel + 1);
+  else if (a === 'down' || a === 'back') { topMark(-1); sfx('back'); }
+  else if (a === 'ok') {
+    const id = TOP_IDS[topSel]; topMark(-1);
+    if (id === 'gq') { openGlobal(''); setTimeout(() => openOsk($('q')), 50); }
+    else { $(id).click(); if (id !== 'gear') topMark(TOP_IDS.indexOf(id)); }
+  }
+}
+document.addEventListener('mousedown', () => { if (topSel >= 0) topMark(-1); }, true);
 /* ---------- controles: teclado + gamepad ---------- */
 function input(a) {
   if (oskOpen) { oskInput(a); return; }
@@ -77,7 +95,9 @@ function input(a) {
   if (a === 'select') { setCrt(!crtOn); return; }
   if (a === 'search') { if (screen === 'games') { $('q').focus(); openOsk($('q')); } else if (screen === 'systems' || screen === 'favgrid') { openGlobal(''); setTimeout(() => openOsk($('q')), 50); } return; }
   if (screen === 'favgrid') { fgInput(a); return; }
+  if (screen === 'systems' && topSel >= 0) { topInput(a); return; }
   if (screen === 'systems') {
+    if (a === 'up') { topMark(0); return; }
     if (a === 'left') selectSystem(sysIdx - 1); else if (a === 'right') selectSystem(sysIdx + 1);
     else if (a === 'ok') openSystem();
   } else {
