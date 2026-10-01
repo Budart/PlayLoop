@@ -617,3 +617,13 @@ body.th-light .wpsearch .wpbar input::placeholder { color:#9A8B7A; }
 
 #vidLogo { position:absolute; left:18px; bottom:16px; z-index:3; max-width:38%; max-height:30%; object-fit:contain; object-position:left bottom; opacity:0; transition:opacity .4s; pointer-events:none; filter:drop-shadow(0 2px 8px rgba(0,0,0,.8)); }
 #vidLogo.on { opacity:1; }
+
+/* boas-vindas: árvore ilustrada de pastas */
+.wtree { margin:14px 0 10px; padding:12px 14px; border-radius:12px; background:rgba(0,0,0,.28); border:1px solid rgba(255,255,255,.08); text-align:left; }
+.wt { display:flex; align-items:center; gap:8px; padding:3px 0 3px calc(var(--l) * 22px); font-size:14px; position:relative; }
+.wt svg { width:20px; height:20px; flex:none; }
+.wt b { font-weight:600; }
+.wt i { font-style:normal; font-size:12px; opacity:.6; margin-left:4px; }
+.wt::before { content:""; position:absolute; left:calc(var(--l) * 22px - 12px); top:50%; width:8px; border-top:1px solid rgba(255,255,255,.25); display:var(--d, block); }
+.wt[style*="--l:0"]::before { display:none; }
+.wtips { text-align:left; margin:8px 0 0; padding-left:18px; font-size:13px; opacity:.85; line-height:1.5; }
