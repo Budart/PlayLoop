@@ -225,6 +225,7 @@ let coverStyle2d = false;
 // ---- cor principal da capa: a cor mais presente (com peso para cores vivas) vira a cor de toda a caixa 3D ----
 const caseColor = {};
 function caseVars(url) {
+  return '';   // desativado: a caixa volta a ser preta (o cálculo da cor fica guardado caso volte)
   if (!url) return '';
   const c = caseColor[url];
   if (c === undefined) { caseColor[url] = null; setTimeout(() => caseTint(url), 0); return ''; }
