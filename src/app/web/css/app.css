@@ -484,3 +484,5 @@
   /* vídeo tocando: a capa fica no canto superior direito e o zoom cresce para baixo/esquerda (dentro da área do vídeo) */
   .right.vidplay .art .cw, .right.vidplay .art .rot { transform-origin:100% 0; }
   .right.vidplay > .art { overflow:visible; }
+
+  .cfnav button { font-size:17px; padding:12px 16px; }

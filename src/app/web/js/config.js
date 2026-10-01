@@ -18,7 +18,7 @@ function fieldHtml(i, key, label, val, browse, multi) {
   const inp = multi ? `<textarea data-i="${i}" data-k="${key}" rows="2">${esc(val)}</textarea>` : `<input data-i="${i}" data-k="${key}" value="${esc(val)}">`;
   return `<div class="fld"><label>${label}</label><div class="line">${inp}${browse ? `<button class="btn sec sm" data-browse="${browse}" data-i="${i}" data-k="${key}">Procurar...</button>` : ''}${key === 'emulator' ? `<span class="st" id="st${i}"></span>` : ''}</div></div>`;
 }
-const CF_SECS = [['geral', '🚀 Geral'], ['consoles', '🎮 Consoles'], ['capas', '🖼 Capas e vídeo'], ['favoritos', '⭐ Favoritos']];
+const CF_SECS = [['geral', 'Geral'], ['consoles', 'Consoles'], ['capas', 'Capas e vídeo'], ['favoritos', 'Favoritos']];
 let cfSec = 'geral';
 // opções com desenho ilustrativo (o rádio fica escondido; o cartão inteiro é clicável)
 const pick = (name, val, on, svg, title, sub) => `<label class="pick"><input type="radio" name="${name}" value="${val}" ${on ? 'checked' : ''}><div class="pv">${svg}</div><b>${title}</b><small>${sub || ''}</small></label>`;
