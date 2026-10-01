@@ -299,18 +299,27 @@ let fxOpen = false;
 let fxTimer = 0, fxAt = 0;
 // animação de abertura: a imagem cresce de "rect" até a tela inteira (o app entra em tela cheia de verdade), escurece e mostra "Bom jogo.";
 // o jogo abre depois da animação completa + 0,5 s
-function playFx(rect, bgImage, bgPos, radius) {
+function playFx(rect, bgImage, bgPos, radius, bgSize) {
   if (fxOpen) return;
   const fx = $('fgFx');
   clearTimeout(fxTimer); fxTimer = setTimeout(() => { if (fxOpen) launch(); }, 1400);
   if (window.chrome && chrome.webview) chrome.webview.postMessage('fxon');
-  fx.style.backgroundImage = bgImage || ''; fx.style.backgroundPosition = bgPos || 'center';
-  fx.className = 'fgfx'; Object.assign(fx.style, { left: rect.left + 'px', top: rect.top + 'px', width: rect.width + 'px', height: rect.height + 'px', borderRadius: (radius || 0) + 'px' });
+  fx.style.backgroundImage = bgImage || ''; fx.style.backgroundPosition = bgPos || 'center'; fx.style.backgroundSize = bgSize && bgSize !== 'auto' ? bgSize : 'cover';
+  fx.className = 'fgfx' + (fx.classList.contains('frombg') ? ' frombg' : ''); Object.assign(fx.style, { left: rect.left + 'px', top: rect.top + 'px', width: rect.width + 'px', height: rect.height + 'px', borderRadius: (radius || 0) + 'px' });
   fxOpen = true; fxAt = Date.now(); fx.classList.add('on');
   requestAnimationFrame(() => requestAnimationFrame(() => { fx.classList.add('grow'); Object.assign(fx.style, { left: '0px', top: '0px', width: '100vw', height: '100vh', borderRadius: '0px' }); }));
 }
 function fgLaunch() {
   const g = fg.items[fg.sel], el = $('fgTrack').querySelector(`.fgcard[data-i="${fg.sel}"]`); if (!g || fxOpen) return;
+  // com o fundo do jogo na tela: os itens somem e o próprio fundo cresce até a tela cheia
+  const host = $('fgBg'), lay = [...host.querySelectorAll('.bgl.on')].pop();
+  if (favBgGame && lay && host._g === g) {
+    $('favgrid').classList.add('launching');
+    $('fgFx').classList.add('frombg');
+    const cs = getComputedStyle(lay);
+    playFx(host.getBoundingClientRect(), lay.style.backgroundImage, cs.backgroundPosition, 0, cs.backgroundSize);
+    return;
+  }
   if (!el) { launch(); return; }
   const im = el.querySelector('.fgimg'), o = fgOfs(g);
   playFx(el.getBoundingClientRect(), im ? im.style.backgroundImage : '', o ? `${o.x}% ${o.y}%` : 'center', 12);
@@ -325,7 +334,7 @@ function listLaunch() {
   if (!img) { launch(); return; }
   playFx(right.getBoundingClientRect(), img, 'center', 10);
 }
-function fgFxClose() { clearTimeout(fxTimer); if (!fxOpen) return; fxOpen = false; const fx = $('fgFx'); fx.classList.add('out'); setTimeout(() => { fx.className = 'fgfx'; }, 350); if (window.chrome && chrome.webview) chrome.webview.postMessage('fxoff'); }
+function fgFxClose() { clearTimeout(fxTimer); if (!fxOpen) return; fxOpen = false; $('favgrid').classList.remove('launching'); const fx = $('fgFx'); fx.classList.add('out'); setTimeout(() => { fx.className = 'fgfx'; fx.style.backgroundSize = ''; }, 350); if (window.chrome && chrome.webview) chrome.webview.postMessage('fxoff'); }
 window.addEventListener('blur', () => { if (fxOpen && Date.now() - fxAt > 1300) fgFxClose(); });   // o jogo abriu (o foco saiu do app)
 // ---- reposicionar a imagem do card: 'fofs|chave' = "posX%,posY%,zoom" ----
 const fgBgOfs = g => { const v = covers['bofs|' + coverKey(g)]; if (!v) return null; const [x, y, z] = v.split(',').map(Number); return { x, y, z: z || 1 }; };

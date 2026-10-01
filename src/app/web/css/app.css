@@ -585,3 +585,11 @@ body.th-light .wpsearch .wpbar input::placeholder { color:#9A8B7A; }
 .fghgrip::after { content:""; position:absolute; left:50%; top:3px; width:48px; height:4px; margin-left:-24px; border-radius:2px; background:rgba(255,255,255,.18); opacity:0; transition:opacity .15s; }
 #fgHeader:hover .fghgrip::after, .fghgrip.on::after { opacity:1; }
 #favgrid > .fgbg { top:var(--fgh, 150px); }
+
+/* abrir jogo pelos Favoritos com fundo do jogo: tudo some e o fundo vira tela cheia */
+#favgrid > *:not(.fgbg) { transition:opacity .35s ease; }
+#favgrid.launching > *:not(.fgbg) { opacity:0; pointer-events:none; }
+#favgrid.launching ~ .padhelp, body:has(#favgrid.launching) .padhelp { opacity:0; transition:opacity .35s; }
+.fgfx.frombg { opacity:.42; }
+.fgfx.frombg.grow { opacity:1; transition:left .55s cubic-bezier(.2,.8,.2,1), top .55s cubic-bezier(.2,.8,.2,1), width .55s cubic-bezier(.2,.8,.2,1), height .55s cubic-bezier(.2,.8,.2,1), opacity .45s; }
+.fgfx.frombg.grow.out { opacity:0; transition:opacity .3s; }
