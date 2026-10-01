@@ -537,3 +537,6 @@
   .icogrid.ap { max-height:none; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; } .icogrid.ap.bgs .ico img { height:90px; }
 
   .cfcache.cred .by { color:var(--c1); font-size:13px; font-weight:600; margin:-4px 0 4px; } .cfcache.cred .line { flex-wrap:wrap; gap:8px; margin-top:8px; }
+
+  .padhelp .kk { display:inline-block; min-width:24px; padding:2px 8px; border-radius:6px; background:#334155; color:#e5e7eb; font-weight:700; font-size:12px; text-align:center; box-shadow:inset 0 -2px 0 rgba(0,0,0,.3); }
+  body.th-light .padhelp .kk { background:#E8DCCB; color:#2E2721; }

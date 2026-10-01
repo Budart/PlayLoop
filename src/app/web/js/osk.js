@@ -23,7 +23,9 @@ function closeOsk(confirm) {
   if (!oskOpen) return; oskOpen = false; $('osk').classList.remove('on');
   const el = oskTarget; oskTarget = null;
   if (el && confirm && (el.id === 'cq' || el.classList.contains('rn'))) el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));   // busca de imagem / renomear: mesmo efeito do Enter
-  if (el && el.id === 'q') el.blur();
+  if (el && !confirm && el.classList.contains('rn')) el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));   // desistiu de renomear: cancela
+  if (el && document.activeElement === el) el.blur();   // tira o foco do texto p/ o controle voltar a navegar
+  try { document.getElementById('view')?.focus?.(); } catch (e) {}
   sfx(confirm ? 'ok' : 'back');
 }
 function oskType(s) {

@@ -155,10 +155,11 @@ function pollPad1() {
     const st = { up: b(12) || ay < -.6, down: b(13) || ay > .6, left: b(14) || ax < -.6, right: b(15) || ax > .6, ok: b(0), back: b(1), fav: b(2), menu: b(3), pgup: b(4), pgdn: b(5), select: b(8), start: b(9), search: b(10) || b(11) };
     const now = performance.now();
     for (const k in st) {
-      if (st[k] && !padPrev[k]) { lastInputPad = true; input(k); padRepeat = now + 380; }
+      if (st[k] && !padPrev[k]) { lastInputPad = true; legendMode = 'pad'; input(k); padRepeat = now + 380; }
       else if (st[k] && ['up','down','left','right'].includes(k) && now > padRepeat) { input(k); padRepeat = now + 70; }
     }
     padPrev = st;
+    if (Object.values(st).some(Boolean)) legendMode = 'pad';
     // R2 / L2: aumenta / diminui a capa 3D
     const r2 = p.buttons[7] ? p.buttons[7].value || (p.buttons[7].pressed ? 1 : 0) : 0, l2 = p.buttons[6] ? p.buttons[6].value || (p.buttons[6].pressed ? 1 : 0) : 0;
     if ((r2 > .15 || l2 > .15) && $('art').querySelector('.rot')) { view3d.z = Math.max(.5, Math.min(2.6, view3d.z * (1 + (r2 - l2) * .03))); applyView(); }

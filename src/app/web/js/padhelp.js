@@ -47,13 +47,34 @@ function padContext() {
   if (screen === 'systems') return ['systems', [['dpad', 'escolher console'], ['ok', 'entrar'], ['start', 'configuração'], ['l3', 'buscar'], ['sel', 'modo TV']]];
   return ['', []];
 }
+// mesma legenda para quem está no teclado: troca na hora conforme a última entrada (teclado ↔ controle)
+let legendMode = 'pad';
+document.addEventListener('keydown', () => { legendMode = 'kb'; }, true);
+const KB = {
+  systems: [['← →', 'escolher console'], ['Enter', 'entrar'], ['A-Z', 'buscar'], ['F1', 'configuração']],
+  games: [['↑ ↓', 'navegar'], ['Enter', 'jogar'], ['PgUp PgDn', 'pular'], ['F2', 'renomear'], ['A-Z', 'buscar'], ['Esc', 'voltar']],
+  favgrid: [['Setas', 'navegar'], ['Enter', 'jogar'], ['Espaço', 'mover card'], ['I', 'info'], ['PgUp PgDn', 'página'], ['A-Z', 'buscar'], ['Esc', 'voltar']],
+  fgmove: [['Setas', 'mover card'], ['Espaço', 'soltar'], ['Esc', 'cancelar']],
+  config: [['Clique', 'escolher'], ['F1', 'configuração'], ['Esc', 'voltar']],
+  ask: [['← →', 'escolher'], ['Enter', 'confirmar'], ['Esc', 'cancelar']],
+  ctx: [['↑ ↓', 'escolher'], ['Enter', 'selecionar'], ['Esc', 'fechar']],
+  cover: [['Setas', 'escolher imagem'], ['Enter', 'usar'], ['Esc', 'fechar']],
+  artpick: [['Setas', 'escolher'], ['Enter', 'usar'], ['Esc', 'fechar']],
+  fp: [['Setas', 'mover imagem'], ['PgUp PgDn', 'zoom'], ['Enter', 'salvar'], ['Esc', 'cancelar']],
+  info: [['Enter', 'jogar'], ['Esc', 'fechar']],
+  osk: [['Teclado', 'digitar'], ['Enter', 'fechar'], ['Esc', 'cancelar']],
+  fx: [['Esc', 'cancelar']],
+};
 function updatePadHelp(pad) {
   const t = pad ? detectPad(pad.id) : null;
   document.body.classList.toggle('pad', !!t);
   if (!t) { padKey = ''; return; }
   padType = t;
-  const [k, items] = padContext(), key = t + '|' + k;
+  const [k, items] = padContext(), key = legendMode + '|' + t + '|' + k;
   if (key === padKey) return;
   padKey = key;
-  $('padHelp').innerHTML = items.map(([g, txt]) => `<span class="pi">${G[g]()}<em>${txt}</em></span>`).join('');
+  $('padHelp').classList.toggle('kb', legendMode === 'kb');
+  $('padHelp').innerHTML = legendMode === 'kb'
+    ? (KB[k] || []).map(([kk, txt]) => `<span class="pi"><b class="kk">${kk}</b><em>${txt}</em></span>`).join('')
+    : items.map(([g, txt]) => `<span class="pi">${G[g]()}<em>${txt}</em></span>`).join('');
 }
