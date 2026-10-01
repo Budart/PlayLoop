@@ -76,7 +76,7 @@ const cp = u => (cacheOn && u && /^https?:/.test(u)) ? '/api/img?u=' + encodeURI
 // capa já conhecida (manual, memória ou cache em disco) — resposta imediata, sem esperar nada
 function cachedArt(g) {
   const key = coverKey(g);
-  if (covers[key]) return { box: covers[key], snap: null, src: 'manual', ratio: artDisk[key] && artDisk[key].ratio };
+  if (covers[key]) return { box: covers[key], snap: null, src: 'manual', ratio: artDisk[key] && artDisk[key].ratio, logo: artDisk[key] && artDisk[key].logo };
   if (artCache[key]) return artCache[key];
   if (cacheOn && artDisk[key] && !/^(wikipedia|wikiintl)$/.test(artDisk[key].src) && (sgdbOn || artDisk[key].src !== 'sgdb') && (!sgdbOn || artDisk[key].src === 'sgdb')) return artCache[key] = artDisk[key];   // ignora capas antigas da Wikipédia
   return null;
@@ -218,6 +218,7 @@ const CASES = {
 const ratioCache = {};
 function spineLogo(url, my) {   // logo do SteamGridDB na lateral, só depois de carregada (antes: texto)
   const u = cp(url);
+  const sp0 = $('art').querySelector('.spine .spl'); if (sp0 && sp0.getAttribute('src') === u) { lastArt.logo = u; return; }   // já está na lombada
   loadImg(u).then(ok => { if (!ok || my !== artReq) return; const sp = $('art').querySelector('.spine'); if (!sp) return; sp.innerHTML = `<img class="spl" src="${esc(u)}" alt="">`; lastArt.logo = u; });
 }
 function loadRatio(url) { return new Promise(ok => { const i = new Image(); i.onload = () => { const r = i.naturalWidth > 1 ? i.naturalWidth / i.naturalHeight : null; if (r) ratioCache[url] = r; ok(r); }; i.onerror = () => ok(null); i.src = url; }); }
@@ -275,7 +276,10 @@ function buildCase(g, url, back, ratio) {
   const px = v => v.toFixed(2) + 'px';
   const face = (cls, w, h, tf, style, html) => `<div class="face ${cls}" style="width:${px(w)};height:${px(h)};left:${px((W - w) / 2)};top:${px((H - h) / 2)};transform:${tf};${style}">${html || ''}</div>`;
   const fs = Math.max(9, D * .36);
-  const spineHtml = `<span style="color:var(--etxt, ${c.txt});font-size:${px(fs)}">${esc(cleanTitle(dn(g)) || dn(g))}</span>`;
+  // título da lateral: já desenhado junto com a capa quando a logo é conhecida (mesma velocidade da frente); o texto fica até a imagem carregar
+  const ca = cachedArt(g), lg = covers['logo|' + coverKey(g)] || (ca && ca.logo);
+  const spineHtml = `<span style="color:var(--etxt, ${c.txt});font-size:${px(fs)}">${esc(cleanTitle(dn(g)) || dn(g))}</span>` +
+    (lg ? `<img class="spl" src="${esc(cp(lg))}" alt="" style="opacity:0" onload="this.style.opacity=1;const t=this.previousElementSibling;if(t)t.remove()" onerror="this.remove()">` : '');
   const coverStyle = `background:linear-gradient(160deg, ${gen} -20%, ${base.spine} 55%, #000 130%);`;
   const tex = url ? `<div style="position:absolute;inset:0;background:url('${url.replace(/'/g, "%27")}') center/cover no-repeat"></div>` : '';
   const inner = `<div class="generic" style="position:absolute;inset:0;color:#fff"><img class="lg" src="${logoUrl(sys)}" alt=""><div class="gt" style="font-size:${px(Math.max(14, W * .085))}">${esc(cleanTitle(dn(g)) || dn(g))}</div><img class="ct" src="${ART}controllers/${sys.art}.svg" alt=""></div>`;
