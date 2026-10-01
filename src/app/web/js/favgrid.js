@@ -416,7 +416,7 @@ function fgCtx(x, y, sizes) {
     ctxItems = [['pen', '← Voltar', () => fgCtx(x, y)], null];
     for (let h = 1; h <= Math.min(4, R); h++) for (let w = 1; w <= Math.min(4, C); w++) ctxItems.push(['cover', `${w} × ${h}${w === cur.w && h === cur.h ? '  ✓' : ''}`, () => fgResize(g, w, h)]);
   } else ctxItems = [
-    ['star', 'Desfavoritar', async () => { await toggleFav(g); openFavGrid(); }],
+    ['star', 'Desfavoritar', async () => { if (!await ask('Desfavoritar este jogo?', `"${dn(g)}" sai da tela de Favoritos (o jogo continua no seu PC).`, 'Desfavoritar')) return; await toggleFav(g); openFavGrid(); }],
     ['cover', 'Alterar imagem', () => openCover('card')],
     ['bg', 'Alterar fundo', () => openCover(true)],
     ['bg', 'Reposicionar imagem', () => fgPosOpen()],
