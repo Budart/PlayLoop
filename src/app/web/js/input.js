@@ -143,6 +143,7 @@ function pollPad() {
 }
 function pollPad1() {
   const p = [...(navigator.getGamepads ? navigator.getGamepads() : [])].find(g => g && g.connected !== false);
+  updatePadHelp(p);
   // Xbox / DualSense / genéricos (mapeamento padrão): A/✕ ok · B/○ voltar · X/□ favoritar · Y/△ menu · LB/RB pular · Start configuração · Select modo TV
   if (p && !renaming && screen !== 'welcome') {
     const ax = p.axes[0] || 0, ay = p.axes[1] || 0, b = i => p.buttons[i] && p.buttons[i].pressed;
