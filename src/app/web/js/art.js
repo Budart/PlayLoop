@@ -259,7 +259,7 @@ function buildCase(g, url, back, ratio) {
       corners += face('corner', seg, D + O, `translate3d(${px(x)},${px(y)},0) rotateZ(${(th * 180 / Math.PI + 90).toFixed(2)}deg) rotateX(90deg)`, `background:${edge};filter:brightness(${shade.toFixed(2)});backface-visibility:visible;`);
     }
   });
-  return `<div class="cw"><div class="rot" style="transform:${viewTf()};transform-style:preserve-3d"><div class="flip${back ? ' back' : ''}"><div class="case3d" style="width:${px(W)};height:${px(H)}">` +
+  return `<div class="cw" style="transform:${scaleTf()}"><div class="rot" style="transform:${viewTf()};transform-style:preserve-3d"><div class="flip${back ? ' back' : ''}"><div class="case3d" style="width:${px(W)};height:${px(H)}">` +
     face('front', W, H, `translateZ(${px(D / 2)})`, rimStyle + `background-color:${c.rimc};`, `<div style="position:absolute;inset:0;background-size:cover;background-position:center;${coverStyle}"></div>${inner}${tex}`) +
     face('back', W, H, `rotateY(180deg) translateZ(${px(D / 2)})`, `background:${edge};border-radius:${R}px;filter:brightness(.6);`) +
     face('spine', D + O, H - 2 * R + O, `rotateY(-90deg) translateZ(${px(W / 2)})`, `--sh:${px((H - 2 * R) * .85)};--sw:${px(D * .8)};background:linear-gradient(90deg, rgba(0,0,0,.25), rgba(255,255,255,.08) 50%, rgba(0,0,0,.25)), ${edge};`, spineHtml) +

@@ -118,7 +118,9 @@ async function setBg(url, mode, instant) {
 }
 // girar com o mouse (arrastar) e zoom (roda do mouse)
 const view3d = { ry: 0, rx: 0, z: 1 };
-const viewTf = () => `scale(${view3d.z}) rotateX(${view3d.rx}deg) rotateY(${view3d.ry}deg)`;
+// giro sempre no centro da capa; o zoom é aplicado por fora (no invólucro), ancorado onde a capa está (canto superior direito com vídeo)
+const viewTf = () => `rotateX(${view3d.rx}deg) rotateY(${view3d.ry}deg)`;
+const scaleTf = () => `scale(${view3d.z})`;
 // zoom limitado: a capa nunca passa da sua área (painel da capa; com vídeo tocando, cresce para baixo/esquerda até o fim do vídeo)
 function zoomMax() {
   const c = $('art').querySelector('.case3d'); if (!c) return 2.6;
@@ -132,7 +134,7 @@ function zoomMax() {
 }
 // giro limitado: a caixa já fica virada ~30° (balanço); somando, nunca passa de ~±78°, então o verso nunca aparece
 const RY_MIN = -106, RY_MAX = 46, RX_LIM = 50;
-function applyView() { view3d.ry = Math.max(RY_MIN, Math.min(RY_MAX, view3d.ry)); view3d.rx = Math.max(-RX_LIM, Math.min(RX_LIM, view3d.rx)); view3d.z = Math.max(.5, Math.min(view3d.z, zoomMax())); const r = $('art').querySelector('.rot'); if (r) r.style.transform = viewTf(); }
+function applyView() { view3d.ry = Math.max(RY_MIN, Math.min(RY_MAX, view3d.ry)); view3d.rx = Math.max(-RX_LIM, Math.min(RX_LIM, view3d.rx)); view3d.z = Math.max(.5, Math.min(view3d.z, zoomMax())); const r = $('art').querySelector('.rot'); if (r) r.style.transform = viewTf(); const w = $('art').querySelector('.cw'); if (w && r) w.style.transform = scaleTf(); }
 (() => {
   const a = $('art'); let drag = null;
   a.addEventListener('pointerdown', e => { if (e.button !== 0) return; drag = { x: e.clientX, y: e.clientY, ry: view3d.ry, rx: view3d.rx }; a.setPointerCapture(e.pointerId); a.style.cursor = 'grabbing'; });
