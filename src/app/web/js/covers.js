@@ -1,13 +1,13 @@
 // PlayLoop — covers.js
 /* ---------- escolher capa manualmente (estilo TICO) ---------- */
 let modalOpen = false, coverGame = null;
-let bgMode = false;
+let bgMode = false, cardMode = false;   // cardMode: imagem do card dos Favoritos (capas + fundos)
 function openCover(isBg) {
   sfx('ok');
   const g = shown[gIdx]; if (!g) return;
-  coverGame = g; modalOpen = true; bgMode = !!isBg;
-  $('ctitle').textContent = bgMode ? '🌄 Escolher imagem de fundo' : '🖼 Escolher capa';
-  $('creset').textContent = bgMode ? 'Voltar para o fundo automático' : 'Voltar para a capa automática';
+  coverGame = g; modalOpen = true; cardMode = isBg === 'card'; bgMode = !!isBg && !cardMode;
+  $('ctitle').textContent = cardMode ? '🖼 Imagem do card (capas e fundos)' : bgMode ? '🌄 Escolher imagem de fundo' : '🖼 Escolher capa';
+  $('creset').textContent = cardMode ? 'Voltar para a imagem automática' : bgMode ? 'Voltar para o fundo automático' : 'Voltar para a capa automática';
   $('cgame').textContent = g.name; $('cq').value = cleanTitle(g.name); $('curl').value = '';
   $('coverModal').classList.add('on'); $('cq').focus(); $('cq').select();
   searchCovers();
@@ -15,7 +15,14 @@ function openCover(isBg) {
 function closeCover() { sfx('back'); modalOpen = false; $('coverModal').classList.remove('on'); }
 async function setCover(url) {
   const g = coverGame; if (!g) return;
-  const key = (bgMode ? 'bg|' : '') + coverKey(g);
+  const key = (cardMode ? 'fimg|' : bgMode ? 'bg|' : '') + coverKey(g);
+  if (cardMode) {
+    try { await api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, url }) }); } catch (e) { toast(e.message, true); return; }
+    if (url) covers[key] = url; else delete covers[key];
+    closeCover(); toast(url ? 'Imagem do card salva!' : 'Voltou para a imagem automática');
+    if (screen === 'favgrid') renderFavGrid();
+    return;
+  }
   if (bgMode) {
     try { await api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, url }) }); } catch (e) { toast(e.message, true); return; }
     if (url) covers[key] = url; else delete covers[key];
@@ -32,7 +39,7 @@ let sortT;
 function sortGrid() {
   clearTimeout(sortT); sortT = setTimeout(() => {
     const res = $('cres'), its = [...res.querySelectorAll('.it')];
-    its.sort((a, b) => (+b.dataset.ph - +a.dataset.ph) || (+b.dataset.ov - +a.dataset.ov) || (bgMode ? 0 : aspectOk(+b.dataset.ar) - aspectOk(+a.dataset.ar)) || ((+b.dataset.px || 0) - (+a.dataset.px || 0))).forEach(el => res.appendChild(el));   // nome exato > palavras em comum > resolução
+    its.sort((a, b) => (+b.dataset.ph - +a.dataset.ph) || (+b.dataset.ov - +a.dataset.ov) || (bgMode || cardMode ? 0 : aspectOk(+b.dataset.ar) - aspectOk(+a.dataset.ar)) || ((+b.dataset.px || 0) - (+a.dataset.px || 0))).forEach(el => res.appendChild(el));   // nome exato > palavras em comum > resolução
   }, 120);
 }
 async function searchCovers() {
@@ -41,13 +48,14 @@ async function searchCovers() {
   $('cmsg').textContent = 'Buscando...';
   const items = [];
   const conv = u => !bgMode ? u : u.replace('/Named_Boxarts/', '/Named_Snaps/').replace(/library_600x900(_2x)?\.jpg$/, 'library_hero.jpg');
-  const add = (url, label, src) => { url = conv(url); if (!items.some(i => i.url === url)) items.push({ url, label, src, ...relevance(q, label) }); };
+  const toBg = u => u.replace('/Named_Boxarts/', '/Named_Snaps/').replace(/library_600x900(_2x)?\.jpg$/, 'library_hero.jpg');
+  const add = (url, label, src) => { for (const u of cardMode ? [url, toBg(url)] : [conv(url)]) if (!items.some(i => i.url === u)) items.push({ url: u, label, src: cardMode && u !== url ? src + ' · fundo' : src, ...relevance(q, label) }); };
   // SteamGridDB ligado: só capas (grids) ou fundos (heroes) de lá, ordenados como na escolha automática
   if (sgdbOn) {
     try {
       const games = (await sg('/api/v2/search/autocomplete/' + encodeURIComponent(q))).map(x => ({ x, ...relevance(q, x.name) })).sort((a, b) => (b.phrase - a.phrase) || (b.overlap - a.overlap)).slice(0, 3);
       for (const gm of games) {
-        const list = bgMode ? await sg(`/api/v2/heroes/game/${gm.x.id}?${STATIC}`) : await sgdbGrids(gm.x.id);
+        const list = cardMode ? (await sgdbGrids(gm.x.id)).concat(await sg(`/api/v2/heroes/game/${gm.x.id}?${STATIC}`)) : bgMode ? await sg(`/api/v2/heroes/game/${gm.x.id}?${STATIC}`) : await sgdbGrids(gm.x.id);
         list.slice(0, 30).forEach(x => { if (!items.some(i => i.url === x.url)) items.push({ url: x.url, label: gm.x.name, src: 'SteamGridDB · ★' + (x.score || 0), phrase: gm.phrase, overlap: gm.overlap }); });
       }
     } catch (e) { $('cmsg').textContent = 'SteamGridDB: ' + e.message; }

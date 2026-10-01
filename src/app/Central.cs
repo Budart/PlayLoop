@@ -453,7 +453,7 @@ static class Central
                 long size = 0; int n = 0;
                 if (Directory.Exists(CacheDir)) foreach (var fi in new DirectoryInfo(CacheDir).GetFiles()) { size += fi.Length; n++; }
                 object en; bool on = !(cfg.TryGetValue("coverCache", out en) && en is bool && !(bool)en);
-                SendJson(ctx, new Dictionary<string, object> { { "enabled", on }, { "size", size }, { "files", n }, { "bgMode", bgMode }, { "coverStyle", S(cfg, "coverStyle") }, { "sgdb", S(cfg, "sgdbKey") != "" && cfg.ContainsKey("useSgdb") && cfg["useSgdb"] is bool && (bool)cfg["useSgdb"] }, { "fav", cfg.ContainsKey("fav") ? cfg["fav"] : null }, { "favConsole", !(cfg.ContainsKey("favConsole") && cfg["favConsole"] is bool && !(bool)cfg["favConsole"]) } });
+                SendJson(ctx, new Dictionary<string, object> { { "enabled", on }, { "size", size }, { "files", n }, { "bgMode", bgMode }, { "coverStyle", S(cfg, "coverStyle") }, { "favGrid", S(cfg, "favGrid") }, { "sgdb", S(cfg, "sgdbKey") != "" && cfg.ContainsKey("useSgdb") && cfg["useSgdb"] is bool && (bool)cfg["useSgdb"] }, { "fav", cfg.ContainsKey("fav") ? cfg["fav"] : null }, { "favConsole", !(cfg.ContainsKey("favConsole") && cfg["favConsole"] is bool && !(bool)cfg["favConsole"]) } });
             }
             else if (path == "/api/cache/clear" && req.HttpMethod == "POST")
             {

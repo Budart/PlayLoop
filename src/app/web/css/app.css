@@ -305,3 +305,42 @@
   /* player em meia resolução ampliado 2x: o YouTube escolhe um stream mais leve e começa bem mais rápido */
   #vidBox .vid.lite { width:50%; height:50%; transform:scale(2); transform-origin:0 0; }
   body.crt .brand { display:none; } body.crt .topsearch input::placeholder { font-size:14px; }
+
+  /* ---- Favoritos: grade de cards ---- */
+  #favgrid { display:none; flex-direction:column; background:radial-gradient(ellipse at 50% 0%, #1b2547, var(--bg) 70%); }
+  #favgrid.on { display:flex; }
+  #fgHeader { position:relative; height:90px; flex:none; display:flex; align-items:center; justify-content:center; background:rgba(235,235,235,.93); }
+  #fgHeader img { height:60px; max-width:420px; }
+  .fgview { flex:1; min-height:0; overflow:hidden; margin:22px 34px 10px; }
+  .fgtrack { display:flex; height:100%; transition:transform .35s cubic-bezier(.2,.7,.3,1); }
+  .fgtrack > .empty { flex:none; width:100%; }
+  .fgpage { flex:none; width:100%; height:100%; display:grid; gap:10px; box-sizing:border-box; }
+  .fgcard { position:relative; border-radius:12px; overflow:hidden; cursor:pointer; background:#151c30; border:2px solid rgba(255,255,255,.08); box-shadow:0 6px 18px rgba(0,0,0,.45); transition:border-color .15s, box-shadow .15s, transform .15s; min-width:0; min-height:0; }
+  .fgcard:hover { border-color:rgba(255,255,255,.3); }
+  .fgcard.sel { border-color:var(--c1); box-shadow:0 0 0 2px var(--c1), 0 0 26px rgba(0,209,255,.45); transform:scale(1.015); z-index:2; }
+  .fgcard.rz { z-index:5; opacity:.92; }
+  .fgimg { position:absolute; inset:0; background-size:cover; background-position:center; background-color:#151c30; }
+  .fgcard:not(.has) .fgimg { background:linear-gradient(100deg, rgba(255,255,255,.04) 30%, rgba(255,255,255,.1) 50%, rgba(255,255,255,.04) 70%) #151c30; background-size:250% 100%; animation:skel 1.2s linear infinite; }
+  .fgname { position:absolute; left:0; right:0; bottom:0; padding:22px 10px 8px; font-size:13px; font-weight:600; color:#fff; background:linear-gradient(transparent, rgba(0,0,0,.85)); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; opacity:0; transition:opacity .15s; }
+  .fgcard.sel .fgname, .fgcard:hover .fgname, .fgcard:not(.has) .fgname { opacity:1; }
+  .fgrz { position:absolute; z-index:3; opacity:0; } .fgcard:hover .fgrz, .fgcard.sel .fgrz { opacity:1; }
+  .fgrz.r { top:10%; bottom:10%; right:0; width:10px; cursor:ew-resize; }
+  .fgrz.b { left:10%; right:10%; bottom:0; height:10px; cursor:ns-resize; }
+  .fgrz.rb { right:0; bottom:0; width:18px; height:18px; cursor:nwse-resize; background:linear-gradient(135deg, transparent 50%, var(--c1) 50%); border-bottom-right-radius:10px; }
+  .fgdots { height:26px; flex:none; display:flex; justify-content:center; align-items:center; gap:8px; }
+  .fgdots span { width:9px; height:9px; border-radius:50%; background:rgba(255,255,255,.25); cursor:pointer; } .fgdots span.on { background:var(--c1); width:22px; border-radius:5px; }
+  #fgInfo .fginfobox { width:min(1100px, 90vw); height:min(760px, 86vh); display:flex; border-radius:16px; background:rgba(11,16,32,.96); border:1px solid rgba(255,255,255,.1); padding:18px; box-sizing:border-box; }
+  #fgInfo .right { position:relative !important; inset:auto !important; transform:none !important; width:100% !important; height:100% !important; flex:1; display:flex !important; pointer-events:auto; }
+  #fgInfo .right > .details { display:block !important; } #fgInfo .cbtns, #fgInfo .notice { display:none !important; }
+  #fgInfo #gameBg { display:block !important; }
+  #fgHeader .homebtn { top:21px; }
+
+  /* ---- Configuração: menu lateral com categorias ---- */
+  #cfBody.cfbody { display:flex; gap:0; padding:0; overflow:hidden; }
+  .cfnav { width:220px; flex:none; display:flex; flex-direction:column; gap:4px; padding:18px 12px; border-right:1px solid rgba(255,255,255,.08); background:rgba(255,255,255,.02); overflow-y:auto; }
+  .cfnav button { text-align:left; border:0; background:none; color:#cbd5e1; font:600 14px Poppins, sans-serif; padding:10px 14px; border-radius:8px; cursor:pointer; }
+  .cfnav button:hover { background:rgba(255,255,255,.06); }
+  .cfnav button.on { background:linear-gradient(90deg, var(--c2), var(--c3)); color:#fff; }
+  .cfmain { flex:1; min-width:0; overflow-y:auto; padding:20px 30px 40px; }
+  .cfsec { display:none; } .cfsec.on { display:block; }
+  .cfsec > h2 { margin:0 0 14px; font-size:22px; }

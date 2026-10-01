@@ -18,10 +18,13 @@ function fieldHtml(i, key, label, val, browse, multi) {
   const inp = multi ? `<textarea data-i="${i}" data-k="${key}" rows="2">${esc(val)}</textarea>` : `<input data-i="${i}" data-k="${key}" value="${esc(val)}">`;
   return `<div class="fld"><label>${label}</label><div class="line">${inp}${browse ? `<button class="btn sec sm" data-browse="${browse}" data-i="${i}" data-k="${key}">Procurar...</button>` : ''}${key === 'emulator' ? `<span class="st" id="st${i}"></span>` : ''}</div></div>`;
 }
+const CF_SECS = [['geral', '🚀 Geral'], ['consoles', '🎮 Consoles'], ['capas', '🖼 Capas e vídeo'], ['favoritos', '⭐ Favoritos'], ['steamgriddb', '🎨 SteamGridDB']];
+let cfSec = 'geral';
 function renderConfig() {
   const cs = cfg.consoles;
-  $('cfBody').innerHTML = `
-    <div class="cfgen">
+  const sec = (id, title, html) => `<div class="cfsec${cfSec === id ? ' on' : ''}" data-sec="${id}"><h2>${title}</h2>${html}</div>`;
+  $('cfBody').innerHTML = `<nav class="cfnav">${CF_SECS.map(([id, t]) => `<button class="${cfSec === id ? 'on' : ''}" data-nav="${id}">${t}</button>`).join('')}</nav><div class="cfmain" id="cfMain">` +
+    sec('geral', '🚀 Geral', `<div class="cfgen">
       ${fieldHtml(-1, 'root', 'Pasta dos emuladores e jogos', cfg.root || '', 'folder')}
     </div>
     <div class="cfcache">
@@ -29,13 +32,19 @@ function renderConfig() {
       <div class="line"><button class="btn sec sm" id="cfRedo">Refazer configuração inicial (detectar consoles de novo)</button></div>
       <label class="chk2"><input type="checkbox" id="cfAuto" ${cfg.autostart === false ? '' : 'checked'}> Abrir na inicialização do Windows (em segundo plano, perto do relógio)</label>
     </div>
-    <div class="cfcache">
-      <h3>🎨 SteamGridDB (opcional)</h3>
-      ${SGDB_HELP}
-      <div class="line"><input id="cfSgKey" placeholder="Cole aqui a sua chave da API" value="${esc(cfg.sgdbKey || '')}" style="flex:1;background:#101010;border:1px solid #333;color:#eee;border-radius:6px;padding:8px 10px"><button class="btn sec sm" id="cfSgTest">Testar chave</button></div>
-      <label class="chk2"><input type="checkbox" id="cfSgOn" ${cfg.useSgdb && cfg.sgdbKey ? 'checked' : ''}> Usar o SteamGridDB para capas, fundos e logos</label>
+    `) +
+    sec('consoles', '🎮 Consoles e emuladores', `<div class="cfgrid">
+      ${cs.map((c, i) => `
+      <div class="ccard${c.enabled === false ? ' off' : ''}">
+        <div class="top"><button class="icobtn" data-ico="${i}" title="Trocar ícone"><img src="${logoUrl(c)}" alt="" onerror="this.style.opacity=.2"><span>trocar ícone</span></button><button class="icobtn bgb" data-bgp="${i}" title="Trocar fundo do console" style="background-image:url('${bgUrlOf(c)}')"><span>trocar fundo</span></button><input data-i="${i}" data-k="name" value="${esc(c.name)}"><label class="chk2 en"><input type="checkbox" data-en="${i}" ${c.enabled === false ? '' : 'checked'}> Habilitar</label></div>
+        <div class="icopick" id="ip${i}" style="display:none"></div>
+        ${c.type === 'pc' ? `<div class="msg">🖥 Jogos de PC — escolha uma ou mais pastas com atalhos (.lnk / .url / .exe) dos jogos instalados. Eles abrem direto, sem emulador.</div>` : fieldHtml(i, 'emulator', 'Emulador (.exe)', c.emulator || '', 'file') + fieldHtml(i, 'args', 'Argumentos — {rom} é trocado pelo caminho do jogo', c.args || '"{rom}"') + `<div class="fld"><label class="chk2"><input type="checkbox" data-fs="${i}" ${c.fullscreen === false ? '' : 'checked'}> Abrir os jogos em tela cheia</label></div>` + fieldHtml(i, 'fsArgs', 'Argumento de tela cheia deste emulador (vai antes dos argumentos)', c.fsArgs == null ? '' : c.fsArgs)}
+        ${fieldHtml(i, 'romDirs', c.type === 'pc' ? 'Pastas com atalhos dos jogos (uma por linha)' : 'Pastas de jogos (uma por linha)', (c.romDirs || []).join('\n'), 'folder-add', true)}
+        ${fieldHtml(i, 'extensions', 'Extensões dos jogos (separadas por vírgula)', (c.extensions || []).join(', '))}
+      </div>`).join('')}
     </div>
-    <div class="cfcache">
+    <div style="margin-top:18px"><button class="btn sec" id="cfAdd">+ Adicionar console</button> <button class="btn sec" id="cfAddPc">+ Adicionar jogos de PC</button></div>`) +
+    sec('capas', '🖼 Capas e vídeo', `<div class="cfcache">
       <h3>🖼 Capas</h3>
       <div class="line"><span style="font-size:14px">Fundo dos jogos:</span>
         <label class="chk2"><input type="radio" name="bgm" value="video" ${cfg.bgMode === 'image' ? '' : 'checked'}> Vídeo (gameplay do YouTube)</label>
@@ -46,21 +55,23 @@ function renderConfig() {
       <label class="chk2"><input type="checkbox" id="cfCacheOn" ${cfg.coverCache === false ? '' : 'checked'}> Salvar capas no computador (carregam na hora nas próximas vezes)</label>
       <div class="line"><button class="btn sec sm" id="cfCacheClear">Limpar cache de capas</button><span class="msg" id="cfCacheInfo"></span></div>
     </div>
-    <div class="cfgrid">
-      <div class="ccard${favCfg().enabled ? '' : ' off'}">
+    `) +
+    sec('favoritos', '⭐ Favoritos', `<div class="cfcache"><h3>Grade dos favoritos</h3><div class="line"><span style="font-size:14px">Tamanho da grade (linhas × colunas):</span>
+        ${['4x10', '4x12', '6x12'].map(d => `<label class="chk2"><input type="radio" name="fgd" value="${d}" ${(cfg.favGrid || '4x12') === d ? 'checked' : ''}> ${d.replace('x', ' × ')}${d === '4x12' ? ' (padrão)' : ''}</label>`).join('')}</div>
+        <div class="msg">Cada jogo favorito vira um card. Arraste a borda direita/de baixo de um card para aumentar (até 4 × 4) ou use o botão direito → Redimensionar.</div></div><div class="cfgrid"><div class="ccard${favCfg().enabled ? '' : ' off'}">
         <div class="top"><button class="icobtn" data-ico="-2" title="Trocar ícone"><img src="${logoUrl(Object.assign({}, FAVSYS, { logo: favCfg().logo || 'builtin:fav' }))}" alt=""><span>trocar ícone</span></button><button class="icobtn bgb" data-bgp="-2" title="Trocar fundo" style="background-image:url('${favCfg().bg ? bgUrlOf({ bg: favCfg().bg }) : FAV_BG}')"><span>trocar fundo</span></button><input value="⭐ Favoritos" disabled><label class="chk2 en"><input type="checkbox" data-en="-2" ${favCfg().enabled ? 'checked' : ''}> Habilitar</label></div>
         <div class="icopick" id="ip-2" style="display:none"></div>
-        <div class="msg">Console automático com todos os jogos que você marcou com ⭐, separados por console. Arraste na tela inicial para mudar a posição.</div>
-      </div>${cs.map((c, i) => `
-      <div class="ccard${c.enabled === false ? ' off' : ''}">
-        <div class="top"><button class="icobtn" data-ico="${i}" title="Trocar ícone"><img src="${logoUrl(c)}" alt="" onerror="this.style.opacity=.2"><span>trocar ícone</span></button><button class="icobtn bgb" data-bgp="${i}" title="Trocar fundo do console" style="background-image:url('${bgUrlOf(c)}')"><span>trocar fundo</span></button><input data-i="${i}" data-k="name" value="${esc(c.name)}"><label class="chk2 en"><input type="checkbox" data-en="${i}" ${c.enabled === false ? '' : 'checked'}> Habilitar</label></div>
-        <div class="icopick" id="ip${i}" style="display:none"></div>
-        ${c.type === 'pc' ? `<div class="msg">🖥 Jogos de PC — escolha uma ou mais pastas com atalhos (.lnk / .url / .exe) dos jogos instalados. Eles abrem direto, sem emulador.</div>` : fieldHtml(i, 'emulator', 'Emulador (.exe)', c.emulator || '', 'file') + fieldHtml(i, 'args', 'Argumentos — {rom} é trocado pelo caminho do jogo', c.args || '"{rom}"') + `<div class="fld"><label class="chk2"><input type="checkbox" data-fs="${i}" ${c.fullscreen === false ? '' : 'checked'}> Abrir os jogos em tela cheia</label></div>` + fieldHtml(i, 'fsArgs', 'Argumento de tela cheia deste emulador (vai antes dos argumentos)', c.fsArgs == null ? '' : c.fsArgs)}
-        ${fieldHtml(i, 'romDirs', c.type === 'pc' ? 'Pastas com atalhos dos jogos (uma por linha)' : 'Pastas de jogos (uma por linha)', (c.romDirs || []).join('\n'), 'folder-add', true)}
-        ${fieldHtml(i, 'extensions', 'Extensões dos jogos (separadas por vírgula)', (c.extensions || []).join(', '))}
-      </div>`).join('')}
+        <div class="msg">Grade com todos os jogos que você marcou com ⭐. Arraste na tela inicial para mudar a posição deste console.</div>
+      </div></div>`) +
+    sec('steamgriddb', '🎨 SteamGridDB', `<div class="cfcache">
+      <h3>🎨 SteamGridDB (opcional)</h3>
+      ${SGDB_HELP}
+      <div class="line"><input id="cfSgKey" placeholder="Cole aqui a sua chave da API" value="${esc(cfg.sgdbKey || '')}" style="flex:1;background:#101010;border:1px solid #333;color:#eee;border-radius:6px;padding:8px 10px"><button class="btn sec sm" id="cfSgTest">Testar chave</button></div>
+      <label class="chk2"><input type="checkbox" id="cfSgOn" ${cfg.useSgdb && cfg.sgdbKey ? 'checked' : ''}> Usar o SteamGridDB para capas, fundos e logos</label>
     </div>
-    <div style="margin-top:18px"><button class="btn sec" id="cfAdd">+ Adicionar console</button> <button class="btn sec" id="cfAddPc">+ Adicionar jogos de PC</button></div>`;
+    `) + '</div>';
+  $('cfBody').querySelectorAll('[data-nav]').forEach(b => b.onclick = () => { cfSec = b.dataset.nav; $('cfBody').querySelectorAll('[data-nav]').forEach(x => x.classList.toggle('on', x === b)); $('cfBody').querySelectorAll('.cfsec').forEach(s => s.classList.toggle('on', s.dataset.sec === cfSec)); $('cfMain').scrollTop = 0; sfx('tick'); });
+  $('cfBody').querySelectorAll('input[name=fgd]').forEach(r => r.onchange = () => { cfg.favGrid = r.value; favGridDim = r.value; });
   $('cfBody').querySelectorAll('[data-k]').forEach(el => el.oninput = () => setField(+el.dataset.i, el.dataset.k, el.value));
   $('cfBody').querySelectorAll('[data-browse]').forEach(el => el.onclick = () => browse(el));
   $('cfBody').querySelectorAll('[data-en]').forEach(el => el.onchange = () => {
@@ -84,8 +95,8 @@ function renderConfig() {
   cacheInfo();
   $('cfBody').querySelectorAll('[data-ico]').forEach(el => el.onclick = () => iconPicker(+el.dataset.ico, 'logo'));
   $('cfBody').querySelectorAll('[data-bgp]').forEach(el => el.onclick = () => iconPicker(+el.dataset.bgp, 'bg'));
-  $('cfAddPc').onclick = () => { cfg.consoles.push({ id: 'pc' + Date.now(), type: 'pc', name: 'Jogos de PC', art: 'pc', thumbs: '', emulator: '', args: '', romDirs: [], extensions: ['lnk', 'url', 'exe'] }); renderConfig(); $('cfBody').scrollTop = 1e9; };
-  $('cfAdd').onclick = () => { cfg.consoles.push({ id: 'c' + Date.now(), name: 'Novo console', art: '', thumbs: '', emulator: '', args: '"{rom}"', romDirs: [], extensions: [] }); renderConfig(); $('cfBody').scrollTop = 1e9; };
+  $('cfAddPc').onclick = () => { cfg.consoles.push({ id: 'pc' + Date.now(), type: 'pc', name: 'Jogos de PC', art: 'pc', thumbs: '', emulator: '', args: '', romDirs: [], extensions: ['lnk', 'url', 'exe'] }); renderConfig(); $('cfMain').scrollTop = 1e9; };
+  $('cfAdd').onclick = () => { cfg.consoles.push({ id: 'c' + Date.now(), name: 'Novo console', art: '', thumbs: '', emulator: '', args: '"{rom}"', romDirs: [], extensions: [] }); renderConfig(); $('cfMain').scrollTop = 1e9; };
   cs.forEach((c, i) => checkEmu(i));
 }
 const ICON_ART = ['pc','windows','steam','snes','nes','n64','gc','wii','wiiu','switch','gb','gbc','gba','nds','3ds','mastersystem','megadrive','genesis','segacd','32x','saturn','dreamcast','neogeo','arcade','mame','psx','ps2','ps3','ps4','psp','psvita','xbox','xbox360','atari2600','pcengine'];
@@ -98,7 +109,7 @@ function iconPicker(i, kind) {
   box.style.display = 'block';
   box.innerHTML = `<div class="pkt">${isBg ? 'Imagem de fundo do console' : 'Ícone do console'}</div><div class="icogrid${isBg ? ' bgs' : ''}">${opts.map(o => `<div class="ico${(c[field] || '') === o[0] ? ' sel' : ''}" data-v="${esc(o[0])}"><img src="${esc(o[1])}" alt="" loading="lazy" onerror="this.parentNode.remove()"><span>${esc(o[2])}</span></div>`).join('')}</div>
     <div class="line" style="margin-top:8px"><input placeholder="...ou cole o link de uma imagem" id="ipu${i}"><button class="btn sec sm" id="ipok${i}">Usar link</button><button class="btn sec sm" id="ipfile${i}">📁 Arquivo do computador...</button><button class="btn sec sm" id="ipdef${i}">Padrão</button></div>`;
-  const set = v => { c[field] = v; const y = $('cfBody').scrollTop; renderConfig(); $('cfBody').scrollTop = y; };
+  const set = v => { c[field] = v; const y = $('cfMain').scrollTop; renderConfig(); $('cfMain').scrollTop = y; };
   box.querySelectorAll('.ico').forEach(el => el.onclick = () => set(el.dataset.v));
   $('ipok' + i).onclick = () => { const u = $('ipu' + i).value.trim(); if (/^https?:\/\//.test(u)) set(u); };
   $('ipfile' + i).onclick = async () => {
@@ -133,7 +144,7 @@ async function browse(btn) {
     if (r.path) {
       if (type === 'folder-add') { const c = cfg.consoles[i]; if (!c.romDirs.includes(r.path)) c.romDirs.push(r.path); }
       else if (i < 0) cfg[k] = r.path; else cfg.consoles[i][k] = r.path;
-      const y = $('cfBody').scrollTop; renderConfig(); $('cfBody').scrollTop = y;
+      const y = $('cfMain').scrollTop; renderConfig(); $('cfMain').scrollTop = y;
     }
   } catch (e) { toast(e.message, true); }
   btn.disabled = false;

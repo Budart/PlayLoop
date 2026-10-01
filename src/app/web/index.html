@@ -41,6 +41,12 @@
   </div>
   <div class="helpbar"><span><b>↑ ↓</b>navegar</span><span><b>PgUp PgDn</b>pular</span><span><b>Enter</b>jogar</span><span><b>Esc</b>voltar</span><span><b>A-Z</b>buscar</span></div>
 </section>
+<section id="favgrid" class="screen">
+  <header id="fgHeader"><button class="homebtn" id="fgHome" title="Voltar ao início (Esc)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg></button><div id="fgHead"></div></header>
+  <div class="fgview" id="fgView"><div class="fgtrack" id="fgTrack"></div></div>
+  <div class="fgdots" id="fgDots"></div>
+</section>
+<div class="modal" id="fgInfo"><div class="fginfobox" id="fgInfoBox"></div></div>
 <section id="config" class="screen">
   <div class="cfhead"><h1>⚙ Configuração</h1><span class="msg" id="cfSaved" style="margin-right:10px"></span><button class="btn" id="cfCancel">Voltar (Esc)</button></div>
   <div class="cfbody" id="cfBody"></div>
@@ -80,6 +86,7 @@
 <script src="/js/config.js"></script>
 <script src="/js/input.js"></script>
 <script src="/js/welcome.js"></script>
+<script src="/js/favgrid.js"></script>
 <script src="/js/main.js"></script>
 </body>
 </html>
