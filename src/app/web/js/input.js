@@ -65,6 +65,7 @@ function cfgPad(a) {
 /* ---------- controles: teclado + gamepad ---------- */
 function input(a) {
   if (oskOpen) { oskInput(a); return; }
+  if (ARTPICK.open) { apInput(a); return; }
   if (askOpen) { askPad(a); return; }
   if ($('ctx').classList.contains('on')) { if (a === 'down') ctxMove(1); else if (a === 'up') ctxMove(-1); else if (a === 'ok') ctxOk(); else if (a === 'back' || a === 'menu') closeCtx(); return; }
   if (modalOpen) { if (a === 'back') closeCover(); else if (['left','right','up','down'].includes(a)) coverNav(a); else if (a === 'ok') coverPick(); else if (a === 'menu') openOsk($('cq')); return; }
@@ -89,6 +90,7 @@ function input(a) {
   }
 }
 document.addEventListener('keydown', e => {
+  if (ARTPICK.open && !oskOpen) { const d = { ArrowLeft:'left', ArrowRight:'right', ArrowUp:'up', ArrowDown:'down', Escape:'back' }[e.key]; const inQ = document.activeElement === $('apQ'); if (d && !(inQ && (d === 'left' || d === 'right'))) { e.preventDefault(); apInput(d); } else if (e.key === 'Enter' && !inQ) { e.preventDefault(); apInput('ok'); } return; }
   if (oskOpen) { if (e.key === 'Escape') { e.preventDefault(); closeOsk(false); } else if (e.key === 'Enter') { closeOsk(false); } else setTimeout(oskShow, 0); return; }
   if (askOpen) {
     if (e.key === 'Escape') { e.preventDefault(); askDone(false); return; }

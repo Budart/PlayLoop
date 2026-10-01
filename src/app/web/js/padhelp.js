@@ -31,6 +31,7 @@ const G = { l3: () => STICK('L'), ok: () => faceIcon(0), back: () => faceIcon(1)
 function padContext() {
   if (oskOpen) return ['osk', [['dpad', 'escolher tecla'], ['ok', 'digitar'], ['sq', 'apagar'], ['tri', 'espaço'], ['lb', 'maiúsculas'], ['start', 'OK'], ['back', 'fechar']]];
   const ctxOn = $('ctx').classList.contains('on');
+  if (ARTPICK.open) return ['artpick', [['dpad', 'escolher'], ['ok', 'usar'], ['tri', 'buscar'], ['back', 'fechar']]];
   if (askOpen) return ['ask', [['dpad', 'escolher'], ['ok', 'confirmar'], ['back', 'cancelar']]];
   if (ctxOn) return ['ctx', [['dpad', 'escolher'], ['ok', 'selecionar'], ['back', 'fechar']]];
   if (typeof fxOpen !== 'undefined' && fxOpen) return ['fx', [['back', 'cancelar']]];

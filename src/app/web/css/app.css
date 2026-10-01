@@ -527,3 +527,11 @@
   .oskk.wide { min-width:150px; font-size:16px; } .oskk.k0 { min-width:300px; } .oskk.k2 { background:#14532d; } .oskk.on { background:#334155; color:var(--c1); }
   .oskk.sel { background:linear-gradient(90deg, var(--c2), var(--c3)); color:#fff; box-shadow:0 0 0 2px var(--c1), 0 0 18px rgba(0,209,255,.45); transform:scale(1.06); }
   body.th-light .osk { background:rgba(251,246,239,.98); border-color:#D9CBB8; } body.th-light .oskk { background:#E8DCCB; color:#2E2721; } body.th-light .oskval { background:#fff; color:#2E2721; border-color:#D9CBB8; }
+
+  /* "Mais..." e janela de imagens do tema */
+  .ico.more { display:flex; flex-direction:column; align-items:center; justify-content:center; border:2px dashed rgba(255,255,255,.35); background:rgba(255,255,255,.04); cursor:pointer; min-height:96px; color:var(--text); }
+  .ico.more b { font-size:30px; line-height:1; color:var(--c1); } .ico.more:hover { border-color:var(--c1); background:rgba(0,209,255,.08); }
+  #artPick .mbox { width:min(1100px, 94vw); height:min(780px, 90vh); }
+  .apwrap { flex:1; min-height:0; overflow-y:auto; }
+  .icogrid.ap .ico { cursor:pointer; } .icogrid.ap .ico.kb { border-color:var(--c1); box-shadow:0 0 0 2px var(--c1), 0 0 16px rgba(0,209,255,.4); }
+  .icogrid.ap { max-height:none; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; } .icogrid.ap.bgs .ico img { height:90px; }

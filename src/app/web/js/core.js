@@ -18,6 +18,7 @@ function bgUrlOf(s) {
 /* ---------- imagens do tema com reserva: se a original sumir/quebrar, usa a 2ª opção automaticamente ----------
    1) a própria imagem guardada no cache do PlayLoop (depois da 1ª vez, funciona mesmo se o site sair do ar)
    2) espelho do mesmo repositório (jsDelivr)
+   2b) outro repositório com o mesmo tema (RetroPie/es-theme-carbon), direto e pelo jsDelivr
    3) desenho embutido no app, nas cores do PlayLoop (fundo em degradê / controle genérico) */
 const ART_MIRROR = 'https://cdn.jsdelivr.net/gh/fabricecaruso/es-theme-carbon@master/art/';
 const svgUri = s => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s);
@@ -29,6 +30,13 @@ function artAlts(url) {
   if (!raw.startsWith(ART)) return [url];
   const kind = /\/background\//.test(raw) ? 'bg' : /\/controllers\//.test(raw) ? 'ctrl' : 'logo';
   const list = [cp(raw), raw, raw.replace(ART, ART_MIRROR)];
+  // 2º repositório, independente: RetroPie/es-theme-carbon (pasta por console: background.jpg / system.svg / controller.svg)
+  const m = raw.slice(ART.length).match(/^(background|logos|controllers)\/([^/]+)\.(jpg|png|svg)$/);
+  if (m) {
+    const f = { background: 'background.jpg', logos: 'system.svg', controllers: 'controller.svg' }[m[1]];
+    const rp = `RetroPie/es-theme-carbon/master/${m[2]}/art/${f}`;
+    list.push(cp('https://raw.githubusercontent.com/' + rp), 'https://raw.githubusercontent.com/' + rp, 'https://cdn.jsdelivr.net/gh/' + rp.replace('/master/', '@master/'));
+  }
   if (kind === 'bg') list.push(FALLBACK_BG); else if (kind === 'ctrl') list.push(FALLBACK_CTRL);
   return [...new Set(list.filter(Boolean))];
 }

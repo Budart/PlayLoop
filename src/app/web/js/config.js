@@ -119,6 +119,7 @@ function renderConfig() {
   $('cfAddPc').onclick = () => { cfg.consoles.push({ id: 'pc' + Date.now(), type: 'pc', name: 'Jogos de PC', art: 'pc', thumbs: '', emulator: '', args: '', romDirs: [], extensions: ['lnk', 'url', 'exe'] }); renderConfig(); $('cfMain').scrollTop = 1e9; };
   $('cfAdd').onclick = () => { cfg.consoles.push({ id: 'c' + Date.now(), name: 'Novo console', art: '', thumbs: '', emulator: '', args: '"{rom}"', romDirs: [], extensions: [] }); renderConfig(); $('cfMain').scrollTop = 1e9; };
   cs.forEach((c, i) => checkEmu(i));
+  $('cfBody').querySelectorAll('.icobtn.bgb').forEach(b => { const m = (b.style.backgroundImage || '').match(/url\("?(.*?)"?\)$/); if (m) setBgImage(b, m[1]); });   // fundos com reserva
 }
 const ICON_ART = ['pc','windows','steam','snes','nes','n64','gc','wii','wiiu','switch','gb','gbc','gba','nds','3ds','mastersystem','megadrive','genesis','segacd','32x','saturn','dreamcast','neogeo','arcade','mame','psx','ps2','ps3','ps4','psp','psvita','xbox','xbox360','atari2600','pcengine'];
 function iconPicker(i, kind) {
@@ -128,10 +129,11 @@ function iconPicker(i, kind) {
   const opts = isBg ? ICON_ART.map(a => ['art:' + a, `${ART}background/${a}.jpg`, a])
     : [['builtin:pc', BUILTIN_LOGOS.pc, 'Moderno'], ['builtin:pc2', BUILTIN_LOGOS.pc2, 'Neon']].concat(ICON_ART.map(a => ['art:' + a, `${ART}logos/${a}.svg`, a]));
   box.style.display = 'block';
-  box.innerHTML = `<div class="pkt">${isBg ? 'Imagem de fundo do console' : 'Ícone do console'}</div><div class="icogrid${isBg ? ' bgs' : ''}">${opts.map(o => `<div class="ico${(c[field] || '') === o[0] ? ' sel' : ''}" data-v="${esc(o[0])}"><img src="${esc(o[1])}" alt="" loading="lazy" onerror="this.parentNode.remove()"><span>${esc(o[2])}</span></div>`).join('')}</div>
+  box.innerHTML = `<div class="pkt">${isBg ? 'Imagem de fundo do console' : 'Ícone do console'}</div><div class="icogrid${isBg ? ' bgs' : ''}">${opts.map(o => `<div class="ico${(c[field] || '') === o[0] ? ' sel' : ''}" data-v="${esc(o[0])}"><img src="${esc(o[1])}" alt="" loading="lazy"><span>${esc(o[2])}</span></div>`).join('')}<div class="ico more" data-more="1"><b>＋</b><span>Mais...</span></div></div>
     <div class="line" style="margin-top:8px"><input placeholder="...ou cole o link de uma imagem" id="ipu${i}"><button class="btn sec sm" id="ipok${i}">Usar link</button><button class="btn sec sm" id="ipfile${i}">📁 Arquivo do computador...</button><button class="btn sec sm" id="ipdef${i}">Padrão</button></div>`;
   const set = v => { c[field] = v; const y = $('cfMain').scrollTop; renderConfig(); $('cfMain').scrollTop = y; };
-  box.querySelectorAll('.ico').forEach(el => el.onclick = () => set(el.dataset.v));
+  box.querySelectorAll('.ico:not(.more)').forEach(el => el.onclick = () => set(el.dataset.v));
+  box.querySelector('.ico.more').onclick = () => openArtPick(isBg ? 'bg' : 'logo', v => set(v));
   $('ipok' + i).onclick = () => { const u = $('ipu' + i).value.trim(); if (/^https?:\/\//.test(u)) set(u); };
   $('ipfile' + i).onclick = async () => {
     try { const r = await api('/api/browse', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ type: 'image', start: '' }) }); if (r.path) set('/api/localimg?p=' + encodeURIComponent(r.path)); }
