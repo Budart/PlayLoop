@@ -230,7 +230,7 @@ function buildCase(g, url, back, ratio) {
   const area = $('art').getBoundingClientRect();
   const small = area.width < 400, fh = small ? .8 : .52, fw = small ? .78 : .45;
   const H = Math.max(60, Math.min(area.height * fh, area.width * fw / c.r)), W = H * c.r, D = Math.max(small ? 8 : 14, H * Math.max(c.d, .12));
-  const rim = c.rim ? Math.round(H * c.rim) : 0;
+  const rim = c.rim ? Math.max(1, Math.round(H * c.rim / 2)) : 0;   // borda preta da frente (metade da original)
   const R = Math.max(5, Math.round(H * .035));          // raio das quinas (igual na frente, atrás e nas laterais)
   const px = v => v.toFixed(2) + 'px';
   const face = (cls, w, h, tf, style, html) => `<div class="face ${cls}" style="width:${px(w)};height:${px(h)};left:${px((W - w) / 2)};top:${px((H - h) / 2)};transform:${tf};${style}">${html || ''}</div>`;
