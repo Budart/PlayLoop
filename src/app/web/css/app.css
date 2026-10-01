@@ -470,3 +470,6 @@
   .fgibar { display:flex; justify-content:flex-end; gap:12px; }
   .fgibar .btn { font-size:16px; padding:12px 26px; }
   #fgInfo .fginfobox { height:min(720px, 78vh); }
+
+  .cfhead .homebtn { position:static; flex:none; background:rgba(255,255,255,.08); color:var(--text); }
+  body.th-light .cfhead .homebtn { background:rgba(15,23,42,.06); }
