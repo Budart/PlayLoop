@@ -98,7 +98,7 @@ function renderConfig() {
       <label class="chk2"><input type="checkbox" id="cfSgOn" ${cfg.useSgdb && cfg.sgdbKey ? 'checked' : ''}> Usar o SteamGridDB para capas, fundos e logos</label>
     </div>`) +
     sec('favoritos', '⭐ Favoritos', `<div class="cfcache"><h3>Grade dos favoritos</h3>
-        <div class="picks">${['4x10', '4x12', '6x12'].map(d => pick('fgd', d, (cfg.favGrid || '4x12') === d, gridPv(d), d.replace('x', ' × '), d === '4x12' ? 'padrão' : (d === '6x12' ? 'mais jogos por página' : 'cards maiores'))).join('')}</div>
+        <div class="picks">${['4x10', '4x12', '6x14'].map(d => pick('fgd', d, ((cfg.favGrid === '6x12' ? '6x14' : cfg.favGrid) || '4x12') === d, gridPv(d), d.replace('x', ' × '), d === '4x12' ? 'padrão' : (d === '6x14' ? 'mais jogos por página' : 'cards maiores'))).join('')}</div>
         <h3 style="margin-top:16px">Fundo da tela</h3>
         <div class="picks">${pick('fbg', '1', cfg.favBgGame !== false, PV.video.replace('#ff2d2d', '#8B5CF6'), 'Fundo do jogo', 'muda ao selecionar um card')}${pick('fbg', '0', cfg.favBgGame === false, PV.image, 'Fundo fixo', 'uma imagem que você escolhe')}</div>
         <div class="wpsearch" id="wpBox" style="display:${cfg.favBgGame === false ? '' : 'none'}"><div class="line wpbar"><span class="wpico">🔍</span><input id="wpQ" placeholder="Buscar imagem de fundo (ex.: montanhas, synthwave)" autocomplete="off"><button class="btn sec sm" id="wpGo">Buscar</button></div><div class="wpres" id="wpRes"><div class="msg">Escreva o que você quer e aperte Buscar. Só aparecem imagens grandes (resolução de wallpaper).</div></div></div>
