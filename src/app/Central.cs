@@ -77,7 +77,26 @@ static class Central
         string text = null;
         try { if (File.Exists(ConfigFile)) text = File.ReadAllText(ConfigFile, Encoding.UTF8); } catch { }
         if (text == null) return new Dictionary<string, object> { { "port", 8765 }, { "root", "" }, { "consoles", new object[0] } };
-        return (Dictionary<string, object>)Json.DeserializeObject(text);
+        var cfg = (Dictionary<string, object>)Json.DeserializeObject(text);
+        FixRomExtensions(cfg);
+        return cfg;
+    }
+    // versões anteriores tiravam .zip/.7z de alguns consoles (as ROMs sumiam e o console saía da tela inicial): devolve na lista
+    static void FixRomExtensions(Dictionary<string, object> cfg)
+    {
+        try
+        {
+            object cs; if (!cfg.TryGetValue("consoles", out cs) || !(cs is object[])) return;
+            foreach (var o in (object[])cs)
+            {
+                var c = o as Dictionary<string, object>; if (c == null) continue;
+                string id = S(c, "id"); if (id != "snes" && id != "sms" && id != "genesis") continue;
+                var ext = L(c, "extensions").Select(x => x.ToLowerInvariant()).ToList();
+                if (ext.Contains("zip")) continue;
+                ext.Add("zip"); ext.Add("7z"); c["extensions"] = ext.Distinct().ToArray();
+            }
+        }
+        catch { }
     }
     static void SaveConfigText(string text) { Directory.CreateDirectory(Path.GetDirectoryName(ConfigFile)); File.WriteAllText(ConfigFile, text, Utf8); }
 

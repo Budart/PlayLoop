@@ -102,7 +102,7 @@ async function checkFavFiles() {
 }
 function applyCustom() {
   const cur = systems[sysIdx] && systems[sysIdx].id;
-  systems = allSystems.filter(s => total(s) > 0 && s.enabled !== false);
+  systems = allSystems.filter(s => s.enabled !== false);   // todo console habilitado aparece, mesmo sem jogos encontrados
   FAVSYS.count = favKeys().length;
   if (favConsoleOn && FAVSYS.count > 0) systems.splice(Math.min(favPos(), systems.length), 0, FAVSYS);   // console virtual "Favoritos" (some quando não há favoritos)
   const k = systems.findIndex(s => s.id === cur); sysIdx = k >= 0 ? k : Math.min(sysIdx, systems.length - 1);
