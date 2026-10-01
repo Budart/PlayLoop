@@ -403,6 +403,7 @@ function fgCtx(x, y, sizes) {
   } else ctxItems = [
     ['star', 'Desfavoritar', async () => { await toggleFav(g); openFavGrid(); }],
     ['cover', 'Alterar imagem', () => openCover('card')],
+    ['bg', 'Alterar fundo', () => openCover(true)],
     ['bg', 'Reposicionar imagem', () => fgPosOpen()],
     ['bg', 'Redimensionar ▸', () => setTimeout(() => fgCtx(x, y, true), 0)],
     ['eye', 'Info', () => fgInfo(true)],
