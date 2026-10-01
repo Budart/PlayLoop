@@ -30,6 +30,7 @@ static class WebHost
         }
     }
     static HostForm form;
+    static bool fxFull;
     static WebView2 view;
     static bool ready;
     static string pending;
@@ -234,7 +235,10 @@ static class WebHost
             case "max":
                 form.WindowState = form.WindowState == FormWindowState.Maximized ? FormWindowState.Normal : FormWindowState.Maximized; break;
             case "close": form.Hide(); break;
-            case "fs": form.ToggleFull(); break;
+            case "fs": form.ToggleFull(); fxFull = false; break;
+            // animação "Bom jogo.": o app vai para tela cheia de verdade e volta ao normal depois
+            case "fxon": if (!form.Full && form.WindowState != FormWindowState.Minimized) { form.ToggleFull(); fxFull = true; } break;
+            case "fxoff": if (fxFull) { fxFull = false; if (form.Full) form.ToggleFull(); } break;
             case "drag":
                 // arrastar pela barra: o Windows cuida de encaixar nas laterais (Aero Snap) e de restaurar se estiver maximizada
                 ReleaseCapture(); SendMessage(form.Handle, 0xA1, 2, 0); break;

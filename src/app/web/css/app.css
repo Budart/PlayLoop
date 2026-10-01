@@ -405,6 +405,7 @@
   .fgfx { position:fixed; z-index:70; display:none; background-color:#000; background-size:cover; overflow:hidden; }
   .fgfx.on { display:block; }
   .fgfx.grow { transition:left .55s cubic-bezier(.2,.8,.2,1), top .55s cubic-bezier(.2,.8,.2,1), width .55s cubic-bezier(.2,.8,.2,1), height .55s cubic-bezier(.2,.8,.2,1), border-radius .55s; }
+  .fgfx { background-color:#000; }
   .fgfx::before { content:""; position:absolute; inset:0; background:rgba(0,0,0,0); transition:background .5s .3s; }
   .fgfx.grow::before { background:rgba(0,0,0,.5); }
   .fgfx.out { opacity:0; transition:opacity .3s; }
@@ -477,3 +478,9 @@
   /* logo simples e branca no canto da Home */
   .brand img { filter:brightness(0) invert(1); opacity:.92; }
   body.th-light .brand img { filter:brightness(0); opacity:.85; }
+
+  /* foco do controle na configuração */
+  #cfBody .kbf { outline:3px solid var(--c1) !important; outline-offset:3px; box-shadow:0 0 18px rgba(0,209,255,.35); border-radius:8px; }
+  /* vídeo tocando: a capa fica no canto superior direito e o zoom cresce para baixo/esquerda (dentro da área do vídeo) */
+  .right.vidplay .art .cw, .right.vidplay .art .rot { transform-origin:100% 0; }
+  .right.vidplay > .art { overflow:visible; }

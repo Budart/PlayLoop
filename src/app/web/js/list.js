@@ -280,7 +280,7 @@ function bindListOnce() {
     anchor = -1; selectGame(i);
   });
   L.addEventListener('mousedown', e => { if (e.shiftKey) e.preventDefault(); });   // Shift+clique não seleciona texto
-  L.addEventListener('dblclick', e => { if (e.shiftKey || e.ctrlKey || e.target.closest('[data-pen],[data-star],[data-eye],[data-ck],input')) return; if (rowOf(e)) launch(); });
+  L.addEventListener('dblclick', e => { if (e.shiftKey || e.ctrlKey || e.target.closest('[data-pen],[data-star],[data-eye],[data-ck],input')) return; if (rowOf(e)) listLaunch(); });
   L.addEventListener('contextmenu', e => { const r = rowOf(e); if (!r) return; e.preventDefault(); const g = shown[+r.dataset.i];
     if (multi.size > 1 && multi.has(g)) { openBatchCtx(e.clientX, e.clientY); return; }
     if (multi.size) { multi.clear(); vRender(); multiInfo(); }

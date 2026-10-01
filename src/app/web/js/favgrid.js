@@ -276,20 +276,35 @@ async function fgGameBg(g) {
 // abrir o jogo: a imagem do card se expande até a tela inteira, escurece e mostra "Bom jogo."
 let fxOpen = false;
 let fxTimer = 0, fxAt = 0;
+// animação de abertura: a imagem cresce de "rect" até a tela inteira (o app entra em tela cheia de verdade), escurece e mostra "Bom jogo.";
+// o jogo abre depois da animação completa + 0,5 s
+function playFx(rect, bgImage, bgPos, radius) {
+  if (fxOpen) return;
+  const fx = $('fgFx');
+  clearTimeout(fxTimer); fxTimer = setTimeout(() => { if (fxOpen) launch(); }, 1400);
+  if (window.chrome && chrome.webview) chrome.webview.postMessage('fxon');
+  fx.style.backgroundImage = bgImage || ''; fx.style.backgroundPosition = bgPos || 'center';
+  fx.className = 'fgfx'; Object.assign(fx.style, { left: rect.left + 'px', top: rect.top + 'px', width: rect.width + 'px', height: rect.height + 'px', borderRadius: (radius || 0) + 'px' });
+  fxOpen = true; fxAt = Date.now(); fx.classList.add('on');
+  requestAnimationFrame(() => requestAnimationFrame(() => { fx.classList.add('grow'); Object.assign(fx.style, { left: '0px', top: '0px', width: '100vw', height: '100vh', borderRadius: '0px' }); }));
+}
 function fgLaunch() {
   const g = fg.items[fg.sel], el = $('fgTrack').querySelector(`.fgcard[data-i="${fg.sel}"]`); if (!g || fxOpen) return;
-  const fx = $('fgFx'), im = el && el.querySelector('.fgimg');
   if (!el) { launch(); return; }
-  // a imagem expande (0,55 s), o texto aparece (até ~0,85 s) e, 0,5 s depois, o jogo abre
-  clearTimeout(fxTimer); fxTimer = setTimeout(() => { if (fxOpen) launch(); }, 1400);
-  const r = el.getBoundingClientRect();
-  fx.style.backgroundImage = im ? im.style.backgroundImage : '';
-  const o = fgOfs(g); fx.style.backgroundPosition = o ? `${o.x}% ${o.y}%` : 'center';
-  fx.className = 'fgfx'; Object.assign(fx.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px', borderRadius: '12px' });
-  fxOpen = true; fxAt = Date.now(); fx.classList.add('on');
-  requestAnimationFrame(() => requestAnimationFrame(() => { fx.classList.add('grow'); Object.assign(fx.style, { left: '0px', top: '0px', width: innerWidth + 'px', height: innerHeight + 'px', borderRadius: '0px' }); }));
+  const im = el.querySelector('.fgimg'), o = fgOfs(g);
+  playFx(el.getBoundingClientRect(), im ? im.style.backgroundImage : '', o ? `${o.x}% ${o.y}%` : 'center', 12);
 }
-function fgFxClose() { clearTimeout(fxTimer); if (!fxOpen) return; fxOpen = false; const fx = $('fgFx'); fx.classList.add('out'); setTimeout(() => { fx.className = 'fgfx'; }, 350); }
+// lista de jogos dos consoles: parte do painel da capa, com o fundo do jogo (ou a capa)
+function listLaunch() {
+  const g = shown[gIdx]; if (!g || fxOpen) return;
+  const right = document.querySelector('#games .right') || $('art'), a = cachedArt(g);
+  const src = covers['bg|' + coverKey(g)] || (a && (a.snap || a.box)) || (lastArt && lastArt.g === g && lastArt.url);   // fundo do jogo > tela > capa
+  let img = src ? `url("${cp(src).replace(/"/g, '%22')}")` : '';
+  if (!img) { const bgl = [...$('gameBg').querySelectorAll('.bgl')].pop(); img = bgl ? bgl.style.backgroundImage : ''; }
+  if (!img) { launch(); return; }
+  playFx(right.getBoundingClientRect(), img, 'center', 10);
+}
+function fgFxClose() { clearTimeout(fxTimer); if (!fxOpen) return; fxOpen = false; const fx = $('fgFx'); fx.classList.add('out'); setTimeout(() => { fx.className = 'fgfx'; }, 350); if (window.chrome && chrome.webview) chrome.webview.postMessage('fxoff'); }
 window.addEventListener('blur', () => { if (fxOpen && Date.now() - fxAt > 1300) fgFxClose(); });   // o jogo abriu (o foco saiu do app)
 // ---- reposicionar a imagem do card: 'fofs|chave' = "posX%,posY%,zoom" ----
 const fgOfs = g => { const v = covers['fofs|' + coverKey(g)]; if (!v) return null; const [x, y, z] = v.split(',').map(Number); return { x, y, z: z || 1 }; };

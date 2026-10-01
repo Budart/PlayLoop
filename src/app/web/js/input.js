@@ -12,6 +12,44 @@ function setCrt(on) {
 $('crtBtn').onclick = () => { setCrt(!crtOn); sfx('ok'); $('crtBtn').blur(); };
 setCrt(crtOn);
 
+/* ---------- configuração com o controle: D-pad navega, ✕ ativa, ○ volta ao menu lateral / sai ---------- */
+function cfgFocusables() {
+  const sec = document.querySelector('#cfBody .cfsec.on'); if (!sec) return [];
+  return [...sec.querySelectorAll('.pick, input:not([type=radio]), textarea, button')].filter(e => e.offsetParent && !e.disabled && !e.closest('.pick') || e.classList.contains('pick'));
+}
+function cfgMark(el) {
+  document.querySelectorAll('#cfBody .kbf').forEach(e => e.classList.remove('kbf'));
+  if (!el) return; el.classList.add('kbf'); if (el.tabIndex < 0 && !/INPUT|TEXTAREA|BUTTON/.test(el.tagName)) el.tabIndex = -1;
+  el.focus({ preventScroll: true }); el.scrollIntoView({ block: 'nearest' });
+}
+function cfgPad(a) {
+  const nav = [...document.querySelectorAll('#cfBody .cfnav button')], cur = document.querySelector('#cfBody .kbf'), inNav = !cur || nav.includes(cur);
+  if (a === 'start') { $('cfCancel').onclick(); return; }
+  if (inNav) {
+    if (!cur) { cfgMark(nav.find(b => b.classList.contains('on')) || nav[0]); return; }   // 1º toque: só mostra o foco
+    const k = Math.max(0, nav.indexOf(cur) < 0 ? nav.findIndex(b => b.classList.contains('on')) : nav.indexOf(cur));
+    if (a === 'up' || a === 'down') { const n = nav[Math.max(0, Math.min(nav.length - 1, k + (a === 'up' ? -1 : 1)))]; n.click(); cfgMark(n); }
+    else if (a === 'right' || a === 'ok') { if (!cur) { cfgMark(nav[k]); return; } const f = cfgFocusables(); if (f.length) { cfgMark(f[0]); sfx('tick'); } }
+    else if (a === 'back') $('cfCancel').onclick();
+    return;
+  }
+  const f = cfgFocusables(), k = f.indexOf(cur);
+  if (a === 'back' || (a === 'left' && !(cur.tagName === 'INPUT' && cur.type !== 'checkbox') && !cur.classList.contains('pick'))) { cfgMark(nav.find(b => b.classList.contains('on'))); sfx('back'); return; }
+  if (a === 'up' || a === 'down' || a === 'left' || a === 'right') {
+    // cartões ilustrados lado a lado: ←/→ andam entre eles; ↑/↓ andam na ordem da tela
+    let j = k + ((a === 'up' || a === 'left') ? -1 : 1);
+    if ((a === 'up' || a === 'down') && cur.classList.contains('pick')) { const row = cur.parentNode; while (f[j] && f[j].parentNode === row) j += a === 'up' ? -1 : 1; }
+    if (a === 'left' && j < 0) { cfgMark(nav.find(b => b.classList.contains('on'))); return; }
+    if (f[j]) { cfgMark(f[j]); sfx('tick'); }
+    return;
+  }
+  if (a === 'ok') {
+    if (cur.classList.contains('pick')) { const r = cur.querySelector('input'); if (r && !r.checked) { r.checked = true; r.dispatchEvent(new Event('change', { bubbles: true })); } sfx('ok'); return; }
+    if (cur.tagName === 'INPUT' && cur.type === 'checkbox') { cur.click(); sfx('ok'); return; }
+    if (cur.tagName === 'BUTTON') { cur.click(); sfx('ok'); return; }
+    cur.focus(); cur.select && cur.select();   // campo de texto: fica pronto para digitar
+  }
+}
 /* ---------- controles: teclado + gamepad ---------- */
 function input(a) {
   if (askOpen) { if (a === 'ok') askDone(true); else if (a === 'back') askDone(false); return; }
@@ -20,7 +58,7 @@ function input(a) {
   if (fxOpen) { if (a === 'back') fgFxClose(); return; }
   if (fp.open) { fpInput(a); return; }
   if (fgInfoOpen) { if (a === 'back') fgInfo(false); else if (a === 'ok') { fgInfo(false); fgLaunch(); } return; }
-  if (screen === 'config') { if (a === 'back' || a === 'start') $('cfCancel').onclick(); return; }
+  if (screen === 'config') { cfgPad(a); return; }
   if (a === 'start') { openConfig(); return; }
   if (a === 'select') { setCrt(!crtOn); return; }
   if (screen === 'favgrid') { fgInput(a); return; }
@@ -31,7 +69,7 @@ function input(a) {
     if (a === 'up') selectGame(gIdx - 1); else if (a === 'down') selectGame(gIdx + 1);
     else if (a === 'pgup' || a === 'left') selectGame(gIdx - 10); else if (a === 'pgdn' || a === 'right') selectGame(gIdx + 10);
     else if (a === 'home') selectGame(0); else if (a === 'end') selectGame(shown.length - 1);
-    else if (a === 'ok') launch(); else if (a === 'back') back(); else if (a === 'cover') openCover();
+    else if (a === 'ok') listLaunch(); else if (a === 'back') back(); else if (a === 'cover') openCover();
     else if (a === 'fav' && shown[gIdx]) toggleFav(shown[gIdx]);
     else if (a === 'menu' && shown[gIdx]) { ensureVisible(gIdx); const el = $('list').querySelector('.row.cur'); const r = el ? el.getBoundingClientRect() : $('list').getBoundingClientRect(); openCtx(shown[gIdx], r.left + 60, r.bottom); ctxMove(1); }
   }
@@ -95,6 +133,9 @@ function pollPad() {
       else if (st[k] && ['up','down','left','right'].includes(k) && now > padRepeat) { input(k); padRepeat = now + 70; }
     }
     padPrev = st;
+    // R2 / L2: aumenta / diminui a capa 3D
+    const r2 = p.buttons[7] ? p.buttons[7].value || (p.buttons[7].pressed ? 1 : 0) : 0, l2 = p.buttons[6] ? p.buttons[6].value || (p.buttons[6].pressed ? 1 : 0) : 0;
+    if ((r2 > .15 || l2 > .15) && $('art').querySelector('.rot')) { view3d.z = Math.max(.5, Math.min(2.6, view3d.z * (1 + (r2 - l2) * .03))); applyView(); }
     // analógico direito: gira a capa 3D (em qualquer tela onde ela aparece)
     const rx = p.axes[2] || 0, ry = p.axes[3] || 0;
     if ((Math.abs(rx) > .18 || Math.abs(ry) > .18) && $('art').querySelector('.rot')) {

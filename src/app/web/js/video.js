@@ -118,7 +118,18 @@ async function setBg(url, mode, instant) {
 // girar com o mouse (arrastar) e zoom (roda do mouse)
 const view3d = { ry: 0, rx: 0, z: 1 };
 const viewTf = () => `scale(${view3d.z}) rotateX(${view3d.rx}deg) rotateY(${view3d.ry}deg)`;
-function applyView() { const r = $('art').querySelector('.rot'); if (r) r.style.transform = viewTf(); }
+// zoom limitado: a capa nunca passa da sua área (painel da capa; com vídeo tocando, cresce para baixo/esquerda até o fim do vídeo)
+function zoomMax() {
+  const c = $('art').querySelector('.case3d'); if (!c) return 2.6;
+  const base = { w: c.offsetWidth, h: c.offsetHeight }; if (!base.w) return 2.6;
+  const right = $('art').closest('.right'), vid = right && right.classList.contains('vidplay');
+  const art = $('art').getBoundingClientRect();
+  let w, h;
+  if (vid) { const vb = $('vidBox').getBoundingClientRect(), cr = c.getBoundingClientRect(); w = cr.right - vb.left; h = vb.bottom - cr.top; }
+  else { w = art.width; h = art.height; }
+  return Math.max(.5, Math.min(2.6, w / (base.w * 1.35), h / (base.h * 1.15)));   // folga para a lateral/rotação da caixa
+}
+function applyView() { view3d.z = Math.max(.5, Math.min(view3d.z, zoomMax())); const r = $('art').querySelector('.rot'); if (r) r.style.transform = viewTf(); }
 (() => {
   const a = $('art'); let drag = null;
   a.addEventListener('pointerdown', e => { if (e.button !== 0) return; drag = { x: e.clientX, y: e.clientY, ry: view3d.ry, rx: view3d.rx }; a.setPointerCapture(e.pointerId); a.style.cursor = 'grabbing'; });
