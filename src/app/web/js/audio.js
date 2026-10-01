@@ -105,11 +105,12 @@ const music = {
 };
 function setMute(m) {
   muted = m; try { localStorage.setItem('mute', m ? '1' : '0'); } catch (e) {}
-  $('mute').textContent = m ? '🔇' : '🔊'; if (typeof vidApplySound === 'function') vidApplySound();
+  $('mute').textContent = m ? '🔇' : '🔊'; ['gMute', 'fgMute'].forEach(id => { const b = $(id); if (b) b.textContent = m ? '🔇' : '🔊'; }); if (typeof vidApplySound === 'function') vidApplySound();
   if (AC) master.gain.setTargetAtTime(m ? 0 : 1, AC.currentTime, .05);
   if (!m) { audio(); if (!music.timer) music.start(); } else music.stop();
 }
 $('mute').onclick = () => { setMute(!muted); $('mute').blur(); };
+['gMute', 'fgMute'].forEach(id => { const b = $(id); if (!b) return; b.textContent = muted ? '🔇' : '🔊'; b.onclick = e => { e.stopPropagation(); setMute(!muted); b.blur(); }; });
 $('mute').textContent = muted ? '🔇' : '🔊';
 music.play('home');
 // navegadores só liberam áudio após a primeira interação

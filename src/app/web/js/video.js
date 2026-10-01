@@ -52,6 +52,7 @@ function playCandidate(g, list, k) {
   f._next = reason => { if (f._dead) return; f._dead = true; diag(`${v.id} falhou: ${reason}`); playCandidate(g, list, k + 1); };
   f.src = `https://www.youtube-nocookie.com/embed/${v.id}?autoplay=1&mute=${vidSoundOn() ? 0 : 1}&controls=0&disablekb=1&fs=0&start=${v.start}&rel=0&iv_load_policy=3&cc_load_policy=0&enablejsapi=1&origin=${encodeURIComponent(location.origin)}`;
   f.onload = () => {
+    [400, 1200, 2500, 4000].forEach(t => setTimeout(() => vidSetVol(f), t));   // volume do vídeo em 20%
     setTimeout(() => { if (f.isConnected && !f._t0 && vidFor === g) f._next('não começou a tocar em 3 s (restrição de idade, bloqueio regional ou incorporação desativada)'); }, 3000);
     const t = setInterval(() => { if (!f.isConnected || f.classList.contains('on')) return clearInterval(t); try { f.contentWindow.postMessage(JSON.stringify({ event:'listening', id: 1 }), '*'); } catch (e) {} }, 250);
   };
@@ -195,9 +196,11 @@ function setVidLogo(g, url) {
 
 // som do vídeo: ligado por padrão; desligado pelo botão de som do app ou em Configuração → Capas e vídeo
 function vidSoundOn() { let v = '1'; try { v = localStorage.getItem('vidsound') || '1'; } catch (e) {} return v !== '0' && !muted; }
+const VID_VOL = 20;
+function vidSetVol(f) { try { f.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [VID_VOL] }), '*'); } catch (e) {} }
 function vidApplySound() {
   const on = vidSoundOn();
-  document.querySelectorAll('#vidBox .vid').forEach(f => { try { f.contentWindow.postMessage(JSON.stringify({ event: 'command', func: on ? 'unMute' : 'mute', args: [] }), '*'); } catch (e) {} });
+  document.querySelectorAll('#vidBox .vid').forEach(f => { vidSetVol(f); try { f.contentWindow.postMessage(JSON.stringify({ event: 'command', func: on ? 'unMute' : 'mute', args: [] }), '*'); } catch (e) {} });
   if (document.querySelector('.right.vidplay')) { if (on) music.pause(); else if (!muted) music.resume(); }
 }
 // logo de título: em cima do fundo enquanto não há vídeo; dentro do vídeo quando ele toca
