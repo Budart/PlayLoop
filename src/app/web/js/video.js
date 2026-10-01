@@ -106,7 +106,8 @@ let bgCur = '', bgTok = 0;
 async function setBg(url, mode, instant) {
   const id = url + '|' + mode; if (id === bgCur) return; bgCur = id;
   const tok = ++bgTok, host = $('gameBg');
-  if (url && !instant) { const r = await Promise.race([loadImg(url), new Promise(r => setTimeout(() => r('t'), 1200))]); if (r === null && url.startsWith('/api/img?u=')) url = decodeURIComponent(url.slice(11)); }
+  if (url && artAlts(url).length > 1) url = await artResolve(url);   // imagem do tema: usa a reserva se a original falhar
+  else if (url && !instant) { const r = await Promise.race([loadImg(url), new Promise(r => setTimeout(() => r('t'), 1200))]); if (r === null && url.startsWith('/api/img?u=')) url = decodeURIComponent(url.slice(11)); }
   if (tok !== bgTok) return;
   const old = [...host.querySelectorAll('.bgl')];
   if (url) {

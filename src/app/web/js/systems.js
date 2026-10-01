@@ -46,7 +46,7 @@ function selectSystem(i) {
   const w = sysW(); $('track').style.transform = `translateX(${-(sysIdx * w + w / 2)}px)`;
   $('track').querySelectorAll('.sys').forEach((el, k) => el.classList.toggle('cur', k === sysIdx));
   $('prev').classList.toggle('off', sysIdx === 0); $('next').classList.toggle('off', sysIdx === systems.length - 1);
-  $('sysBg').style.backgroundImage = s.virtual ? `url("${s.bg ? bgUrlOf(s) : FAV_BG}")` : `url("${bgUrlOf(s)}")`;
+  setBgImage($('sysBg'), s.virtual ? (s.bg ? bgUrlOf(s) : FAV_BG) : bgUrlOf(s));
   $('sysCtrl').style.visibility = s.virtual ? 'hidden' : ''; if (!s.virtual) $('sysCtrl').src = ctrlImg(s);
   if (prevIdx !== sysIdx) sfx('move');
   const n = total(s);
