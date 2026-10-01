@@ -291,7 +291,7 @@ async function fgGameBg(g) {
   if (tok !== fgBgTok || !url) return;
   const old = [...host.querySelectorAll('.bgl')];
   const l = document.createElement('div'); l.className = 'bgl'; l.style.backgroundImage = `url("${cp(url).replace(/"/g, '%22')}")`;
-  host.appendChild(l); host._url = url; host._g = g; fgApplyBgOfs(l, url, g); requestAnimationFrame(() => requestAnimationFrame(() => l.classList.add('on')));
+  host.appendChild(l); host._url = url; host._g = g; fgApplyBgOfs(l, url, g); if (!fgBgOfs(g)) fgBgExtend(l, url, tok); requestAnimationFrame(() => requestAnimationFrame(() => l.classList.add('on')));
   old.forEach(o => { o.classList.remove('on'); setTimeout(() => o.remove(), 600); });
 }
 // abrir o jogo: a imagem do card se expande até a tela inteira, escurece e mostra "Bom jogo."
@@ -329,6 +329,24 @@ function fgFxClose() { clearTimeout(fxTimer); if (!fxOpen) return; fxOpen = fals
 window.addEventListener('blur', () => { if (fxOpen && Date.now() - fxAt > 1300) fgFxClose(); });   // o jogo abriu (o foco saiu do app)
 // ---- reposicionar a imagem do card: 'fofs|chave' = "posX%,posY%,zoom" ----
 const fgBgOfs = g => { const v = covers['bofs|' + coverKey(g)]; if (!v) return null; const [x, y, z] = v.split(',').map(Number); return { x, y, z: z || 1 }; };
+// fundo menor que a tela: mostra a imagem sem ampliar além do tamanho real e "estica" os últimos pixels de cada borda até o fim da área
+async function fgBgExtend(l, url, tok) {
+  const src = cp(url), im = await new Promise(ok => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = src; });
+  if (!im || tok !== fgBgTok) return;
+  const W = l.offsetWidth || innerWidth, H = l.offsetHeight || innerHeight, iw = im.naturalWidth, ih = im.naturalHeight;
+  const cover = Math.max(W / iw, H / ih), contain = Math.min(W / iw, H / ih), sc = Math.min(cover, Math.max(contain, 1));
+  if (sc >= cover * .999) return;   // a imagem já cobre a tela toda
+  try {
+    const k = Math.min(1, 1920 / W), cw = Math.round(W * k), ch = Math.round(H * k), dw = iw * sc * k, dh = ih * sc * k, x0 = (cw - dw) / 2, y0 = (ch - dh) / 2;
+    const cv = document.createElement('canvas'); cv.width = cw; cv.height = ch; const x = cv.getContext('2d');
+    x.drawImage(im, x0, y0, dw, dh);
+    if (x0 > 0) { x.drawImage(im, 0, 0, 1, ih, 0, y0, Math.ceil(x0) + 1, dh); x.drawImage(im, iw - 1, 0, 1, ih, Math.floor(x0 + dw) - 1, y0, cw - Math.floor(x0 + dw) + 1, dh); }
+    if (y0 > 0) { x.drawImage(cv, 0, Math.ceil(y0), cw, 1, 0, 0, cw, Math.ceil(y0) + 1); x.drawImage(cv, 0, Math.floor(y0 + dh) - 1, cw, 1, 0, Math.floor(y0 + dh) - 1, cw, ch - Math.floor(y0 + dh) + 1); }
+    const data = cv.toDataURL('image/jpeg', .9);
+    if (tok !== fgBgTok) return;
+    l.style.backgroundImage = `url("${data}")`; l.style.backgroundSize = '100% 100%'; l.style.backgroundPosition = 'center';
+  } catch (e) {}   // imagem sem permissão de leitura: fica como está
+}
 async function fgApplyBgOfs(l, url, g) {   // posição/zoom do fundo do jogo ('bofs|chave')
   const o = fgBgOfs(g);
   if (!o) { l.style.backgroundSize = ''; l.style.backgroundPosition = ''; return; }
