@@ -18,8 +18,22 @@ function fieldHtml(i, key, label, val, browse, multi) {
   const inp = multi ? `<textarea data-i="${i}" data-k="${key}" rows="2">${esc(val)}</textarea>` : `<input data-i="${i}" data-k="${key}" value="${esc(val)}">`;
   return `<div class="fld"><label>${label}</label><div class="line">${inp}${browse ? `<button class="btn sec sm" data-browse="${browse}" data-i="${i}" data-k="${key}">Procurar...</button>` : ''}${key === 'emulator' ? `<span class="st" id="st${i}"></span>` : ''}</div></div>`;
 }
-const CF_SECS = [['geral', '🚀 Geral'], ['consoles', '🎮 Consoles'], ['capas', '🖼 Capas e vídeo'], ['favoritos', '⭐ Favoritos'], ['steamgriddb', '🎨 SteamGridDB']];
+const CF_SECS = [['geral', '🚀 Geral'], ['consoles', '🎮 Consoles'], ['capas', '🖼 Capas e vídeo'], ['favoritos', '⭐ Favoritos']];
 let cfSec = 'geral';
+// opções com desenho ilustrativo (o rádio fica escondido; o cartão inteiro é clicável)
+const pick = (name, val, on, svg, title, sub) => `<label class="pick"><input type="radio" name="${name}" value="${val}" ${on ? 'checked' : ''}><div class="pv">${svg}</div><b>${title}</b><small>${sub || ''}</small></label>`;
+const PV = {
+  c3d: `<svg viewBox="0 0 120 90"><defs><linearGradient id="pf" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8B5CF6"/><stop offset="1" stop-color="#00D1FF"/></linearGradient></defs><path d="M38 14 L52 8 L52 82 L38 76 Z" fill="#0b0b0b"/><path d="M52 8 L96 16 L96 76 L52 82 Z" fill="url(#pf)" stroke="#0b0b0b" stroke-width="2"/><path d="M58 20 L90 25 M58 30 L84 34" stroke="#fff" stroke-opacity=".6" stroke-width="3" stroke-linecap="round"/><path d="M45 20 L45 70" stroke="#fff" stroke-opacity=".35" stroke-width="2"/></svg>`,
+  c2d: `<svg viewBox="0 0 120 90"><defs><linearGradient id="pg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8B5CF6"/><stop offset="1" stop-color="#00D1FF"/></linearGradient></defs><rect x="26" y="10" width="72" height="70" rx="5" fill="#0b0b0b"/><rect x="31" y="15" width="11" height="60" fill="#1d1d1d"/><path d="M36.5 22 L36.5 68" stroke="#fff" stroke-opacity=".4" stroke-width="2"/><rect x="43" y="15" width="50" height="60" fill="url(#pg)"/><path d="M49 26 H86 M49 35 H78" stroke="#fff" stroke-opacity=".6" stroke-width="3" stroke-linecap="round"/></svg>`,
+  video: `<svg viewBox="0 0 120 90"><rect x="14" y="14" width="92" height="62" rx="6" fill="#1e293b" stroke="#3B82F6" stroke-width="2"/><circle cx="60" cy="45" r="15" fill="#ff2d2d"/><path d="M55 37 L68 45 L55 53 Z" fill="#fff"/><rect x="22" y="66" width="76" height="3" rx="1.5" fill="#475569"/><rect x="22" y="66" width="30" height="3" rx="1.5" fill="#00D1FF"/></svg>`,
+  image: `<svg viewBox="0 0 120 90"><rect x="14" y="14" width="92" height="62" rx="6" fill="#1e293b" stroke="#3B82F6" stroke-width="2"/><circle cx="84" cy="30" r="7" fill="#fbbf24"/><path d="M18 72 L46 40 L64 58 L76 48 L102 72 Z" fill="#8B5CF6"/></svg>`,
+};
+function gridPv(d) {
+  const [R, C] = d.split('x').map(Number), W = 112, H = 78, g = 2.5, cw = (W - g * (C - 1)) / C, ch = (H - g * (R - 1)) / R;
+  let s = '';
+  for (let y = 0; y < R; y++) for (let x = 0; x < C; x++) s += `<rect x="${(4 + x * (cw + g)).toFixed(1)}" y="${(6 + y * (ch + g)).toFixed(1)}" width="${cw.toFixed(1)}" height="${ch.toFixed(1)}" rx="1.6" fill="${x < 2 && y < 2 ? '#00D1FF' : '#334155'}"/>`;
+  return `<svg viewBox="0 0 120 90">${s}</svg>`;
+}
 function renderConfig() {
   const cs = cfg.consoles;
   const sec = (id, title, html) => `<div class="cfsec${cfSec === id ? ' on' : ''}" data-sec="${id}"><h2>${title}</h2>${html}</div>`;
@@ -45,31 +59,31 @@ function renderConfig() {
     </div>
     <div style="margin-top:18px"><button class="btn sec" id="cfAdd">+ Adicionar console</button> <button class="btn sec" id="cfAddPc">+ Adicionar jogos de PC</button></div>`) +
     sec('capas', '🖼 Capas e vídeo', `<div class="cfcache">
-      <h3>🖼 Capas</h3>
-      <div class="line"><span style="font-size:14px">Fundo dos jogos:</span>
-        <label class="chk2"><input type="radio" name="bgm" value="video" ${cfg.bgMode === 'image' ? '' : 'checked'}> Vídeo (gameplay do YouTube)</label>
-        <label class="chk2"><input type="radio" name="bgm" value="image" ${cfg.bgMode === 'image' ? 'checked' : ''}> Imagem</label></div>
-      <div class="line"><span style="font-size:14px">Estilo das capas:</span>
-        <label class="chk2"><input type="radio" name="cst" value="3d" ${cfg.coverStyle === '2d' ? '' : 'checked'}> 3D (caixa girando)</label>
-        <label class="chk2"><input type="radio" name="cst" value="2d" ${cfg.coverStyle === '2d' ? 'checked' : ''}> 2D (encarte aberto, mais leve)</label></div>
+      <h3>🎬 Fundo dos jogos</h3>
+      <div class="picks">${pick('bgm', 'video', cfg.bgMode !== 'image', PV.video, 'Vídeo', 'gameplay do YouTube')}${pick('bgm', 'image', cfg.bgMode === 'image', PV.image, 'Imagem', 'tela ou arte do jogo')}</div>
+    </div>
+    <div class="cfcache">
+      <h3>📦 Estilo das capas</h3>
+      <div class="picks">${pick('cst', '3d', cfg.coverStyle !== '2d', PV.c3d, '3D', 'caixa girando')}${pick('cst', '2d', cfg.coverStyle === '2d', PV.c2d, '2D', 'encarte aberto, mais leve')}</div>
+    </div>
+    <div class="cfcache">
+      <h3>💾 Cache</h3>
       <label class="chk2"><input type="checkbox" id="cfCacheOn" ${cfg.coverCache === false ? '' : 'checked'}> Salvar capas no computador (carregam na hora nas próximas vezes)</label>
       <div class="line"><button class="btn sec sm" id="cfCacheClear">Limpar cache de capas</button><span class="msg" id="cfCacheInfo"></span></div>
     </div>
-    `) +
-    sec('favoritos', '⭐ Favoritos', `<div class="cfcache"><h3>Grade dos favoritos</h3><div class="line"><span style="font-size:14px">Tamanho da grade (linhas × colunas):</span>
-        ${['4x10', '4x12', '6x12'].map(d => `<label class="chk2"><input type="radio" name="fgd" value="${d}" ${(cfg.favGrid || '4x12') === d ? 'checked' : ''}> ${d.replace('x', ' × ')}${d === '4x12' ? ' (padrão)' : ''}</label>`).join('')}</div>
-        <div class="msg">Cada jogo favorito vira um card. Arraste a borda direita/de baixo de um card para aumentar (até 4 × 4) ou use o botão direito → Redimensionar.</div></div><div class="cfgrid"><div class="ccard${favCfg().enabled ? '' : ' off'}">
-        <div class="top"><button class="icobtn" data-ico="-2" title="Trocar ícone"><img src="${logoUrl(Object.assign({}, FAVSYS, { logo: favCfg().logo || 'builtin:fav' }))}" alt=""><span>trocar ícone</span></button><button class="icobtn bgb" data-bgp="-2" title="Trocar fundo" style="background-image:url('${favCfg().bg ? bgUrlOf({ bg: favCfg().bg }) : FAV_BG}')"><span>trocar fundo</span></button><input value="⭐ Favoritos" disabled><label class="chk2 en"><input type="checkbox" data-en="-2" ${favCfg().enabled ? 'checked' : ''}> Habilitar</label></div>
-        <div class="icopick" id="ip-2" style="display:none"></div>
-        <div class="msg">Grade com todos os jogos que você marcou com ⭐. Arraste na tela inicial para mudar a posição deste console.</div>
-      </div></div>`) +
-    sec('steamgriddb', '🎨 SteamGridDB', `<div class="cfcache">
+    <div class="cfcache">
       <h3>🎨 SteamGridDB (opcional)</h3>
       ${SGDB_HELP}
       <div class="line"><input id="cfSgKey" placeholder="Cole aqui a sua chave da API" value="${esc(cfg.sgdbKey || '')}" style="flex:1;background:#101010;border:1px solid #333;color:#eee;border-radius:6px;padding:8px 10px"><button class="btn sec sm" id="cfSgTest">Testar chave</button></div>
       <label class="chk2"><input type="checkbox" id="cfSgOn" ${cfg.useSgdb && cfg.sgdbKey ? 'checked' : ''}> Usar o SteamGridDB para capas, fundos e logos</label>
-    </div>
-    `) + '</div>';
+    </div>`) +
+    sec('favoritos', '⭐ Favoritos', `<div class="cfcache"><h3>Grade dos favoritos</h3>
+        <div class="picks">${['4x10', '4x12', '6x12'].map(d => pick('fgd', d, (cfg.favGrid || '4x12') === d, gridPv(d), d.replace('x', ' × '), d === '4x12' ? 'padrão' : (d === '6x12' ? 'mais jogos por página' : 'cards maiores'))).join('')}</div>
+        <div class="msg">Cada jogo favorito vira um card. Arraste um card para mudar de lugar (até para outra página), arraste a borda direita/de baixo para aumentar (até 4 × 4) ou use o botão direito → Redimensionar.</div></div><div class="cfgrid"><div class="ccard${favCfg().enabled ? '' : ' off'}">
+        <div class="top"><button class="icobtn" data-ico="-2" title="Trocar ícone"><img src="${logoUrl(Object.assign({}, FAVSYS, { logo: favCfg().logo || 'builtin:fav' }))}" alt=""><span>trocar ícone</span></button><button class="icobtn bgb" data-bgp="-2" title="Trocar fundo" style="background-image:url('${favCfg().bg ? bgUrlOf({ bg: favCfg().bg }) : FAV_BG}')"><span>trocar fundo</span></button><input value="⭐ Favoritos" disabled><label class="chk2 en"><input type="checkbox" data-en="-2" ${favCfg().enabled ? 'checked' : ''}> Habilitar</label></div>
+        <div class="icopick" id="ip-2" style="display:none"></div>
+        <div class="msg">Grade com todos os jogos que você marcou com ⭐. Arraste na tela inicial para mudar a posição deste console.</div>
+      </div></div>`) + '</div>';
   $('cfBody').querySelectorAll('[data-nav]').forEach(b => b.onclick = () => { cfSec = b.dataset.nav; $('cfBody').querySelectorAll('[data-nav]').forEach(x => x.classList.toggle('on', x === b)); $('cfBody').querySelectorAll('.cfsec').forEach(s => s.classList.toggle('on', s.dataset.sec === cfSec)); $('cfMain').scrollTop = 0; sfx('tick'); });
   $('cfBody').querySelectorAll('input[name=fgd]').forEach(r => r.onchange = () => { cfg.favGrid = r.value; favGridDim = r.value; });
   $('cfBody').querySelectorAll('[data-k]').forEach(el => el.oninput = () => setField(+el.dataset.i, el.dataset.k, el.value));

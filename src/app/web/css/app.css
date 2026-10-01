@@ -314,7 +314,7 @@
   .fgview { flex:1; min-height:0; overflow:hidden; margin:22px 34px 10px; }
   .fgtrack { display:flex; height:100%; transition:transform .35s cubic-bezier(.2,.7,.3,1); }
   .fgtrack > .empty { flex:none; width:100%; }
-  .fgpage { flex:none; width:100%; height:100%; display:grid; gap:10px; box-sizing:border-box; }
+  .fgpage { flex:none; width:100%; height:100%; display:grid; gap:20px; box-sizing:border-box; }
   .fgcard { position:relative; border-radius:12px; overflow:hidden; cursor:pointer; background:#151c30; border:2px solid rgba(255,255,255,.08); box-shadow:0 6px 18px rgba(0,0,0,.45); transition:border-color .15s, box-shadow .15s, transform .15s; min-width:0; min-height:0; }
   .fgcard:hover { border-color:rgba(255,255,255,.3); }
   .fgcard.sel { border-color:var(--c1); box-shadow:0 0 0 2px var(--c1), 0 0 26px rgba(0,209,255,.45); transform:scale(1.015); z-index:2; }
@@ -344,3 +344,29 @@
   .cfmain { flex:1; min-width:0; overflow-y:auto; padding:20px 30px 40px; }
   .cfsec { display:none; } .cfsec.on { display:block; }
   .cfsec > h2 { margin:0 0 14px; font-size:22px; }
+
+  /* opções ilustradas da configuração */
+  .picks { display:flex; flex-wrap:wrap; gap:14px; margin:6px 0 8px; }
+  .pick { position:relative; width:170px; display:flex; flex-direction:column; align-items:center; gap:2px; padding:12px 10px 10px; border-radius:12px; border:2px solid rgba(255,255,255,.1); background:rgba(255,255,255,.03); cursor:pointer; transition:border-color .15s, background .15s, transform .15s; }
+  .pick:hover { border-color:rgba(255,255,255,.3); transform:translateY(-2px); }
+  .pick input { position:absolute; opacity:0; pointer-events:none; }
+  .pick .pv { width:120px; height:90px; } .pick .pv svg { width:100%; height:100%; }
+  .pick b { font-size:15px; margin-top:4px; } .pick small { font-size:12px; color:var(--muted); text-align:center; }
+  .pick:has(input:checked) { border-color:var(--c1); background:rgba(0,209,255,.08); box-shadow:0 0 0 1px var(--c1), 0 0 18px rgba(0,209,255,.25); }
+  .pick:has(input:checked)::after { content:"✓"; position:absolute; top:8px; right:10px; width:20px; height:20px; border-radius:50%; background:var(--c1); color:#0B1020; font-weight:800; font-size:13px; display:flex; align-items:center; justify-content:center; }
+
+  /* arrastar cards dos favoritos */
+  .fgview { position:relative; }
+  .fgcard.dragsrc { opacity:.25; }
+  .fgghost { position:fixed; left:0; top:0; z-index:40; pointer-events:none; opacity:.92; box-shadow:0 18px 40px rgba(0,0,0,.6); }
+  .fgslot { position:absolute; z-index:4; border:2px dashed var(--c1); border-radius:12px; background:rgba(0,209,255,.08); pointer-events:none; transition:left .08s, top .08s; }
+  /* painel flutuante (dock) com os detalhes do jogo */
+  .fgdet { position:absolute; z-index:8; bottom:34px; display:flex; align-items:stretch; max-width:min(560px, 46vw); background:rgba(15,23,42,.88); backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,.12); border-radius:14px; box-shadow:0 12px 30px rgba(0,0,0,.5); transition:left .25s, right .25s, transform .25s; }
+  .fgdet[data-dock=left] { left:34px; } .fgdet[data-dock=right] { right:34px; } .fgdet[data-dock=center] { left:50%; transform:translateX(-50%); }
+  .fgdet.moving { transition:none; opacity:.9; }
+  .fdgrip { display:flex; align-items:center; padding:0 8px; color:#64748b; cursor:grab; user-select:none; letter-spacing:-3px; border-right:1px solid rgba(255,255,255,.08); }
+  .fdbody { padding:10px 16px; min-width:0; }
+  .fdn { font-weight:700; font-size:16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .fdm { font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .fdp { cursor:pointer; }
+  .fgview { margin-bottom:8px; } .fgdots { margin-bottom:76px; } .fgdet { bottom:16px; }
+  .fgcard.fgghost { z-index:60; position:fixed; }
