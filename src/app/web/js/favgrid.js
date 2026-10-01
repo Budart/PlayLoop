@@ -75,7 +75,6 @@ function fgLayout() {
 async function openFavGrid() {
   sfx('ok'); globalMode = false; favMode = false;
   show('favgrid'); history.replaceState(null, '', '#favoritos');
-  $('fgHead').innerHTML = logo(FAVSYS);
   $('fgTrack').innerHTML = '<div class="empty">Carregando...</div>';
   if (!allGames) {
     const lists = await Promise.all(allSystems.map(s => loadGames(s.id).catch(() => [])));
@@ -98,7 +97,7 @@ function renderFavGrid() {
       const g = fg.items[i];
       html += `<div class="fgcard${i === fg.sel ? ' sel' : ''}" data-i="${i}" style="grid-column:${pl.x + 1} / span ${pl.w};grid-row:${pl.y + 1} / span ${pl.h}">
         <div class="fgimg"></div><div class="fgname">${esc(dn(g))}</div>
-        <span class="fgrz r" data-rz="r"></span><span class="fgrz b" data-rz="b"></span><span class="fgrz rb" data-rz="rb"></span></div>`;
+        <button class="fgi" data-info title="Info (I)">i</button><span class="fgrz r" data-rz="r"></span><span class="fgrz b" data-rz="b"></span><span class="fgrz rb" data-rz="rb"></span></div>`;
     });
     html += '</div>';
   }
@@ -152,6 +151,8 @@ function fgMove(dir) {
 }
 function fgBind(el) {
   const i = +el.dataset.i;
+  el.querySelector('[data-info]').onclick = e => { e.stopPropagation(); fgSelect(i, true); fgInfo(true); };
+  el.querySelector('[data-info]').onpointerdown = e => e.stopPropagation();
   el.onclick = e => {
     if (e.target.dataset.rz || el._dragged) { el._dragged = false; return; }
     if (e.ctrlKey) { fgToggleMulti(i); return; }          // Ctrl+clique: seleção em lote
@@ -241,71 +242,24 @@ function fgDragStart(e, el, i) {
 function fgAddPage() { const { R, C } = fgDim(); $('fgTrack').insertAdjacentHTML('beforeend', `<div class="fgpage" style="grid-template-columns:repeat(${C},var(--cell));grid-template-rows:repeat(${R},var(--cell))"></div>`); }
 // painel flutuante com os detalhes do jogo selecionado (arraste pelo topo; gruda no canto/centro de baixo mais próximo)
 let fgDock = 'left'; try { fgDock = localStorage.getItem('fgDock') || 'left'; } catch (e) {}
+// ícone genérico de teclado + mouse para jogos de PC (no estilo dos desenhos de controle)
+const PC_CTRL = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 120"><g fill="none" stroke="#e5e7eb" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"><rect x="6" y="30" width="160" height="70" rx="10" fill="#1f2937"/><path d="M22 48h12M44 48h12M66 48h12M88 48h12M110 48h12M132 48h18M22 64h18M48 64h12M70 64h12M92 64h12M114 64h12M136 64h14M22 82h14M46 82h82M138 82h12"/><rect x="186" y="34" width="44" height="66" rx="22" fill="#1f2937"/><path d="M208 34v22M186 56h44"/><path d="M208 34c0-14-10-22-30-22"/></g></svg>`);
+const ctrlImg = s => s.type === 'pc' || s.id === 'pc' ? PC_CTRL : `${ART}controllers/${s.art}.svg`;
+// cabeçalho dos Favoritos = detalhes do card selecionado (controle do console, nome, console, tamanho e caminho)
 function fgDetails() {
-  const g = fg.items[fg.sel], d = $('fgDet'); if (!d) return;
-  if (!g) { d.style.display = 'none'; return; }
+  const g = fg.items[fg.sel], d = $('fgHead'); if (!d) return;
+  if (!g) { d.innerHTML === '' || (d.querySelector('.fdn').textContent = 'Favoritos'); d.querySelector('.fdc').textContent = ''; d.querySelector('.fdm').style.display = 'none'; d.querySelector('.fdctrl').style.display = 'none'; return; }
   const s = sysOf(g);
-  d.style.display = ''; d.dataset.dock = fgDock;
+  d.querySelector('.fdm').style.display = '';
   d.querySelector('.fdn').textContent = dn(g);
   d.querySelector('.fdc').textContent = s.name || '';
   const ci = d.querySelector('.fdctrl'); ci.style.display = ''; ci.onerror = () => { ci.style.display = 'none'; };
-  ci.src = s.type === 'pc' ? logoUrl(s) : `${ART}controllers/${s.art}.svg`;
+  ci.src = ctrlImg(s);
   d.querySelector('.fdp').textContent = g.path; d.querySelector('.fdp').title = 'Abrir a pasta do arquivo';
   d.querySelector('.fds').textContent = fmtSize(g.size);
   fgGameBg(g);
 }
-// painel arrastável por qualquer ponto (gruda no canto/centro de baixo mais próximo) e redimensionável pelo canto inferior direito
-(() => {
-  const d = $('fgDet');
-  try { const s = JSON.parse(localStorage.getItem('fgDetSize') || 'null'); if (s) { d.style.width = s.w + 'px'; d.style.height = s.h + 'px'; } } catch (e) {}
-  new ResizeObserver(() => { if (d.offsetWidth) try { localStorage.setItem('fgDetSize', JSON.stringify({ w: d.offsetWidth, h: d.offsetHeight })); } catch (e) {} }).observe(d);
-  d.querySelector('.fdp').onclick = e => { if (d._moved) return; const g = fg.items[fg.sel]; if (g) api('/api/reveal', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ path: g.path }) }).catch(er => toast(er.message, true)); };
-  const EDGE = 10;
-  const edgeOf = (e, r) => ({ l: e.clientX - r.left < EDGE, r: r.right - e.clientX < EDGE, t: e.clientY - r.top < EDGE, b: r.bottom - e.clientY < EDGE });
-  const CUR = { lt:'nwse-resize', rb:'nwse-resize', rt:'nesw-resize', lb:'nesw-resize', l:'ew-resize', r:'ew-resize', t:'ns-resize', b:'ns-resize' };
-  d.addEventListener('pointermove', e => { if (d._busy) return; const k = edgeOf(e, d.getBoundingClientRect()), s = (k.l ? 'l' : k.r ? 'r' : '') + (k.t ? 't' : k.b ? 'b' : ''); d.style.cursor = CUR[s] || ''; });
-  d.onpointerdown = e => {
-    if (e.button !== 0) return;
-    const r = d.getBoundingClientRect(), k = edgeOf(e, r), sx = e.clientX, sy = e.clientY;
-    const fix = () => { Object.assign(d.style, { left: r.left + 'px', top: r.top + 'px', right: 'auto', bottom: 'auto', transform: 'none', width: r.width + 'px', height: r.height + 'px' }); };
-    if (k.l || k.r || k.t || k.b) {   // redimensionar por qualquer borda ou canto
-      e.preventDefault(); d._busy = true; d._moved = true; fix(); d.classList.add('moving');
-      const mv = ev => {
-        const dx = ev.clientX - sx, dy = ev.clientY - sy, mw = 300, mh = 90;
-        let L = r.left, T = r.top, W = r.width, H = r.height;
-        if (k.r) W = Math.max(mw, r.width + dx); if (k.b) H = Math.max(mh, r.height + dy);
-        if (k.l) { W = Math.max(mw, r.width - dx); L = r.right - W; } if (k.t) { H = Math.max(mh, r.height - dy); T = r.bottom - H; }
-        Object.assign(d.style, { left: L + 'px', top: T + 'px', width: Math.min(W, innerWidth * .92) + 'px', height: Math.min(H, innerHeight * .6) + 'px' });
-      };
-      const up = () => {
-        document.removeEventListener('pointermove', mv); document.removeEventListener('pointerup', up);
-        const w = d.offsetWidth, h = d.offsetHeight;
-        d.classList.remove('moving'); d.style.left = d.style.top = d.style.right = d.style.bottom = d.style.transform = '';
-        d.style.width = w + 'px'; d.style.height = h + 'px'; d._busy = false;
-        try { localStorage.setItem('fgDetSize', JSON.stringify({ w, h })); } catch (er) {}
-        setTimeout(() => { d._moved = false; }, 0);
-      };
-      document.addEventListener('pointermove', mv); document.addEventListener('pointerup', up);
-      return;
-    }
-    const ox = e.clientX - r.left, oy = e.clientY - r.top; d._moved = false;
-    const mv = ev => {
-      if (!d._moved && Math.hypot(ev.clientX - sx, ev.clientY - sy) < 6) return;
-      if (!d._moved) { d._moved = true; d.classList.add('moving'); }
-      d.style.left = (ev.clientX - ox) + 'px'; d.style.top = (ev.clientY - oy) + 'px'; d.style.right = d.style.bottom = 'auto'; d.style.transform = 'none';
-    };
-    const up = ev => {
-      document.removeEventListener('pointermove', mv); document.removeEventListener('pointerup', up);
-      if (!d._moved) return;
-      d.classList.remove('moving');
-      const x = ev.clientX / innerWidth; fgDock = x < .34 ? 'left' : x > .66 ? 'right' : 'center';
-      try { localStorage.setItem('fgDock', fgDock); } catch (er) {}
-      d.style.left = d.style.top = d.style.right = d.style.bottom = d.style.transform = ''; d.dataset.dock = fgDock; sfx('tick');
-      setTimeout(() => { d._moved = false; }, 0);
-    };
-    document.addEventListener('pointermove', mv); document.addEventListener('pointerup', up);
-  };
-})();
+$('fgHead').querySelector('.fdp').onclick = () => { const g = fg.items[fg.sel]; if (g) api('/api/reveal', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ path: g.path }) }).catch(er => toast(er.message, true)); };
 // fundo da tela de favoritos = fundo do jogo selecionado (opcional, Configuração → Favoritos)
 let favBgGame = false, fgBgTok = 0;
 async function fgGameBg(g) {
@@ -464,7 +418,7 @@ function fgCtx(x, y, sizes) {
 }
 // "Info": capa 3D, vídeo e dados do jogo num modal (reaproveita o painel da direita da lista)
 function fgInfo(on) {
-  const right = document.querySelector('.right') || $('fgInfoBox').firstElementChild;
+  const right = $('fgInfoBox').querySelector('.right') || document.querySelector('.right');
   if (on) {
     const g = fg.items[fg.sel]; if (!g) return;
     fgInfoOpen = true; $('fgInfo').classList.add('on'); $('fgInfoBox').appendChild(right);
@@ -473,11 +427,13 @@ function fgInfo(on) {
   } else {
     if (!fgInfoOpen) return;
     stopVideo(); fgInfoOpen = false; $('fgInfo').classList.remove('on');
-    document.querySelector('#games .body').appendChild($('fgInfoBox').firstElementChild);
+    document.querySelector('#games .body').appendChild(right);
     screen = 'favgrid'; sfx('back');
   }
 }
 $('fgInfo').onclick = e => { if (e.target === $('fgInfo')) fgInfo(false); };
+$('fgiClose').onclick = () => fgInfo(false);
+$('fgiPlay').onclick = () => { fgInfo(false); fgLaunch(); };
 // mover com o controle: □ "levanta" o card, o D-pad leva célula por célula (passa de página nas laterais), □ de novo solta
 function fgMoveMode() {
   const i = fg.sel, pl = fg.place[i]; if (!pl) return;

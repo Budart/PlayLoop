@@ -47,7 +47,7 @@ function selectSystem(i) {
   $('track').querySelectorAll('.sys').forEach((el, k) => el.classList.toggle('cur', k === sysIdx));
   $('prev').classList.toggle('off', sysIdx === 0); $('next').classList.toggle('off', sysIdx === systems.length - 1);
   $('sysBg').style.backgroundImage = s.virtual ? `url("${s.bg ? bgUrlOf(s) : FAV_BG}")` : `url("${bgUrlOf(s)}")`;
-  $('sysCtrl').style.visibility = s.virtual ? 'hidden' : ''; if (!s.virtual) $('sysCtrl').src = `${ART}controllers/${s.art}.svg`;
+  $('sysCtrl').style.visibility = s.virtual ? 'hidden' : ''; if (!s.virtual) $('sysCtrl').src = ctrlImg(s);
   if (prevIdx !== sysIdx) sfx('move');
   const n = total(s);
   $('sysInfo').innerHTML = s.virtual ? `${n} jogo${n === 1 ? '' : 's'} favorito${n === 1 ? '' : 's'}` : `${n} jogo${n === 1 ? '' : 's'} disponíve${n === 1 ? 'l' : 'is'}` + (s.emulatorOk ? '' : ' · <span class="warn">sem emulador</span>');

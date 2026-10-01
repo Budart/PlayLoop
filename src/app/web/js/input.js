@@ -19,7 +19,7 @@ function input(a) {
   if (modalOpen) { if (a === 'back') closeCover(); else if (['left','right','up','down'].includes(a)) coverNav(a); else if (a === 'ok') coverPick(); return; }
   if (fxOpen) { if (a === 'back') fgFxClose(); return; }
   if (fp.open) { fpInput(a); return; }
-  if (fgInfoOpen) { if (a === 'back') fgInfo(false); else if (a === 'ok') launch(); return; }
+  if (fgInfoOpen) { if (a === 'back') fgInfo(false); else if (a === 'ok') { fgInfo(false); fgLaunch(); } return; }
   if (screen === 'config') { if (a === 'back' || a === 'start') $('cfCancel').onclick(); return; }
   if (a === 'start') { openConfig(); return; }
   if (a === 'select') { setCrt(!crtOn); return; }
@@ -43,7 +43,7 @@ document.addEventListener('keydown', e => {
   if (screen === 'welcome' || renaming) return;
   if (fxOpen) { if (e.key === 'Escape' || e.key === 'Backspace') { e.preventDefault(); fgFxClose(); } return; }
   if (fp.open) { const k = { ArrowLeft:'left', ArrowRight:'right', ArrowUp:'up', ArrowDown:'down', Enter:'ok', Escape:'back', PageUp:'pgup', PageDown:'pgdn', '+':'pgdn', '-':'pgup' }[e.key]; if (k) { e.preventDefault(); fpInput(k); } return; }
-  if (fgInfoOpen && !modalOpen) { if (e.key === 'Escape' || e.key === 'Backspace') { e.preventDefault(); fgInfo(false); } else if (e.key === 'Enter') { e.preventDefault(); launch(); } return; }
+  if (fgInfoOpen && !modalOpen) { if (e.key === 'Escape' || e.key === 'Backspace') { e.preventDefault(); fgInfo(false); } else if (e.key === 'Enter') { e.preventDefault(); fgInfo(false); fgLaunch(); } return; }
   if (screen === 'favgrid' && !modalOpen && e.key === 'Backspace') { e.preventDefault(); back(); return; }
   if (screen === 'favgrid' && !modalOpen && (e.key === 'i' || e.key === 'I') && !e.ctrlKey && !e.altKey && fg.items[fg.sel]) { e.preventDefault(); fgInfo(true); return; }   // I = Info do card
   if (screen === 'favgrid' && !modalOpen && e.key.length === 1 && e.key !== ' ' && !e.ctrlKey && !e.altKey && !e.metaKey) { e.preventDefault(); openGlobal(e.key); return; }   // digitar = busca geral

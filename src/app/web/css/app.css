@@ -450,3 +450,23 @@
   .fgdet { resize:none; }
   /* a grade fica por cima (brilho do card), mas só os cards capturam o mouse — o painel embaixo continua clicável */
   #favgrid > .fgview, .fgtrack, .fgpage { pointer-events:none; } .fgcard, .fgtrack > .empty { pointer-events:auto; }
+
+  /* cabeçalho dos Favoritos com os detalhes do jogo (segue o tema) */
+  #fgHeader { background:var(--bar); color:var(--text); border-bottom:1px solid rgba(255,255,255,.08); height:110px; justify-content:flex-start; padding-left:100px; }
+  #fgHeader .homebtn { top:31px; background:rgba(255,255,255,.08); color:var(--text); }
+  body.th-light #fgHeader { border-bottom-color:#e2e8f0; } body.th-light #fgHeader .homebtn { background:rgba(15,23,42,.06); }
+  .fghead { display:flex; align-items:center; gap:22px; min-width:0; height:100%; padding:10px 0; }
+  .fghead .fdctrl { height:78px; width:auto; max-width:180px; flex:none; object-fit:contain; filter:drop-shadow(0 4px 14px rgba(0,209,255,.35)); }
+  .fghead .fdbody { padding:0; min-width:0; }
+  .fghead .fdn { font-weight:500; font-size:30px; line-height:1.15; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .fghead .fdc { font-size:14px; color:var(--c1); font-weight:600; letter-spacing:.6px; text-transform:uppercase; }
+  .fghead .fdm { font-size:13px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px; } .fghead .fdp { cursor:pointer; }
+  .fgdots { margin-bottom:14px !important; }
+  /* botão de info no card */
+  .fgi { position:absolute; top:8px; right:8px; z-index:4; width:28px; height:28px; border-radius:50%; border:2px solid rgba(255,255,255,.85); background:rgba(0,0,0,.55); color:#fff; font:700 15px/1 Georgia, serif; font-style:italic; cursor:pointer; display:flex; align-items:center; justify-content:center; opacity:.75; transition:opacity .15s, transform .15s, background .15s; }
+  .fgi:hover { opacity:1; transform:scale(1.12); background:var(--c2); border-color:#fff; }
+  /* botões do Info */
+  .fginfowrap { display:flex; flex-direction:column; align-items:stretch; gap:14px; }
+  .fgibar { display:flex; justify-content:flex-end; gap:12px; }
+  .fgibar .btn { font-size:16px; padding:12px 26px; }
+  #fgInfo .fginfobox { height:min(720px, 78vh); }
