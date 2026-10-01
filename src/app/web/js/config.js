@@ -38,6 +38,7 @@ function creditsHtml() {
     `<div class="cfcache"><h3>Marcas registradas</h3><div class="msg">Nintendo, PlayStation, Xbox, Sega, Neo Geo, Steam e demais nomes e logos de consoles são marcas registradas de seus respectivos donos e aparecem apenas para identificar cada plataforma. O PlayLoop não é afiliado a nenhuma delas.</div></div>`;
 }
 // opções com desenho ilustrativo (o rádio fica escondido; o cartão inteiro é clicável)
+const langPv = t => `<svg viewBox="0 0 120 70"><rect width="120" height="70" rx="8" fill="#111a2e"/><text x="60" y="46" text-anchor="middle" font-size="28" font-weight="700" fill="#00D1FF" font-family="Poppins,sans-serif">${t}</text></svg>`;
 const pick = (name, val, on, svg, title, sub) => `<label class="pick"><input type="radio" name="${name}" value="${val}" ${on ? 'checked' : ''}><div class="pv">${svg}</div><b>${title}</b><small>${sub || ''}</small></label>`;
 const PV = {
   c3d: `<svg viewBox="0 0 120 90"><defs><linearGradient id="pf" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8B5CF6"/><stop offset="1" stop-color="#00D1FF"/></linearGradient></defs><path d="M38 14 L52 8 L52 82 L38 76 Z" fill="#0b0b0b"/><path d="M52 8 L96 16 L96 76 L52 82 Z" fill="url(#pf)" stroke="#0b0b0b" stroke-width="2"/><path d="M58 20 L90 25 M58 30 L84 34" stroke="#fff" stroke-opacity=".6" stroke-width="3" stroke-linecap="round"/><path d="M45 20 L45 70" stroke="#fff" stroke-opacity=".35" stroke-width="2"/></svg>`,
@@ -58,7 +59,7 @@ function renderConfig() {
   const cs = cfg.consoles;
   const sec = (id, title, html) => `<div class="cfsec${cfSec === id ? ' on' : ''}" data-sec="${id}"><h2>${title}</h2>${html}</div>`;
   $('cfBody').innerHTML = `<nav class="cfnav">${CF_SECS.map(([id, t]) => `<button class="${cfSec === id ? 'on' : ''}" data-nav="${id}">${t}</button>`).join('')}</nav><div class="cfmain" id="cfMain">` +
-    sec('geral', '🚀 Geral', `<div class="cfcache"><h3>🎨 Tema</h3><div class="picks">${pick('thm', 'blue', !cfg.theme || cfg.theme === 'blue', themePv('#0B1020', '#1E293B', '#00D1FF', '#E5E7EB'), 'Azul', 'padrão')}${pick('thm', 'oled', cfg.theme === 'oled', themePv('#000', '#0d0d0d', '#00D1FF', '#E5E7EB'), 'Preto', 'ideal para telas OLED')}${pick('thm', 'light', cfg.theme === 'light', themePv('#F1F5F9', '#fff', '#2563EB', '#0f172a'), 'Branco', 'claro')}</div></div><div class="cfgen">
+    sec('geral', '🚀 Geral', `<div class="cfcache"><h3>🎨 Tema</h3><div class="picks">${pick('thm', 'blue', !cfg.theme || cfg.theme === 'blue', themePv('#0B1020', '#1E293B', '#00D1FF', '#E5E7EB'), 'Azul', 'padrão')}${pick('thm', 'oled', cfg.theme === 'oled', themePv('#000', '#0d0d0d', '#00D1FF', '#E5E7EB'), 'Preto', 'ideal para telas OLED')}${pick('thm', 'light', cfg.theme === 'light', themePv('#F1F5F9', '#fff', '#2563EB', '#0f172a'), 'Branco', 'claro')}</div><h3 style="margin-top:16px">🌐 Idioma</h3><div class="picks">${pick('lng', 'pt', LANG === 'pt', langPv('PT'), 'Português', '')}${pick('lng', 'en', LANG === 'en', langPv('EN'), 'Inglês', '')}${pick('lng', 'es', LANG === 'es', langPv('ES'), 'Espanhol', '')}</div></div><div class="cfgen">
       ${fieldHtml(-1, 'root', 'Pasta dos emuladores e jogos', cfg.root || '', 'folder')}
     </div>
     <div class="cfcache">
@@ -108,6 +109,7 @@ function renderConfig() {
       </div></div>`) +
     sec('sobre', 'ℹ Sobre e créditos', creditsHtml()) + '</div>';
   $('cfBody').querySelectorAll('[data-nav]').forEach(b => b.onclick = () => { cfSec = b.dataset.nav; $('cfBody').querySelectorAll('[data-nav]').forEach(x => x.classList.toggle('on', x === b)); $('cfBody').querySelectorAll('.cfsec').forEach(s => s.classList.toggle('on', s.dataset.sec === cfSec)); $('cfMain').scrollTop = 0; sfx('tick'); });
+  $('cfBody').querySelectorAll('input[name=lng]').forEach(r => r.onchange = () => { cfg.lang = r.value; setLang(r.value); sfx('ok'); });
   $('cfBody').querySelectorAll('input[name=thm]').forEach(r => r.onchange = () => { cfg.theme = r.value; applyTheme(r.value); });
   $('cfBody').querySelectorAll('input[name=fbg]').forEach(r => r.onchange = () => { cfg.favBgGame = r.value === '1'; favBgGame = cfg.favBgGame; $('wpBox').style.display = favBgGame ? 'none' : ''; });
   $('wpGo').onclick = () => wpSearch($('wpQ').value);
