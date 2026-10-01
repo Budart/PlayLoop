@@ -260,10 +260,35 @@ function fgDetails() {
   try { const s = JSON.parse(localStorage.getItem('fgDetSize') || 'null'); if (s) { d.style.width = s.w + 'px'; d.style.height = s.h + 'px'; } } catch (e) {}
   new ResizeObserver(() => { if (d.offsetWidth) try { localStorage.setItem('fgDetSize', JSON.stringify({ w: d.offsetWidth, h: d.offsetHeight })); } catch (e) {} }).observe(d);
   d.querySelector('.fdp').onclick = e => { if (d._moved) return; const g = fg.items[fg.sel]; if (g) api('/api/reveal', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ path: g.path }) }).catch(er => toast(er.message, true)); };
+  const EDGE = 10;
+  const edgeOf = (e, r) => ({ l: e.clientX - r.left < EDGE, r: r.right - e.clientX < EDGE, t: e.clientY - r.top < EDGE, b: r.bottom - e.clientY < EDGE });
+  const CUR = { lt:'nwse-resize', rb:'nwse-resize', rt:'nesw-resize', lb:'nesw-resize', l:'ew-resize', r:'ew-resize', t:'ns-resize', b:'ns-resize' };
+  d.addEventListener('pointermove', e => { if (d._busy) return; const k = edgeOf(e, d.getBoundingClientRect()), s = (k.l ? 'l' : k.r ? 'r' : '') + (k.t ? 't' : k.b ? 'b' : ''); d.style.cursor = CUR[s] || ''; });
   d.onpointerdown = e => {
-    const r = d.getBoundingClientRect();
-    if (e.button !== 0 || (e.clientX > r.right - 22 && e.clientY > r.bottom - 22)) return;   // canto = redimensionar
-    const ox = e.clientX - r.left, oy = e.clientY - r.top, sx = e.clientX, sy = e.clientY; d._moved = false;
+    if (e.button !== 0) return;
+    const r = d.getBoundingClientRect(), k = edgeOf(e, r), sx = e.clientX, sy = e.clientY;
+    const fix = () => { Object.assign(d.style, { left: r.left + 'px', top: r.top + 'px', right: 'auto', bottom: 'auto', transform: 'none', width: r.width + 'px', height: r.height + 'px' }); };
+    if (k.l || k.r || k.t || k.b) {   // redimensionar por qualquer borda ou canto
+      e.preventDefault(); d._busy = true; d._moved = true; fix(); d.classList.add('moving');
+      const mv = ev => {
+        const dx = ev.clientX - sx, dy = ev.clientY - sy, mw = 300, mh = 90;
+        let L = r.left, T = r.top, W = r.width, H = r.height;
+        if (k.r) W = Math.max(mw, r.width + dx); if (k.b) H = Math.max(mh, r.height + dy);
+        if (k.l) { W = Math.max(mw, r.width - dx); L = r.right - W; } if (k.t) { H = Math.max(mh, r.height - dy); T = r.bottom - H; }
+        Object.assign(d.style, { left: L + 'px', top: T + 'px', width: Math.min(W, innerWidth * .92) + 'px', height: Math.min(H, innerHeight * .6) + 'px' });
+      };
+      const up = () => {
+        document.removeEventListener('pointermove', mv); document.removeEventListener('pointerup', up);
+        const w = d.offsetWidth, h = d.offsetHeight;
+        d.classList.remove('moving'); d.style.left = d.style.top = d.style.right = d.style.bottom = d.style.transform = '';
+        d.style.width = w + 'px'; d.style.height = h + 'px'; d._busy = false;
+        try { localStorage.setItem('fgDetSize', JSON.stringify({ w, h })); } catch (er) {}
+        setTimeout(() => { d._moved = false; }, 0);
+      };
+      document.addEventListener('pointermove', mv); document.addEventListener('pointerup', up);
+      return;
+    }
+    const ox = e.clientX - r.left, oy = e.clientY - r.top; d._moved = false;
     const mv = ev => {
       if (!d._moved && Math.hypot(ev.clientX - sx, ev.clientY - sy) < 6) return;
       if (!d._moved) { d._moved = true; d.classList.add('moving'); }
@@ -296,20 +321,22 @@ async function fgGameBg(g) {
 }
 // abrir o jogo: a imagem do card se expande até a tela inteira, escurece e mostra "Bom jogo."
 let fxOpen = false;
+let fxTimer = 0, fxAt = 0;
 function fgLaunch() {
-  const g = fg.items[fg.sel], el = $('fgTrack').querySelector(`.fgcard[data-i="${fg.sel}"]`); if (!g) return;
-  launch();
+  const g = fg.items[fg.sel], el = $('fgTrack').querySelector(`.fgcard[data-i="${fg.sel}"]`); if (!g || fxOpen) return;
   const fx = $('fgFx'), im = el && el.querySelector('.fgimg');
-  if (!el) return;
+  if (!el) { launch(); return; }
+  // a imagem expande (0,55 s), o texto aparece (até ~0,85 s) e, 0,5 s depois, o jogo abre
+  clearTimeout(fxTimer); fxTimer = setTimeout(() => { if (fxOpen) launch(); }, 1400);
   const r = el.getBoundingClientRect();
   fx.style.backgroundImage = im ? im.style.backgroundImage : '';
   const o = fgOfs(g); fx.style.backgroundPosition = o ? `${o.x}% ${o.y}%` : 'center';
   fx.className = 'fgfx'; Object.assign(fx.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px', borderRadius: '12px' });
-  fxOpen = true; fx.classList.add('on');
+  fxOpen = true; fxAt = Date.now(); fx.classList.add('on');
   requestAnimationFrame(() => requestAnimationFrame(() => { fx.classList.add('grow'); Object.assign(fx.style, { left: '0px', top: '0px', width: innerWidth + 'px', height: innerHeight + 'px', borderRadius: '0px' }); }));
 }
-function fgFxClose() { if (!fxOpen) return; fxOpen = false; const fx = $('fgFx'); fx.classList.add('out'); setTimeout(() => { fx.className = 'fgfx'; }, 350); }
-window.addEventListener('blur', () => fgFxClose());   // o jogo abriu (o foco saiu do app)
+function fgFxClose() { clearTimeout(fxTimer); if (!fxOpen) return; fxOpen = false; const fx = $('fgFx'); fx.classList.add('out'); setTimeout(() => { fx.className = 'fgfx'; }, 350); }
+window.addEventListener('blur', () => { if (fxOpen && Date.now() - fxAt > 1300) fgFxClose(); });   // o jogo abriu (o foco saiu do app)
 // ---- reposicionar a imagem do card: 'fofs|chave' = "posX%,posY%,zoom" ----
 const fgOfs = g => { const v = covers['fofs|' + coverKey(g)]; if (!v) return null; const [x, y, z] = v.split(',').map(Number); return { x, y, z: z || 1 }; };
 const imgDims = {};
@@ -482,4 +509,4 @@ function fgInput(a) {
 }
 $('fgHome').onclick = () => { $('fgHome').blur(); back(); };
 let fgWheelT = 0;
-$('fgView').addEventListener('wheel', e => { if (screen !== 'favgrid') return; if (Date.now() - fgWheelT < 350) { e.preventDefault(); return; } fgWheelT = Date.now(); const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY; if (Math.abs(d) < 20) return; e.preventDefault(); fgInput(d > 0 ? 'pgdn' : 'pgup'); }, { passive:false });
+$('favgrid').addEventListener('wheel', e => { if (e.target.closest && e.target.closest('.fgdet')) return; if (screen !== 'favgrid') return; if (Date.now() - fgWheelT < 350) { e.preventDefault(); return; } fgWheelT = Date.now(); const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY; if (Math.abs(d) < 20) return; e.preventDefault(); fgInput(d > 0 ? 'pgdn' : 'pgup'); }, { passive:false });

@@ -446,3 +446,7 @@
   body.th-light .cathead { border-color:#cbd5e1; }
   body.th-light .gear, body.th-light .btn.sec, body.th-light button.sec { background:#e2e8f0; color:#0f172a; }
   body.th-light .fgbg .bgl.on { opacity:.22; }
+
+  .fgdet { resize:none; }
+  /* a grade fica por cima (brilho do card), mas só os cards capturam o mouse — o painel embaixo continua clicável */
+  #favgrid > .fgview, .fgtrack, .fgpage { pointer-events:none; } .fgcard, .fgtrack > .empty { pointer-events:auto; }

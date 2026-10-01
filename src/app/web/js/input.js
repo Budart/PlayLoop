@@ -95,6 +95,11 @@ function pollPad() {
       else if (st[k] && ['up','down','left','right'].includes(k) && now > padRepeat) { input(k); padRepeat = now + 70; }
     }
     padPrev = st;
+    // analógico direito: gira a capa 3D (em qualquer tela onde ela aparece)
+    const rx = p.axes[2] || 0, ry = p.axes[3] || 0;
+    if ((Math.abs(rx) > .18 || Math.abs(ry) > .18) && $('art').querySelector('.rot')) {
+      view3d.ry += rx * 4; view3d.rx = Math.max(-60, Math.min(60, view3d.rx - ry * 3)); applyView();
+    }
   }
   requestAnimationFrame(pollPad);
 }
