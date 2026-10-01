@@ -45,7 +45,7 @@ const I18N_RAW = [
   ['Trocar ícone', 'Change icon', 'Cambiar icono'], ['trocar ícone', 'change icon', 'cambiar icono'],
   ['Trocar título (lombada)', 'Change title (spine)', 'Cambiar título (lomo)'], ['Trocar título', 'Change title', 'Cambiar título'], ['Imagem do título (lombada)', 'Title image (spine)', 'Imagen del título (lomo)'], ['Voltar para o título automático', 'Back to automatic title', 'Volver al título automático'], ['Voltou para o título automático', 'Back to automatic title', 'Se volvió al título automático'], ['Título salvo!', 'Title saved!', '¡Título guardado!'], ['como título', 'as title', 'como título'], ['como capa', 'as cover', 'como portada'],
   ['Alterar fundo', 'Change background', 'Cambiar fondo'], ['Alterar imagem', 'Change image', 'Cambiar imagen'],
-  ['Reposicionar imagem', 'Reposition image', 'Reposicionar imagen'],
+  ['Reposicionar imagem', 'Reposition image', 'Reposicionar imagen'], ['Reposicionar capa', 'Reposition cover', 'Reposicionar portada'], ['Reposicionar fundo', 'Reposition background', 'Reposicionar fondo'], ['Posição do fundo salva', 'Background position saved', 'Posición del fondo guardada'], ['Posição da capa salva', 'Cover position saved', 'Posición de la portada guardada'], ['Este jogo ainda não tem fundo', 'This game has no background yet', 'Este juego aún no tiene fondo'], ['Ative "Fundo do jogo" em Configuração → Favoritos', 'Turn on "Game background" in Settings → Favorites', 'Activa "Fondo del juego" en Configuración → Favoritos'],
   ['Escolher imagem de fundo', 'Choose background image', 'Elegir imagen de fondo'],
   ['Mais fundos de console', 'More console backgrounds', 'Más fondos de consola'],
   ['Mais ícones de console', 'More console icons', 'Más iconos de consola'],

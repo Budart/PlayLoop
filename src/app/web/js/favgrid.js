@@ -291,7 +291,7 @@ async function fgGameBg(g) {
   if (tok !== fgBgTok || !url) return;
   const old = [...host.querySelectorAll('.bgl')];
   const l = document.createElement('div'); l.className = 'bgl'; l.style.backgroundImage = `url("${cp(url).replace(/"/g, '%22')}")`;
-  host.appendChild(l); requestAnimationFrame(() => requestAnimationFrame(() => l.classList.add('on')));
+  host.appendChild(l); host._url = url; host._g = g; fgApplyBgOfs(l, url, g); requestAnimationFrame(() => requestAnimationFrame(() => l.classList.add('on')));
   old.forEach(o => { o.classList.remove('on'); setTimeout(() => o.remove(), 600); });
 }
 // abrir o jogo: a imagem do card se expande até a tela inteira, escurece e mostra "Bom jogo."
@@ -328,6 +328,16 @@ function listLaunch() {
 function fgFxClose() { clearTimeout(fxTimer); if (!fxOpen) return; fxOpen = false; const fx = $('fgFx'); fx.classList.add('out'); setTimeout(() => { fx.className = 'fgfx'; }, 350); if (window.chrome && chrome.webview) chrome.webview.postMessage('fxoff'); }
 window.addEventListener('blur', () => { if (fxOpen && Date.now() - fxAt > 1300) fgFxClose(); });   // o jogo abriu (o foco saiu do app)
 // ---- reposicionar a imagem do card: 'fofs|chave' = "posX%,posY%,zoom" ----
+const fgBgOfs = g => { const v = covers['bofs|' + coverKey(g)]; if (!v) return null; const [x, y, z] = v.split(',').map(Number); return { x, y, z: z || 1 }; };
+async function fgApplyBgOfs(l, url, g) {   // posição/zoom do fundo do jogo ('bofs|chave')
+  const o = fgBgOfs(g);
+  if (!o) { l.style.backgroundSize = ''; l.style.backgroundPosition = ''; return; }
+  l.style.backgroundPosition = `${o.x}% ${o.y}%`;
+  if (o.z === 1) { l.style.backgroundSize = 'cover'; return; }
+  const d = await loadDims(url); if (!d) return;
+  const W = l.offsetWidth || innerWidth, H = l.offsetHeight || innerHeight, sc = Math.max(W / d.w, H / d.h) * o.z;
+  l.style.backgroundSize = `${d.w * sc}px ${d.h * sc}px`;
+}
 const fgOfs = g => { const v = covers['fofs|' + coverKey(g)]; if (!v) return null; const [x, y, z] = v.split(',').map(Number); return { x, y, z: z || 1 }; };
 const imgDims = {};
 const loadDims = url => imgDims[url] ? Promise.resolve(imgDims[url]) : new Promise(ok => { const i = new Image(); i.onload = () => ok(imgDims[url] = { w: i.naturalWidth, h: i.naturalHeight }); i.onerror = () => ok(null); i.src = cp(url); });
@@ -341,11 +351,23 @@ async function fgApplyOfs(el, g) {
   im.style.backgroundSize = `${d.w * s}px ${d.h * s}px`;
 }
 const fp = { open: false };
+async function fgBgPosOpen() {
+  const g = fg.items[fg.sel], host = $('fgBg');
+  if (!g || !favBgGame || host._g !== g || !host._url) { toast(favBgGame ? 'Este jogo ainda não tem fundo' : 'Ative "Fundo do jogo" em Configuração → Favoritos', true); return; }
+  const d = await loadDims(host._url); if (!d) return;
+  const o = fgBgOfs(g) || { x: 50, y: 50, z: 1 };
+  Object.assign(fp, { open: true, kind: 'bg', g, el: null, url: host._url, d, x: o.x, y: o.y, z: o.z });
+  const r = (host.offsetWidth || innerWidth) / (host.offsetHeight || innerHeight), maxW = innerWidth * .6, maxH = innerHeight * .6;
+  fp.W = Math.min(maxW, maxH * r); fp.H = fp.W / r;
+  $('fpFrame').style.width = fp.W + 'px'; $('fpFrame').style.height = fp.H + 'px';
+  $('fpImg').src = cp(fp.url);
+  $('fpModal').classList.add('on'); fpRender(); sfx('ok');
+}
 async function fgPosOpen() {
   const i = fg.sel, g = fg.items[i], el = $('fgTrack').querySelector(`.fgcard[data-i="${i}"]`); if (!g || !el || !el._url) { toast('Este card ainda não tem imagem', true); return; }
   const pl = fg.place[i], d = await loadDims(el._url); if (!d) return;
   const o = fgOfs(g) || { x: 50, y: 50, z: 1 };
-  Object.assign(fp, { open: true, g, el, url: el._url, d, x: o.x, y: o.y, z: o.z });
+  Object.assign(fp, { open: true, kind: 'card', g, el, url: el._url, d, x: o.x, y: o.y, z: o.z });
   // card simulado no centro, com a proporção real do card
   const maxW = innerWidth * .5, maxH = innerHeight * .55, r = pl.w / pl.h;
   fp.W = Math.min(maxW, maxH * r); fp.H = fp.W / r;
@@ -372,11 +394,13 @@ function fpClose(save) {
   if (!fp.open) return;
   fp.open = false; $('fpModal').classList.remove('on');
   if (save) {
-    const key = 'fofs|' + coverKey(fp.g), def = Math.abs(fp.x - 50) < .5 && Math.abs(fp.y - 50) < .5 && fp.z === 1;
+    const key = (fp.kind === 'bg' ? 'bofs|' : 'fofs|') + coverKey(fp.g), def = Math.abs(fp.x - 50) < .5 && Math.abs(fp.y - 50) < .5 && fp.z === 1;
     const val = def ? '' : `${fp.x.toFixed(1)},${fp.y.toFixed(1)},${fp.z.toFixed(3)}`;
     if (val) covers[key] = val; else delete covers[key];
     api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, url: val }) }).catch(() => {});
-    fgApplyOfs(fp.el, fp.g); sfx('ok'); toast('Posição da imagem salva');
+    if (fp.kind === 'bg') { const l = [...$('fgBg').querySelectorAll('.bgl')].pop(); if (l) fgApplyBgOfs(l, fp.url, fp.g); toast('Posição do fundo salva'); }
+    else { fgApplyOfs(fp.el, fp.g); toast('Posição da capa salva'); }
+    sfx('ok');
   } else sfx('back');
 }
 function fpInput(a) {
@@ -440,7 +464,8 @@ function fgCtx(x, y, sizes) {
     ['star', 'Desfavoritar', async () => { if (!await ask('Desfavoritar este jogo?', `"${dn(g)}" sai da tela de Favoritos (o jogo continua no seu PC).`, 'Desfavoritar')) return; await toggleFav(g); openFavGrid(); }],
     ['cover', 'Alterar imagem', () => openCover('card')],
     ['bg', 'Alterar fundo', () => openCover(true)],
-    ['bg', 'Reposicionar imagem', () => fgPosOpen()],
+    ['bg', 'Reposicionar capa', () => fgPosOpen()],
+    ['bg', 'Reposicionar fundo', () => fgBgPosOpen()],
     ['bg', 'Redimensionar ▸', () => setTimeout(() => fgCtx(x, y, true), 0)],
     ['eye', 'Info', () => fgInfo(true)],
   ];
