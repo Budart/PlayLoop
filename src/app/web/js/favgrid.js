@@ -330,7 +330,7 @@ function fgLaunch(noWait) {
       $('fgFx').classList.add('frombg');
       const cs = getComputedStyle(lay);
       playFx(host.getBoundingClientRect(), lay.style.backgroundImage, cs.backgroundPosition, 0, cs.backgroundSize);
-    }, 220);
+    }, 320);
     return;
   }
   if (!el) { launch(); return; }

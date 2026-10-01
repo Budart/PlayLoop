@@ -596,3 +596,6 @@ body.th-light .wpsearch .wpbar input::placeholder { color:#9A8B7A; }
 
 .fxlbl { font-weight:300; letter-spacing:.5px; }
 #favgrid > *:not(.fgbg) { transition:opacity .2s ease; }
+/* fade de saída ao abrir jogo (animação: não depende das transições de cada elemento) */
+@keyframes fgOut { from { opacity:1; } to { opacity:0; } }
+#favgrid.launching > *:not(.fgbg), body:has(#favgrid.launching) .padhelp { opacity:1; animation:fgOut .3s ease forwards; pointer-events:none; }
