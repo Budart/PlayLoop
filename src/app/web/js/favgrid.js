@@ -18,8 +18,13 @@ function fgSetPos(g, pos) {
 // solta o card i no lugar t; quem estava embaixo sai do caminho (vai para o próximo espaço livre)
 function fgDropInto(i, t) {
   const pl = fg.place[i]; fgSetPos(fg.items[i], { p: t.p, x: t.x, y: t.y });
-  fg.items.forEach((o, k) => { const q = fg.place[k]; if (k !== i && q && q.p === t.p && q.x < t.x + pl.w && q.x + q.w > t.x && q.y < t.y + pl.h && q.y + q.h > t.y) fgSetPos(o, null); });
+  const hit = [];
+  fg.items.forEach((o, k) => { const q = fg.place[k]; if (k !== i && q && q.p === t.p && q.x < t.x + pl.w && q.x + q.w > t.x && q.y < t.y + pl.h && q.y + q.h > t.y) hit.push(o); });
+  // 1 card no caminho: troca de lugar com o arrastado; vários: só esses vão para o primeiro espaço livre (os demais nunca se mexem)
+  if (hit.length === 1) fgSetPos(hit[0], { p: pl.p, x: pl.x, y: pl.y }); else hit.forEach(o => fgSetPos(o, null));
 }
+// todos os cards ficam com lugar fixo: desfavoritar ou mover um card não mexe nos outros (só cards novos procuram espaço)
+function fgPinAll() { fg.items.forEach((g, i) => { const q = fgPos(g), pl = fg.place[i]; if (pl && (!q || q.p !== pl.p || q.x !== pl.x || q.y !== pl.y)) fgSetPos(g, { p: pl.p, x: pl.x, y: pl.y }); }); }
 // prévia: reorganiza os cards na tela como ficariam, sem salvar nada
 function fgPreview(i, t) {
   const place0 = fg.place, pages0 = fg.pages;
@@ -39,8 +44,8 @@ function fgApplyDom() {
 }
 // geometria da grade (células quadradas, centralizadas na página)
 function fgCell() {
-  const { R, C } = fgDim(), v = $('fgView').getBoundingClientRect(), gap = 20;
-  const cell = Math.max(20, Math.floor(Math.min((v.width - gap * (C - 1)) / C, (v.height - gap * (R - 1)) / R)));
+  const { R, C } = fgDim(), v = $('fgView').getBoundingClientRect(), gap = 20, pad = 36;   // pad: folga para a borda/brilho do card selecionado não ser cortada
+  const cell = Math.max(20, Math.floor(Math.min((v.width - pad - gap * (C - 1)) / C, (v.height - pad - gap * (R - 1)) / R)));
   $('fgTrack').style.setProperty('--cell', cell + 'px');
 }
 function fgGeom(pg) {
@@ -79,7 +84,7 @@ async function openFavGrid() {
   renderFavGrid();
 }
 function renderFavGrid() {
-  fgLayout(); fgCell(); fg.moving = null;
+  fgLayout(); fgPinAll(); fgCell(); fg.moving = null;
   const { R, C } = fgDim();
   if (!fg.items.length) { fgDetails(); $('fgTrack').innerHTML = '<div class="empty">Nenhum jogo favoritado ainda — use a ⭐ ao lado de um jogo.</div>'; $('fgDots').innerHTML = ''; return; }
   let html = '';
