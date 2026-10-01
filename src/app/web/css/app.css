@@ -379,3 +379,11 @@
   .fdbody { padding:18px 30px; } .fdn { font-size:32px; line-height:1.2; } .fdm { font-size:20px; margin-top:4px; }
   .fgdots { margin-bottom:120px; }
   .fgview { z-index:9; } .fgcard.sel { z-index:5; }
+
+  /* reposicionar imagem do card */
+  .fpmodal { position:fixed; inset:0; z-index:45; display:none; background:#05070f; cursor:grab; overflow:hidden; touch-action:none; }
+  .fpmodal.on { display:block; } .fpmodal.grab { cursor:grabbing; }
+  #fpImg { position:absolute; max-width:none; user-select:none; pointer-events:none; }
+  .fpframe { position:absolute; left:50%; top:46%; transform:translate(-50%,-50%); border-radius:12px; border:2px solid var(--c1); box-shadow:0 0 0 9999px rgba(0,0,0,.72), 0 0 30px rgba(0,209,255,.4); pointer-events:none; }
+  .fpbar { position:absolute; left:50%; bottom:28px; transform:translateX(-50%); display:flex; align-items:center; gap:14px; padding:12px 18px; border-radius:14px; background:rgba(15,23,42,.92); border:1px solid rgba(255,255,255,.12); white-space:nowrap; cursor:default; }
+  .fpbar span { color:var(--muted); font-size:13px; } #fpZoom { color:var(--c1); font-weight:700; margin-left:4px; }

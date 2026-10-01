@@ -112,7 +112,7 @@ async function fgArt(i, el) {
   let url = custom;
   if (!url) { const a = cachedArt(g) || await resolveArt(g).catch(() => null); if (a) url = (pl.w > pl.h && a.snap) ? a.snap : a.box; }
   const im = el.querySelector('.fgimg');
-  if (url) { im.style.backgroundImage = `url("${cp(url).replace(/"/g, '%22')}")`; el.classList.add('has'); }
+  if (url) { im.style.backgroundImage = `url("${cp(url).replace(/"/g, '%22')}")`; el.classList.add('has'); el._url = url; fgApplyOfs(el, g); }
 }
 function fgPage(p, quiet) {
   fg.page = Math.max(0, Math.min(Math.max(fg.pages, $('fgTrack').querySelectorAll('.fgpage').length) - 1, p));
@@ -256,6 +256,74 @@ function fgDetails() {
     };
   };
 })();
+// ---- reposicionar a imagem do card: 'fofs|chave' = "posX%,posY%,zoom" ----
+const fgOfs = g => { const v = covers['fofs|' + coverKey(g)]; if (!v) return null; const [x, y, z] = v.split(',').map(Number); return { x, y, z: z || 1 }; };
+const imgDims = {};
+const loadDims = url => imgDims[url] ? Promise.resolve(imgDims[url]) : new Promise(ok => { const i = new Image(); i.onload = () => ok(imgDims[url] = { w: i.naturalWidth, h: i.naturalHeight }); i.onerror = () => ok(null); i.src = cp(url); });
+async function fgApplyOfs(el, g) {
+  const o = fgOfs(g), im = el.querySelector('.fgimg');
+  if (!o) { im.style.backgroundSize = ''; im.style.backgroundPosition = ''; return; }
+  im.style.backgroundPosition = `${o.x}% ${o.y}%`;
+  if (o.z === 1) { im.style.backgroundSize = 'cover'; return; }
+  const d = await loadDims(el._url); if (!d) return;
+  const W = im.offsetWidth, H = im.offsetHeight, s = Math.max(W / d.w, H / d.h) * o.z;
+  im.style.backgroundSize = `${d.w * s}px ${d.h * s}px`;
+}
+const fp = { open: false };
+async function fgPosOpen() {
+  const i = fg.sel, g = fg.items[i], el = $('fgTrack').querySelector(`.fgcard[data-i="${i}"]`); if (!g || !el || !el._url) { toast('Este card ainda não tem imagem', true); return; }
+  const pl = fg.place[i], d = await loadDims(el._url); if (!d) return;
+  const o = fgOfs(g) || { x: 50, y: 50, z: 1 };
+  Object.assign(fp, { open: true, g, el, url: el._url, d, x: o.x, y: o.y, z: o.z });
+  // card simulado no centro, com a proporção real do card
+  const maxW = innerWidth * .5, maxH = innerHeight * .55, r = pl.w / pl.h;
+  fp.W = Math.min(maxW, maxH * r); fp.H = fp.W / r;
+  $('fpFrame').style.width = fp.W + 'px'; $('fpFrame').style.height = fp.H + 'px';
+  $('fpImg').src = cp(fp.url);
+  $('fpModal').classList.add('on'); fpRender(); sfx('ok');
+}
+function fpRender() {
+  const { d, W, H } = fp, s = Math.max(W / d.w, H / d.h) * fp.z, Dw = d.w * s, Dh = d.h * s;
+  fp.Dw = Dw; fp.Dh = Dh;
+  const f = $('fpFrame').getBoundingClientRect();
+  const ox = (W - Dw) * fp.x / 100, oy = (H - Dh) * fp.y / 100;   // mesmo cálculo do background-position em %
+  Object.assign($('fpImg').style, { width: Dw + 'px', height: Dh + 'px', left: (f.left + ox) + 'px', top: (f.top + oy) + 'px' });
+  $('fpZoom').textContent = Math.round(fp.z * 100) + '%';
+}
+function fpPan(dx, dy) {   // dx/dy em pixels de tela
+  const ex = fp.W - fp.Dw, ey = fp.H - fp.Dh;
+  if (ex < 0) fp.x = Math.max(0, Math.min(100, fp.x + dx / ex * 100));
+  if (ey < 0) fp.y = Math.max(0, Math.min(100, fp.y + dy / ey * 100));
+  fpRender();
+}
+function fpZoom(f) { fp.z = Math.max(1, Math.min(4, fp.z * f)); fpRender(); }
+function fpClose(save) {
+  if (!fp.open) return;
+  fp.open = false; $('fpModal').classList.remove('on');
+  if (save) {
+    const key = 'fofs|' + coverKey(fp.g), def = Math.abs(fp.x - 50) < .5 && Math.abs(fp.y - 50) < .5 && fp.z === 1;
+    const val = def ? '' : `${fp.x.toFixed(1)},${fp.y.toFixed(1)},${fp.z.toFixed(3)}`;
+    if (val) covers[key] = val; else delete covers[key];
+    api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, url: val }) }).catch(() => {});
+    fgApplyOfs(fp.el, fp.g); sfx('ok'); toast('Posição da imagem salva');
+  } else sfx('back');
+}
+function fpInput(a) {
+  const st = 14;
+  if (a === 'left') fpPan(-st, 0); else if (a === 'right') fpPan(st, 0); else if (a === 'up') fpPan(0, -st); else if (a === 'down') fpPan(0, st);
+  else if (a === 'pgup') fpZoom(1 / 1.1); else if (a === 'pgdn') fpZoom(1.1);
+  else if (a === 'ok' || a === 'fav') fpClose(true); else if (a === 'back' || a === 'menu') fpClose(false);
+}
+(() => {
+  const m = $('fpModal'); let dr = null;
+  m.addEventListener('pointerdown', e => { if (e.target.closest('button')) return; dr = { x: e.clientX, y: e.clientY }; m.setPointerCapture(e.pointerId); m.classList.add('grab'); });
+  m.addEventListener('pointermove', e => { if (!dr) return; fpPan(e.clientX - dr.x, e.clientY - dr.y); dr = { x: e.clientX, y: e.clientY }; });
+  m.addEventListener('pointerup', () => { dr = null; m.classList.remove('grab'); });
+  m.addEventListener('wheel', e => { e.preventDefault(); fpZoom(e.deltaY < 0 ? 1.1 : 1 / 1.1); }, { passive:false });
+  $('fpOk').onclick = () => fpClose(true); $('fpCancel').onclick = () => fpClose(false);
+  $('fpReset').onclick = () => { fp.x = 50; fp.y = 50; fp.z = 1; fpRender(); };
+  window.addEventListener('resize', () => { if (fp.open) fpRender(); });
+})();
 // menu de contexto do card (botão direito / △)
 function fgCtx(x, y, sizes) {
   const g = fg.items[fg.sel]; if (!g) return;
@@ -267,6 +335,7 @@ function fgCtx(x, y, sizes) {
   } else ctxItems = [
     ['star', 'Desfavoritar', async () => { await toggleFav(g); openFavGrid(); }],
     ['cover', 'Alterar imagem', () => openCover('card')],
+    ['bg', 'Reposicionar imagem', () => fgPosOpen()],
     ['bg', 'Redimensionar ▸', () => setTimeout(() => fgCtx(x, y, true), 0)],
     ['eye', 'Info', () => fgInfo(true)],
   ];
