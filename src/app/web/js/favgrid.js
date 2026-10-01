@@ -66,8 +66,11 @@ function fgLayout() {
     const { w, h } = fgSize(g);
     for (let p = 0; !fg.place[i]; p++) for (let y = 0; y < R && !fg.place[i]; y++) for (let x = 0; x < C && !fg.place[i]; x++) if (free(p, x, y, w, h)) fg.place[i] = take(p, x, y, w, h);
   });
-  while (pages.length > 1 && !pages[pages.length - 1].some(r => r.some(Boolean))) pages.pop();   // sem páginas vazias no fim
-  fg.pages = Math.max(1, pages.length);
+  // páginas que ficaram vazias (no meio ou no fim) somem: as seguintes "andam" uma posição
+  const used = [...new Set(fg.place.filter(Boolean).map(q => q.p))].sort((a, b) => a - b), map = {};
+  used.forEach((p, k) => map[p] = k);
+  fg.place.forEach(q => { if (q) q.p = map[q.p]; });
+  fg.pages = Math.max(1, used.length);
 }
 async function openFavGrid() {
   sfx('ok'); globalMode = false; favMode = false;
