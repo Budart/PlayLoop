@@ -295,16 +295,16 @@ function buildCase(g, url, back, ratio) {
       const th = (a0 + (k + .5) * 90 / N) * Math.PI / 180;
       const x = cx + R * Math.cos(th) - W / 2, y = cy + R * Math.sin(th) - H / 2;
       const shade = .55 + .45 * Math.max(0, Math.cos(th - Math.PI * 1.25));
-      corners += face('corner', seg, D + O, `translate3d(${px(x)},${px(y)},0) rotateZ(${(th * 180 / Math.PI + 90).toFixed(2)}deg) rotateX(90deg)`, `background:${edge};filter:brightness(${shade.toFixed(2)});backface-visibility:visible;`);
+      corners += face('corner', seg, D + O, `translate3d(${px(x)},${px(y)},0) rotateZ(${(th * 180 / Math.PI + 90).toFixed(2)}deg) rotateX(90deg)`, `background:${edge};backface-visibility:visible;`);
     }
   });
   return `<div class="cw" style="transform:${scaleTf()}"><div class="rot" style="transform:${viewTf()};transform-style:preserve-3d"><div class="flip${back ? ' back' : ''}"><div class="case3d" data-u="${esc(url || '')}" style="width:${px(W)};height:${px(H)};${caseVars(url)}">` +
     face('front', W, H, `translateZ(${px(D / 2)})`, rimStyle + `background-color:var(--edge, ${c.rimc});`, `<div style="position:absolute;inset:0;background-size:cover;background-position:center;${coverStyle}"></div>${inner}${tex}`) +
-    face('back', W, H, `rotateY(180deg) translateZ(${px(D / 2)})`, `background:${edge};border-radius:${R}px;filter:brightness(.6);`) +
-    face('spine', D + O, H - 2 * R + O, `rotateY(-90deg) translateZ(${px(W / 2)})`, `--sh:${px((H - 2 * R) * .85)};--sw:${px(D * .8)};background:linear-gradient(90deg, rgba(0,0,0,.25), rgba(255,255,255,.08) 50%, rgba(0,0,0,.25)), ${edge};`, spineHtml) +
-    face('side', D + O, H - 2 * R + O, `rotateY(90deg) translateZ(${px(W / 2)})`, `background:${edge};filter:brightness(.8);`) +
-    face('top', W - 2 * R + O, D + O, `rotateX(90deg) translateZ(${px(H / 2)})`, `background:${edge};filter:brightness(1.1);`) +
-    face('bottom', W - 2 * R + O, D + O, `rotateX(-90deg) translateZ(${px(H / 2)})`, `background:${edge};filter:brightness(.5);`) +
+    face('back', W, H, `rotateY(180deg) translateZ(${px(D / 2)})`, `background:${edge};border-radius:${R}px;`) +
+    face('spine', D + O, H - 2 * R + O, `rotateY(-90deg) translateZ(${px(W / 2)})`, `--sh:${px((H - 2 * R) * .85)};--sw:${px(D * .8)};background:${edge};`, spineHtml) +
+    face('side', D + O, H - 2 * R + O, `rotateY(90deg) translateZ(${px(W / 2)})`, `background:${edge};`) +
+    face('top', W - 2 * R + O, D + O, `rotateX(90deg) translateZ(${px(H / 2)})`, `background:${edge};`) +
+    face('bottom', W - 2 * R + O, D + O, `rotateX(-90deg) translateZ(${px(H / 2)})`, `background:${edge};`) +
     corners +
     [-.25, 0, .25].map(z => face('core', W - 2, H - 2, `translateZ(${px(D * z)})`, `background:${edge};border-radius:${R}px;backface-visibility:visible;`)).join('') +
     `</div></div></div></div>`;
