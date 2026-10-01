@@ -611,3 +611,6 @@ body.th-light .wpsearch .wpbar input::placeholder { color:#9A8B7A; }
 .fgfx.frombg.grow.out { opacity:0 !important; transition:opacity .3s; }
 
 #fgBg.hidebg .bgl { opacity:0 !important; transition:none !important; }
+/* sem "Bom jogo" nem loading: só a imagem */
+.fgfx .fxlbl { display:none !important; }
+.fgfx.frombg::before { display:none; }
