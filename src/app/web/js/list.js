@@ -105,6 +105,7 @@ function openCtx(g, x, y) {
     ['eye', hid ? 'Mostrar' : 'Ocultar', () => toggleHidden(g)],
     ['cover', 'Trocar capa', () => openCover(false)],
     ['bg', 'Trocar fundo', () => openCover(true)],
+    ['cover', 'Trocar título (lombada)', () => openCover('logo')],
     null,
     ['del', sysOf(g).type === 'pc' ? 'Desinstalar / excluir' : 'Excluir', () => askDelete(g), 'red'],
   ];
@@ -348,9 +349,9 @@ function selectGame(i, force) {
   ensureVisible(i);
   const g = shown[i];
   if (globalMode) { sys = systems.find(s => s.id === g.sid); loadThumbIndex(sys).then(() => { if (shown[gIdx] === g) showArt(g); }); }
-  $('details').innerHTML = `<h2>${esc(dn(g))}</h2>${g.cat ? `<div class="m" style="color:#ffcf8a">${isCustom(g) ? 'Custom ROM · ' : ''}${esc(g.cat)}</div>` : ''}<div class="m">${globalMode ? esc(sys.name) + ' · ' : ''}${fmtSize(g.size)} · <a class="plink" id="pathLink" title="Abrir a pasta do arquivo">${esc(g.path)}</a></div>` + `<div class="cbtns"><button class="cbtn" id="coverBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 17l2.5-3 2 2 1.5-2 2 3"/><circle cx="10" cy="9" r="1.5"/></svg>Trocar capa</button><button class="cbtn" id="bgBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 16l5-5 4 4 3-3 6 6"/><circle cx="16" cy="9" r="1.5"/></svg>Trocar fundo</button></div>` + (sys.emulatorOk ? '' : `<div class="notice">Sem emulador para este console — veja como configurar no menu do ícone do PlayLoop (perto do relógio) → "Editar configuração".</div>`);
+  $('details').innerHTML = `<h2>${esc(dn(g))}</h2>${g.cat ? `<div class="m" style="color:#ffcf8a">${isCustom(g) ? 'Custom ROM · ' : ''}${esc(g.cat)}</div>` : ''}<div class="m">${globalMode ? esc(sys.name) + ' · ' : ''}${fmtSize(g.size)} · <a class="plink" id="pathLink" title="Abrir a pasta do arquivo">${esc(g.path)}</a></div>` + `<div class="cbtns"><button class="cbtn" id="coverBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 17l2.5-3 2 2 1.5-2 2 3"/><circle cx="10" cy="9" r="1.5"/></svg>Trocar capa</button><button class="cbtn" id="bgBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 16l5-5 4 4 3-3 6 6"/><circle cx="16" cy="9" r="1.5"/></svg>Trocar fundo</button><button class="cbtn" id="logoBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="20" rx="1.5"/><path d="M12 6v12"/></svg>Trocar título</button></div>` + (sys.emulatorOk ? '' : `<div class="notice">Sem emulador para este console — veja como configurar no menu do ícone do PlayLoop (perto do relógio) → "Editar configuração".</div>`);
   $('pathLink').onclick = () => api('/api/reveal', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ path: g.path }) }).catch(e => toast(e.message, true));
-  $('coverBtn').onclick = () => openCover(false); $('bgBtn').onclick = () => openCover(true);
+  $('coverBtn').onclick = () => openCover(false); $('bgBtn').onclick = () => openCover(true); $('logoBtn').onclick = () => openCover('logo');
   artReq++; stopVideo(); if (!paintCached(g)) { lastArt = { g, url: null }; $('art').innerHTML = skeletonCase(g); clearBg(); }   // troca de jogo: limpa capa e fundo na hora (placeholder até carregar)
 
   clearTimeout(artTimer); artTimer = setTimeout(() => showArt(g), 90);   // evita baixar capa a cada tecla ao rolar rápido

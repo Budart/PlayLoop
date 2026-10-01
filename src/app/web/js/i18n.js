@@ -43,6 +43,7 @@ const I18N_RAW = [
   ['Trocar capa', 'Change cover', 'Cambiar portada'], ['Trocar fundo do console', 'Change console background', 'Cambiar fondo de la consola'],
   ['Trocar fundo', 'Change background', 'Cambiar fondo'], ['trocar fundo', 'change background', 'cambiar fondo'],
   ['Trocar ícone', 'Change icon', 'Cambiar icono'], ['trocar ícone', 'change icon', 'cambiar icono'],
+  ['Trocar título (lombada)', 'Change title (spine)', 'Cambiar título (lomo)'], ['Trocar título', 'Change title', 'Cambiar título'], ['Imagem do título (lombada)', 'Title image (spine)', 'Imagen del título (lomo)'], ['Voltar para o título automático', 'Back to automatic title', 'Volver al título automático'], ['Voltou para o título automático', 'Back to automatic title', 'Se volvió al título automático'], ['Título salvo!', 'Title saved!', '¡Título guardado!'], ['como título', 'as title', 'como título'], ['como capa', 'as cover', 'como portada'],
   ['Alterar fundo', 'Change background', 'Cambiar fondo'], ['Alterar imagem', 'Change image', 'Cambiar imagen'],
   ['Reposicionar imagem', 'Reposition image', 'Reposicionar imagen'],
   ['Escolher imagem de fundo', 'Choose background image', 'Elegir imagen de fondo'],

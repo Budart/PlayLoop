@@ -566,3 +566,5 @@ body.th-light .fgempty { border-color:rgba(46,39,33,.22); background:rgba(46,39,
 body.th-light .wpsearch .wpbar { background:rgba(251,246,239,.92); border-color:#D9CBB8; }
 body.th-light .wpsearch .wpbar input { color:#2E2721; }
 body.th-light .wpsearch .wpbar input::placeholder { color:#9A8B7A; }
+
+#coverModal.logo .it img { object-fit:contain; background:repeating-conic-gradient(#222 0 25%, #2c2c2c 0 50%) 0 0/16px 16px; }

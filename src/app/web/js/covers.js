@@ -1,21 +1,28 @@
 // PlayLoop — covers.js
 /* ---------- escolher capa manualmente (estilo TICO) ---------- */
 let modalOpen = false, coverGame = null;
-let bgMode = false, cardMode = false;   // cardMode: imagem do card dos Favoritos (capas + fundos)
+let bgMode = false, cardMode = false, logoMode = false;   // logoMode: imagem do título na lombada da capa 3D   // cardMode: imagem do card dos Favoritos (capas + fundos)
 function openCover(isBg) {
   sfx('ok');
   const g = shown[gIdx]; if (!g) return;
-  coverGame = g; modalOpen = true; cardMode = isBg === 'card'; bgMode = !!isBg && !cardMode;
-  $('ctitle').textContent = cardMode ? '🖼 Imagem do card (capas e fundos)' : bgMode ? '🌄 Escolher imagem de fundo' : '🖼 Escolher capa';
-  $('creset').textContent = cardMode ? 'Voltar para a imagem automática' : bgMode ? 'Voltar para o fundo automático' : 'Voltar para a capa automática';
+  coverGame = g; modalOpen = true; cardMode = isBg === 'card'; logoMode = isBg === 'logo'; bgMode = !!isBg && !cardMode && !logoMode;
+  $('ctitle').textContent = logoMode ? '🏷 Imagem do título (lombada)' : cardMode ? '🖼 Imagem do card (capas e fundos)' : bgMode ? '🌄 Escolher imagem de fundo' : '🖼 Escolher capa';
+  $('creset').textContent = logoMode ? 'Voltar para o título automático' : cardMode ? 'Voltar para a imagem automática' : bgMode ? 'Voltar para o fundo automático' : 'Voltar para a capa automática';
   $('cgame').textContent = g.name; $('cq').value = cleanTitle(g.name); $('curl').value = '';
-  $('coverModal').classList.add('on'); $('cq').focus(); $('cq').select();
+  $('coverModal').classList.add('on'); $('coverModal').classList.toggle('logo', logoMode); $('cq').focus(); $('cq').select();
   searchCovers();
 }
 function closeCover() { sfx('back'); modalOpen = false; $('coverModal').classList.remove('on'); }
 async function setCover(url) {
   const g = coverGame; if (!g) return;
-  const key = (cardMode ? 'fimg|' : bgMode ? 'bg|' : '') + coverKey(g);
+  const key = (logoMode ? 'logo|' : cardMode ? 'fimg|' : bgMode ? 'bg|' : '') + coverKey(g);
+  if (logoMode) {
+    try { await api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, url }) }); } catch (e) { toast(e.message, true); return; }
+    if (url) covers[key] = url; else delete covers[key];
+    closeCover(); toast(url ? 'Título salvo!' : 'Voltou para o título automático');
+    if (shown[gIdx] === g && screen === 'games') { if (lastArt) lastArt.logo = null; showArt(g); }
+    return;
+  }
   if (cardMode) {
     try { await api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, url }) }); } catch (e) { toast(e.message, true); return; }
     if (url) covers[key] = url; else delete covers[key];
@@ -40,7 +47,7 @@ let sortT;
 function sortGrid() {
   clearTimeout(sortT); sortT = setTimeout(() => {
     const res = $('cres'), its = [...res.querySelectorAll('.it')];
-    its.sort((a, b) => (+b.dataset.ph - +a.dataset.ph) || (+b.dataset.ov - +a.dataset.ov) || (bgMode || cardMode ? 0 : aspectOk(+b.dataset.ar) - aspectOk(+a.dataset.ar)) || ((+b.dataset.px || 0) - (+a.dataset.px || 0))).forEach(el => res.appendChild(el));   // nome exato > palavras em comum > resolução
+    its.sort((a, b) => (+b.dataset.ph - +a.dataset.ph) || (+b.dataset.ov - +a.dataset.ov) || (bgMode || cardMode || logoMode ? 0 : aspectOk(+b.dataset.ar) - aspectOk(+a.dataset.ar)) || ((+b.dataset.px || 0) - (+a.dataset.px || 0))).forEach(el => res.appendChild(el));   // nome exato > palavras em comum > resolução
   }, 120);
 }
 async function searchCovers() {
@@ -56,10 +63,15 @@ async function searchCovers() {
     try {
       const games = (await sg('/api/v2/search/autocomplete/' + encodeURIComponent(q))).map(x => ({ x, ...relevance(q, x.name) })).sort((a, b) => (b.phrase - a.phrase) || (b.overlap - a.overlap)).slice(0, 3);
       for (const gm of games) {
-        const list = cardMode ? (await sgdbGrids(gm.x.id)).concat(await sg(`/api/v2/heroes/game/${gm.x.id}?${STATIC}`)) : bgMode ? await sg(`/api/v2/heroes/game/${gm.x.id}?${STATIC}`) : await sgdbGrids(gm.x.id);
+        const list = logoMode ? await sg(`/api/v2/logos/game/${gm.x.id}?${STATIC}`) : cardMode ? (await sgdbGrids(gm.x.id)).concat(await sg(`/api/v2/heroes/game/${gm.x.id}?${STATIC}`)) : bgMode ? await sg(`/api/v2/heroes/game/${gm.x.id}?${STATIC}`) : await sgdbGrids(gm.x.id);
         list.slice(0, 30).forEach(x => { if (!items.some(i => i.url === x.url)) items.push({ url: x.url, label: gm.x.name, src: 'SteamGridDB · ★' + (x.score || 0), phrase: gm.phrase, overlap: gm.overlap }); });
       }
     } catch (e) { $('cmsg').textContent = 'SteamGridDB: ' + e.message; }
+  } else {
+  if (logoMode) {   // títulos: logos do Steam e da libretro (Named_Logos)
+    for (const it of (await steamSearch(q)).slice(0, 12)) items.push({ url: `${STEAM}${it.id}/logo.png`, label: it.name, src: 'Steam', ...relevance(q, it.name) });
+    await loadThumbIndex(s); const ix = s.thumbs && thumbIndex[s.thumbs];
+    if (ix && ix.names) { const ws = q.toLowerCase().split(/\s+/).filter(Boolean); ix.names.filter(n => ws.every(w => n.toLowerCase().includes(w))).slice(0, 20).forEach(n => items.push({ url: `${THUMBS}${s.thumbs}/master/Named_Logos/${encodeURIComponent(n)}`, label: n.replace(/\.png$/i, ''), src: 'libretro', ...relevance(q, n) })); }
   } else {
   // 1) acervo libretro (busca por palavras no índice do console)
   await loadThumbIndex(s);
@@ -81,8 +93,9 @@ async function searchCovers() {
   for (const p of await mw('https://www.pcgamingwiki.com/w/api.php', q, 4)) add(p.img, p.title, 'PCGamingWiki');
   for (const p of await mw('https://strategywiki.org/w/api.php', q, 4)) add(p.img, p.title, 'StrategyWiki');
   }
+  }
   if (modalOpen === false) return;
-  $('cmsg').textContent = items.length ? `${items.length} imagens encontradas — clique para usar como capa.` : 'Nada encontrado. Tente outro nome, ou cole o link de uma imagem.';
+  $('cmsg').textContent = items.length ? `${items.length} imagens encontradas — clique para usar ${logoMode ? 'como título' : 'como capa'}.` : 'Nada encontrado. Tente outro nome, ou cole o link de uma imagem.';
   res.innerHTML = items.map((it, i) => `<div class="it" data-i="${i}" data-ph="${it.phrase}" data-ov="${it.overlap.toFixed(3)}"><img src="${esc(it.url)}" alt="" onload="this.nextElementSibling.textContent=this.naturalWidth+'×'+this.naturalHeight;this.parentNode.dataset.px=this.naturalWidth*this.naturalHeight;this.parentNode.dataset.ar=this.naturalWidth/this.naturalHeight;sortGrid()" onerror="this.parentNode.remove()"><div class="dim">…</div><div>${esc(it.label)}</div><div class="src">${esc(it.src)}</div></div>`).join('');
   res.querySelectorAll('.it').forEach(el => el.onclick = () => setCover(items[+el.dataset.i].url));
 }

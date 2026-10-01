@@ -161,11 +161,11 @@ async function showArt(g) {
   if (ratio === null && front !== a.box) { front = a.box; pr = loadRatio(front); ratio = await Promise.race([pr, new Promise(r => setTimeout(() => r(undefined), 300))]); }   // cache falhou (ex.: Fandom): usa direto da internet
   if (my !== artReq) return;
   if (ratio && cacheOn && artDisk[coverKey(g)] && artDisk[coverKey(g)].ratio !== ratio) { artDisk[coverKey(g)].ratio = ratio; api('/api/artcache', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key: coverKey(g), val: artDisk[coverKey(g)] }) }).catch(() => {}); }   // guarda o formato para desenhar na hora da próxima vez
-  if (pre && pre.url === front && (pre.ratio || 0) === (ratio || pre.ratio || 0)) { if (a.logo) spineLogo(a.logo, my); }   // já está na tela: não redesenha
+  if (pre && pre.url === front && (pre.ratio || 0) === (ratio || pre.ratio || 0)) { { const lg = covers['logo|' + coverKey(g)] || a.logo; if (lg) spineLogo(lg, my); } }   // já está na tela: não redesenha
   else {
   lastArt = { g, url: front, ratio, done: true };
   box.innerHTML = buildCase(g, front, !pre, ratio);   // começa virada para trás (só quando não veio do cache)
-  if (a.logo) spineLogo(a.logo, my);
+  { const lg = covers['logo|' + coverKey(g)] || a.logo; if (lg) spineLogo(lg, my); }
   if (ratio === undefined && pr) pr.then(rr => { if (rr && my === artReq) { lastArt.ratio = rr; box.innerHTML = buildCase(g, front, false, rr); } });
   requestAnimationFrame(() => requestAnimationFrame(() => { const f = box.querySelector('.flip'); if (f) f.classList.remove('back'); }));   // gira para a frente (0,3 s)
   }
