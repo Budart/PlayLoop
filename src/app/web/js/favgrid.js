@@ -113,7 +113,7 @@ function renderFavGrid() {
 }
 // imagem do card: escolhida pelo usuário > (card largo) tela/fundo do jogo > capa
 async function fgArt(i, el) {
-  const g = fg.items[i], pl = fg.place[i], custom = covers['fimg|' + coverKey(g)];
+  const g = fg.items[i], pl = fg.place[i], custom = covers[coverKey(g)];
   let url = custom;
   if (!url) { const a = cachedArt(g) || await resolveArt(g).catch(() => null); if (a) url = (pl.w > pl.h && a.snap) ? a.snap : a.box; }
   const im = el.querySelector('.fgimg');

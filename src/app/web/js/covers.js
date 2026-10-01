@@ -15,7 +15,7 @@ function openCover(isBg) {
 function closeCover() { sfx('back'); modalOpen = false; $('coverModal').classList.remove('on'); }
 async function setCover(url) {
   const g = coverGame; if (!g) return;
-  const key = (logoMode ? 'logo|' : cardMode ? 'fimg|' : bgMode ? 'bg|' : '') + coverKey(g);
+  const key = (logoMode ? 'logo|' : bgMode ? 'bg|' : '') + coverKey(g);   // capa do card dos Favoritos = mesma capa dos consoles (um só registro)
   if (logoMode) {
     try { await api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, url }) }); } catch (e) { toast(e.message, true); return; }
     if (url) covers[key] = url; else delete covers[key];
@@ -23,13 +23,7 @@ async function setCover(url) {
     if (shown[gIdx] === g && screen === 'games') { if (lastArt) lastArt.logo = null; showArt(g); }
     return;
   }
-  if (cardMode) {
-    try { await api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, url }) }); } catch (e) { toast(e.message, true); return; }
-    if (url) covers[key] = url; else delete covers[key];
-    closeCover(); toast(url ? 'Imagem do card salva!' : 'Voltou para a imagem automática');
-    if (screen === 'favgrid') renderFavGrid();
-    return;
-  }
+
   if (bgMode) {
     try { await api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, url }) }); } catch (e) { toast(e.message, true); return; }
     if (url) covers[key] = url; else delete covers[key];
@@ -41,7 +35,7 @@ async function setCover(url) {
   try { await api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, url }) }); } catch (e) { toast(e.message, true); return; }
   if (url) covers[key] = url; else { delete covers[key]; delete artCache[key]; delete artDisk[key]; api('/api/artcache', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, val: null }) }).catch(() => {}); }
   closeCover(); toast(url ? 'Capa salva!' : 'Voltou para a capa automática');
-  if (shown[gIdx] === g) showArt(g);
+  if (screen === 'favgrid') renderFavGrid(); else if (shown[gIdx] === g) showArt(g);
 }
 let sortT;
 function sortGrid() {
