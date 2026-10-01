@@ -16,6 +16,14 @@ function setGameOn(on) {
   gameOn = on;
   if (on) { try { document.activeElement && document.activeElement.blur(); } catch (e) {} }
 }
-if (host) host.addEventListener('message', e => { if (e.data === 'game:on') setGameOn(true); else if (e.data === 'game:off') setGameOn(false); });
+if (host) host.addEventListener('message', e => { if (e.data === 'game:on') setGameOn(true); else if (e.data === 'game:off') { setGameOn(false); setTimeout(refreshScreen, 250); } });
+// voltou do jogo: redesenha a tela atual para recarregar capas, cards e fundos
+function refreshScreen() {
+  try {
+    if (screen === 'favgrid') renderFavGrid();
+    else if (screen === 'games' && shown[gIdx]) { lastArt = null; showArt(shown[gIdx]); }
+    else if (screen === 'systems' && systems.length) renderSystems();
+  } catch (e) {}
+}
 // clicar no app com o mouse = o usuário voltou de propósito
 document.addEventListener('mousedown', () => { if (gameOn) { setGameOn(false); if (host) host.postMessage('gameoff'); } }, true);
