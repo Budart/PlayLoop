@@ -313,19 +313,20 @@ function filter() {
       if (isCol) return;
       gr.items.forEach(g => {
         const i = shown.push(g) - 1, isHid = !!gr.hid, fav = isFavG(g);
-        vItems.push({ h: vRowH, i, mk: () => `<div class="row${isHid ? ' hid' : ''}${indent ? ' sub' : ''}${multi.has(g) ? ' sel' : ''}" data-i="${i}" draggable="true">${multi.size > 1 ? `<span class="ck${multi.has(g) ? ' on' : ''}" data-ck="${i}"></span>` : ''}${globalMode ? `<span class="tag">${esc(sname(g.sid))}</span>` : ''}<span class="nm">${esc(dn(g))}</span>${ecat(g) && !grouped ? `<span class="cat">${esc(ecat(g))}</span>` : ''}<span class="eye" data-eye="${i}" title="${isHid ? 'Mostrar jogo' : 'Ocultar jogo'}">${isHid ? EYE_ON : EYE_OFF}</span><span class="pen" data-pen="${i}" title="Renomear (F2)">${PEN}</span>${isHid ? '' : `<span class="star${fav ? ' on' : ''}" data-star="${i}" title="${fav ? 'Remover dos favoritos' : 'Favoritar'}">${STAR}</span>`}</div>` });
+        vItems.push({ h: vRowH, i, mk: () => `<div class="row${isHid ? ' hid' : ''}${indent ? ' sub' : ''}${multi.has(g) ? ' sel' : ''}" data-i="${i}" draggable="true">${multi.size > 1 ? `<span class="ck${multi.has(g) ? ' on' : ''}" data-ck="${i}"></span>` : ''}${globalMode ? `<span class="tag">${esc(sname(g.sid))}</span>` : ''}<span class="nm">${esc(dn(g))}</span>${ecat(g) && !grouped && !globalMode ? `<span class="cat">${esc(ecat(g))}</span>` : ''}<span class="eye" data-eye="${i}" title="${isHid ? 'Mostrar jogo' : 'Ocultar jogo'}">${isHid ? EYE_ON : EYE_OFF}</span><span class="pen" data-pen="${i}" title="Renomear (F2)">${PEN}</span>${isHid ? '' : `<span class="star${fav ? ' on' : ''}" data-star="${i}" title="${fav ? 'Remover dos favoritos' : 'Favoritar'}">${STAR}</span>`}</div>` });
       });
     });
   };
   if (globalMode) {
-    // busca geral / Favoritos: uma "pasta" por console, com as subcategorias dentro
+    // busca geral / Favoritos: uma "pasta" por console, com os jogos direto dentro
     allSystems.forEach(s => {
       if (s.enabled === false) return;
       const items = match.filter(g => g.sid === s.id); if (!items.length) return;
       const key = 'c:' + s.id, isCol = collapsed.has(key);
       head(' folder', '', key, isCol, `📁 ${esc(s.name)} · ${items.length}`);
       if (isCol) { nvis += items.length; return; }
-      renderGroups(makeGroups(items, favMode), s.id + '|', true);
+      const vis = items.filter(g => !hidden.has(coverKey(g))).sort(sortCmp);   // só a pasta do console, sem subcategorias
+      renderGroups({ groups: [{ cat: '', label: '', items: vis }], nvis: vis.length, grouped: false }, '', true);
     });
   } else renderGroups(makeGroups(match, false), '', false);
   $('count').dataset.t = `${nvis} / ${src.length}`; $('count').textContent = $('count').dataset.t;
