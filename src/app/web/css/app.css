@@ -568,3 +568,6 @@ body.th-light .wpsearch .wpbar input { color:#2E2721; }
 body.th-light .wpsearch .wpbar input::placeholder { color:#9A8B7A; }
 
 #coverModal.logo .it img { object-fit:contain; background:repeating-conic-gradient(#222 0 25%, #2c2c2c 0 50%) 0 0/16px 16px; }
+
+#fgHeader #fgLogo { position:absolute; right:28px; top:50%; height:auto; max-height:72%; max-width:min(320px, 26vw); object-fit:contain; transform:translateY(-50%); opacity:0; transition:opacity .3s; filter:drop-shadow(0 2px 6px rgba(0,0,0,.55)); pointer-events:none; }
+#fgHeader #fgLogo.on { opacity:1; }

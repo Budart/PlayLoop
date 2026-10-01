@@ -251,7 +251,7 @@ const ctrlImg = s => s.type === 'pc' || s.id === 'pc' ? PC_CTRL : `${ART}control
 // cabeçalho dos Favoritos = detalhes do card selecionado (controle do console, nome, console, tamanho e caminho)
 function fgDetails() {
   const g = fg.items[fg.sel], d = $('fgHead'); if (!d) return;
-  if (!g) { d.innerHTML === '' || (d.querySelector('.fdn').textContent = 'Favoritos'); d.querySelector('.fdc').textContent = ''; d.querySelector('.fdm').style.display = 'none'; d.querySelector('.fdctrl').style.display = 'none'; return; }
+  if (!g) { d.innerHTML === '' || (d.querySelector('.fdn').textContent = 'Favoritos'); d.querySelector('.fdc').textContent = ''; d.querySelector('.fdm').style.display = 'none'; d.querySelector('.fdctrl').style.display = 'none'; fgLogo(null); return; }
   const s = sysOf(g);
   d.querySelector('.fdm').style.display = '';
   d.querySelector('.fdn').textContent = dn(g);
@@ -261,6 +261,24 @@ function fgDetails() {
   d.querySelector('.fdp').textContent = g.path; d.querySelector('.fdp').title = 'Abrir a pasta do arquivo';
   d.querySelector('.fds').textContent = fmtSize(g.size);
   fgGameBg(g);
+  fgLogo(g);
+}
+// logo de título do jogo selecionado, no canto superior direito do cabeçalho
+let fgLogoTok = 0;
+async function fgLogo(g) {
+  let im = $('fgLogo');
+  if (!im) { im = document.createElement('img'); im.id = 'fgLogo'; im.alt = ''; $('fgHeader').appendChild(im); }
+  const my = ++fgLogoTok; im.classList.remove('on');
+  if (!g) return;
+  const tries = [covers['logo|' + coverKey(g)]];
+  const a = cachedArt(g) || await resolveArt(g).catch(() => null);
+  if (my !== fgLogoTok) return;
+  if (a) { tries.push(a.logo); if (a.box && /\/Named_Boxarts\//.test(a.box)) tries.push(a.box.replace('/Named_Boxarts/', '/Named_Logos/')); }
+  for (const u of tries.filter(Boolean)) {
+    const src = cp(u);
+    if (await loadImg(src)) { if (my !== fgLogoTok) return; im.src = src; im.classList.add('on'); return; }
+    if (my !== fgLogoTok) return;
+  }
 }
 $('fgHead').querySelector('.fdp').onclick = () => { const g = fg.items[fg.sel]; if (g) api('/api/reveal', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ path: g.path }) }).catch(er => toast(er.message, true)); };
 // fundo da tela de favoritos = fundo do jogo selecionado (opcional, Configuração → Favoritos)
