@@ -387,3 +387,62 @@
   .fpframe { position:absolute; left:50%; top:46%; transform:translate(-50%,-50%); border-radius:12px; border:2px solid var(--c1); box-shadow:0 0 0 9999px rgba(0,0,0,.72), 0 0 30px rgba(0,209,255,.4); pointer-events:none; }
   .fpbar { position:absolute; left:50%; bottom:28px; transform:translateX(-50%); display:flex; align-items:center; gap:14px; padding:12px 18px; border-radius:14px; background:rgba(15,23,42,.92); border:1px solid rgba(255,255,255,.12); white-space:nowrap; cursor:default; }
   .fpbar span { color:var(--muted); font-size:13px; } #fpZoom { color:var(--c1); font-weight:700; margin-left:4px; }
+
+  .cgrid .it.kb { border-color:var(--c1); box-shadow:0 0 0 2px var(--c1), 0 0 18px rgba(0,209,255,.4); }
+
+  /* painel de detalhes (v3): arrastável por inteiro, redimensionável, com o controle do console */
+  .fgdet { cursor:grab; resize:both; overflow:hidden; container-type:size; width:640px; height:150px; min-width:300px; min-height:90px; max-width:92vw; max-height:60vh; align-items:center; gap:0; padding:0 0 0 18px; }
+  .fgdet.moving { cursor:grabbing; }
+  .fdgrip { display:none; }
+  .fdctrl { height:min(78cqh, 40cqw); width:auto; max-width:38cqw; flex:none; object-fit:contain; filter:drop-shadow(0 6px 16px rgba(0,209,255,.35)) drop-shadow(0 2px 4px rgba(0,0,0,.6)); }
+  .fdbody { padding:10px 26px 10px 20px; min-width:0; flex:1; }
+  .fdn { font-weight:500; font-size:clamp(14px, 22cqh, 46px); line-height:1.15; }
+  .fdc { font-size:clamp(11px, 11cqh, 24px); color:var(--c1); font-weight:600; letter-spacing:.5px; text-transform:uppercase; }
+  .fdm { font-size:clamp(10px, 10cqh, 20px); margin-top:2px; }
+  .fgbg { position:absolute; inset:0; z-index:0; pointer-events:none; }
+  .fgbg .bgl.on { opacity:.42; } #favgrid > *:not(.fgbg) { position:relative; z-index:1; } #favgrid > .fgdet { position:absolute; z-index:8; } #favgrid > .fgview { z-index:9; }
+  /* animação ao abrir o jogo */
+  .fgfx { position:fixed; z-index:70; display:none; background-color:#000; background-size:cover; overflow:hidden; }
+  .fgfx.on { display:block; }
+  .fgfx.grow { transition:left .55s cubic-bezier(.2,.8,.2,1), top .55s cubic-bezier(.2,.8,.2,1), width .55s cubic-bezier(.2,.8,.2,1), height .55s cubic-bezier(.2,.8,.2,1), border-radius .55s; }
+  .fgfx::before { content:""; position:absolute; inset:0; background:rgba(0,0,0,0); transition:background .5s .3s; }
+  .fgfx.grow::before { background:rgba(0,0,0,.5); }
+  .fgfx.out { opacity:0; transition:opacity .3s; }
+  .fxlbl { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; color:#fff; font-size:44px; font-weight:700; text-shadow:0 4px 18px rgba(0,0,0,.7); opacity:0; transition:opacity .4s .45s; }
+  .fgfx.grow .fxlbl { opacity:1; }
+  .fxspin { width:54px; height:54px; border-radius:50%; border:5px solid rgba(255,255,255,.25); border-top-color:var(--c1); animation:spin .9s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  .fgcard.msel { border-color:#fbbf24; box-shadow:0 0 0 2px #fbbf24, 0 0 18px rgba(251,191,36,.4); }
+  .fgcard.msel::after { content:"✓"; position:absolute; top:8px; left:8px; z-index:4; width:24px; height:24px; border-radius:50%; background:#fbbf24; color:#111; font-weight:800; display:flex; align-items:center; justify-content:center; }
+  .fgcard.alting { cursor:move; outline:2px dashed var(--c1); outline-offset:-6px; }
+
+  /* ---- tema PRETO (OLED) ---- */
+  body.th-oled { --bg:#000; --bar:#000; --surf:#0a0a0a; }
+  body.th-oled #favgrid { background:#000; }
+  body.th-oled .fgcard, body.th-oled .fgimg { background-color:#0a0a0a; }
+  body.th-oled .fgdet, body.th-oled .fpbar, body.th-oled #fgInfo .fginfobox, body.th-oled .details, body.th-oled .mbox, body.th-oled .ctx, body.th-oled .cfnav, body.th-oled .cfcache, body.th-oled .ccard { background:#070707 !important; }
+  body.th-oled .bg::after { background:linear-gradient(180deg,rgba(0,0,0,.2),rgba(0,0,0,.92)); }
+  body.th-oled .cfhead, body.th-oled .helpbar { background:#000 !important; }
+
+  /* ---- tema BRANCO ---- */
+  body.th-light { --bg:#F1F5F9; --bar:#ffffff; --text:#0f172a; --muted:#64748b; --surf:#ffffff; --c1:#2563EB; }
+  body.th-light #favgrid { background:radial-gradient(ellipse at 50% 0%, #ffffff, #e2e8f0 70%); }
+  body.th-light .fgcard { background:#fff; border-color:rgba(15,23,42,.1); box-shadow:0 6px 18px rgba(15,23,42,.12); }
+  body.th-light .fgimg { background-color:#e2e8f0; }
+  body.th-light .fgcard:not(.has) .fgimg { background-color:#e2e8f0; }
+  body.th-light .fgdet, body.th-light .fpbar { background:rgba(255,255,255,.92); border-color:rgba(15,23,42,.12); color:#0f172a; }
+  body.th-light #fgInfo .fginfobox, body.th-light .mbox, body.th-light .ctx { background:#fff !important; color:#0f172a; border-color:rgba(15,23,42,.12); }
+  body.th-light .ctx .ci { color:#1e293b; } body.th-light .ctx .ci:hover, body.th-light .ctx .ci.kb { background:rgba(15,23,42,.07); }
+  body.th-light .row { color:#1e293b; } body.th-light .row:hover { background:rgba(15,23,42,.06); }
+  body.th-light .details { background:rgba(255,255,255,.75); }
+  body.th-light .search input, body.th-light .topsearch input, body.th-light .cfbody input, body.th-light .cfbody textarea, body.th-light .mbox input { background:#fff !important; color:#0f172a !important; border-color:#cbd5e1 !important; }
+  body.th-light .cfnav { background:#fff; border-color:#e2e8f0; } body.th-light .cfnav button { color:#334155; }
+  body.th-light .cfcache, body.th-light .ccard { background:#fff !important; border-color:#e2e8f0 !important; color:#0f172a; }
+  body.th-light .cfhead { background:#fff !important; color:#0f172a; border-color:#e2e8f0; }
+  body.th-light .pick { background:#fff; border-color:#e2e8f0; } body.th-light .pick:has(input:checked) { background:rgba(37,99,235,.06); }
+  body.th-light .bg { opacity:.35; } body.th-light .bg::after { background:linear-gradient(180deg,rgba(241,245,249,.1),rgba(241,245,249,.85)); }
+  body.th-light .helpbar { background:#fff !important; color:#334155; }
+  body.th-light .cathead { border-color:#cbd5e1; }
+  body.th-light .gear, body.th-light .btn.sec, body.th-light button.sec { background:#e2e8f0; color:#0f172a; }
+  body.th-light .fgbg .bgl.on { opacity:.22; }

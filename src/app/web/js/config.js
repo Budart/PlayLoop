@@ -28,6 +28,9 @@ const PV = {
   video: `<svg viewBox="0 0 120 90"><rect x="14" y="14" width="92" height="62" rx="6" fill="#1e293b" stroke="#3B82F6" stroke-width="2"/><circle cx="60" cy="45" r="15" fill="#ff2d2d"/><path d="M55 37 L68 45 L55 53 Z" fill="#fff"/><rect x="22" y="66" width="76" height="3" rx="1.5" fill="#475569"/><rect x="22" y="66" width="30" height="3" rx="1.5" fill="#00D1FF"/></svg>`,
   image: `<svg viewBox="0 0 120 90"><rect x="14" y="14" width="92" height="62" rx="6" fill="#1e293b" stroke="#3B82F6" stroke-width="2"/><circle cx="84" cy="30" r="7" fill="#fbbf24"/><path d="M18 72 L46 40 L64 58 L76 48 L102 72 Z" fill="#8B5CF6"/></svg>`,
 };
+function themePv(bg, surf, acc, txt) {
+  return `<svg viewBox="0 0 120 90"><rect x="8" y="8" width="104" height="74" rx="8" fill="${bg}" stroke="#475569" stroke-width="1"/><rect x="8" y="8" width="104" height="14" rx="8" fill="${surf}"/><rect x="16" y="30" width="40" height="8" rx="3" fill="${acc}"/><rect x="16" y="44" width="40" height="5" rx="2.5" fill="${txt}" opacity=".7"/><rect x="16" y="54" width="32" height="5" rx="2.5" fill="${txt}" opacity=".45"/><rect x="66" y="30" width="38" height="44" rx="5" fill="${surf}" stroke="${acc}" stroke-width="1.5"/></svg>`;
+}
 function gridPv(d) {
   const [R, C] = d.split('x').map(Number), W = 112, H = 78, g = 2.5, cw = (W - g * (C - 1)) / C, ch = (H - g * (R - 1)) / R;
   let s = '';
@@ -38,7 +41,7 @@ function renderConfig() {
   const cs = cfg.consoles;
   const sec = (id, title, html) => `<div class="cfsec${cfSec === id ? ' on' : ''}" data-sec="${id}"><h2>${title}</h2>${html}</div>`;
   $('cfBody').innerHTML = `<nav class="cfnav">${CF_SECS.map(([id, t]) => `<button class="${cfSec === id ? 'on' : ''}" data-nav="${id}">${t}</button>`).join('')}</nav><div class="cfmain" id="cfMain">` +
-    sec('geral', '🚀 Geral', `<div class="cfgen">
+    sec('geral', '🚀 Geral', `<div class="cfcache"><h3>🎨 Tema</h3><div class="picks">${pick('thm', 'blue', !cfg.theme || cfg.theme === 'blue', themePv('#0B1020', '#1E293B', '#00D1FF', '#E5E7EB'), 'Azul', 'padrão')}${pick('thm', 'oled', cfg.theme === 'oled', themePv('#000', '#0d0d0d', '#00D1FF', '#E5E7EB'), 'Preto', 'ideal para telas OLED')}${pick('thm', 'light', cfg.theme === 'light', themePv('#F1F5F9', '#fff', '#2563EB', '#0f172a'), 'Branco', 'claro')}</div></div><div class="cfgen">
       ${fieldHtml(-1, 'root', 'Pasta dos emuladores e jogos', cfg.root || '', 'folder')}
     </div>
     <div class="cfcache">
@@ -79,12 +82,16 @@ function renderConfig() {
     </div>`) +
     sec('favoritos', '⭐ Favoritos', `<div class="cfcache"><h3>Grade dos favoritos</h3>
         <div class="picks">${['4x10', '4x12', '6x12'].map(d => pick('fgd', d, (cfg.favGrid || '4x12') === d, gridPv(d), d.replace('x', ' × '), d === '4x12' ? 'padrão' : (d === '6x12' ? 'mais jogos por página' : 'cards maiores'))).join('')}</div>
+        <h3 style="margin-top:16px">Fundo da tela</h3>
+        <div class="picks">${pick('fbg', '0', !cfg.favBgGame, PV.image, 'Fundo fixo', 'o fundo do console Favoritos')}${pick('fbg', '1', !!cfg.favBgGame, PV.video.replace('#ff2d2d', '#8B5CF6'), 'Fundo do jogo', 'muda ao selecionar um card')}</div>
         <div class="msg">Cada jogo favorito vira um card. Arraste um card para mudar de lugar (até para outra página), arraste a borda direita/de baixo para aumentar (até 4 × 4) ou use o botão direito → Redimensionar.</div></div><div class="cfgrid"><div class="ccard${favCfg().enabled ? '' : ' off'}">
         <div class="top"><button class="icobtn" data-ico="-2" title="Trocar ícone"><img src="${logoUrl(Object.assign({}, FAVSYS, { logo: favCfg().logo || 'builtin:fav' }))}" alt=""><span>trocar ícone</span></button><button class="icobtn bgb" data-bgp="-2" title="Trocar fundo" style="background-image:url('${favCfg().bg ? bgUrlOf({ bg: favCfg().bg }) : FAV_BG}')"><span>trocar fundo</span></button><input value="⭐ Favoritos" disabled><label class="chk2 en"><input type="checkbox" data-en="-2" ${favCfg().enabled ? 'checked' : ''}> Habilitar</label></div>
         <div class="icopick" id="ip-2" style="display:none"></div>
         <div class="msg">Grade com todos os jogos que você marcou com ⭐. Arraste na tela inicial para mudar a posição deste console.</div>
       </div></div>`) + '</div>';
   $('cfBody').querySelectorAll('[data-nav]').forEach(b => b.onclick = () => { cfSec = b.dataset.nav; $('cfBody').querySelectorAll('[data-nav]').forEach(x => x.classList.toggle('on', x === b)); $('cfBody').querySelectorAll('.cfsec').forEach(s => s.classList.toggle('on', s.dataset.sec === cfSec)); $('cfMain').scrollTop = 0; sfx('tick'); });
+  $('cfBody').querySelectorAll('input[name=thm]').forEach(r => r.onchange = () => { cfg.theme = r.value; applyTheme(r.value); });
+  $('cfBody').querySelectorAll('input[name=fbg]').forEach(r => r.onchange = () => { cfg.favBgGame = r.value === '1'; favBgGame = cfg.favBgGame; });
   $('cfBody').querySelectorAll('input[name=fgd]').forEach(r => r.onchange = () => { cfg.favGrid = r.value; favGridDim = r.value; });
   $('cfBody').querySelectorAll('[data-k]').forEach(el => el.oninput = () => setField(+el.dataset.i, el.dataset.k, el.value));
   $('cfBody').querySelectorAll('[data-browse]').forEach(el => el.onclick = () => browse(el));

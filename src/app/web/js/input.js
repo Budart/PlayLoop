@@ -16,7 +16,8 @@ setCrt(crtOn);
 function input(a) {
   if (askOpen) { if (a === 'ok') askDone(true); else if (a === 'back') askDone(false); return; }
   if ($('ctx').classList.contains('on')) { if (a === 'down') ctxMove(1); else if (a === 'up') ctxMove(-1); else if (a === 'ok') ctxOk(); else if (a === 'back' || a === 'menu') closeCtx(); return; }
-  if (modalOpen) { if (a === 'back') closeCover(); return; }
+  if (modalOpen) { if (a === 'back') closeCover(); else if (['left','right','up','down'].includes(a)) coverNav(a); else if (a === 'ok') coverPick(); return; }
+  if (fxOpen) { if (a === 'back') fgFxClose(); return; }
   if (fp.open) { fpInput(a); return; }
   if (fgInfoOpen) { if (a === 'back') fgInfo(false); else if (a === 'ok') launch(); return; }
   if (screen === 'config') { if (a === 'back' || a === 'start') $('cfCancel').onclick(); return; }
@@ -40,13 +41,23 @@ document.addEventListener('keydown', e => {
   if ($('ctx').classList.contains('on')) { e.preventDefault(); if (e.key === 'ArrowDown') ctxMove(1); else if (e.key === 'ArrowUp') ctxMove(-1); else if (e.key === 'Enter') ctxOk(); else if (e.key === 'Escape') closeCtx(); return; }
   if (e.key === 'F1') { e.preventDefault(); if (screen !== 'config' && screen !== 'welcome') { if (modalOpen) closeCover(); openConfig(); } return; }
   if (screen === 'welcome' || renaming) return;
+  if (fxOpen) { if (e.key === 'Escape' || e.key === 'Backspace') { e.preventDefault(); fgFxClose(); } return; }
   if (fp.open) { const k = { ArrowLeft:'left', ArrowRight:'right', ArrowUp:'up', ArrowDown:'down', Enter:'ok', Escape:'back', PageUp:'pgup', PageDown:'pgdn', '+':'pgdn', '-':'pgup' }[e.key]; if (k) { e.preventDefault(); fpInput(k); } return; }
   if (fgInfoOpen && !modalOpen) { if (e.key === 'Escape' || e.key === 'Backspace') { e.preventDefault(); fgInfo(false); } else if (e.key === 'Enter') { e.preventDefault(); launch(); } return; }
   if (screen === 'favgrid' && !modalOpen && e.key === 'Backspace') { e.preventDefault(); back(); return; }
+  if (screen === 'favgrid' && !modalOpen && (e.key === 'i' || e.key === 'I') && !e.ctrlKey && !e.altKey && fg.items[fg.sel]) { e.preventDefault(); fgInfo(true); return; }   // I = Info do card
+  if (screen === 'favgrid' && !modalOpen && e.key.length === 1 && e.key !== ' ' && !e.ctrlKey && !e.altKey && !e.metaKey) { e.preventDefault(); openGlobal(e.key); return; }   // digitar = busca geral
   if (screen === 'favgrid' && !modalOpen && e.key === ' ') { e.preventDefault(); fgInput('fav'); return; }   // Espaço = □ (mover card)
   if (e.key === 'F2' && screen === 'games' && shown[gIdx]) { e.preventDefault(); startRename(gIdx); return; }
   if (screen === 'config') { if (e.key === 'Escape') $('cfCancel').onclick(); return; }
-  if (modalOpen) { if (e.key === 'Escape') { e.preventDefault(); closeCover(); } return; }
+  if (modalOpen) {
+    if (e.key === 'Escape') { e.preventDefault(); closeCover(); return; }
+    const inInput = document.activeElement && document.activeElement.tagName === 'INPUT';
+    const d = { ArrowLeft:'left', ArrowRight:'right', ArrowUp:'up', ArrowDown:'down' }[e.key];
+    if (d && !(inInput && (d === 'left' || d === 'right'))) { e.preventDefault(); coverNav(d); return; }
+    if (e.key === 'Enter' && !inInput && coverPick()) { e.preventDefault(); return; }
+    return;
+  }
   if (e.key === 'Escape' && screen === 'games' && clearMulti()) { e.preventDefault(); return; }   // Esc limpa a seleção em lote
   const map = { ArrowLeft:'left', ArrowRight:'right', ArrowUp:'up', ArrowDown:'down', Enter:'ok', Escape:'back', PageUp:'pgup', PageDown:'pgdn', Home:'home', End:'end' };
   const inSearch = document.activeElement === $('q');

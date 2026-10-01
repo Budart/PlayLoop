@@ -24,3 +24,7 @@ function logoUrl(s) {
 }
 function logo(s) { return `<img src="${logoUrl(s)}" alt="${esc(s.name)}" onerror="this.outerHTML='<div class=fallback>${esc(s.name)}</div>'">`; }
 function show(id) { screen = id; document.querySelectorAll('.screen').forEach(e => e.classList.toggle('on', e.id === id)); }
+
+// temas: azul (padrão), preto (OLED) e branco
+function applyTheme(t) { t = t || 'blue'; document.body.classList.toggle('th-oled', t === 'oled'); document.body.classList.toggle('th-light', t === 'light'); try { localStorage.setItem('theme', t); } catch (e) {} }
+try { applyTheme(localStorage.getItem('theme')); } catch (e) {}

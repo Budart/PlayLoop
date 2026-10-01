@@ -150,3 +150,15 @@ async function doLaunch(g) {
   try { await api('/api/launch', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ console: g.sid || sys.id, path: g.path }) }); toast('▶ Abrindo ' + g.name); return true; }
   catch (e) { toast(e.message, true); return false; }
 }
+
+// navegar pelas imagens com as setas / D-pad (Enter ou ✕ escolhe)
+function coverNav(dir) {
+  const its = [...$('cres').querySelectorAll('.it')]; if (!its.length) return;
+  if (document.activeElement && document.activeElement.tagName === 'INPUT') document.activeElement.blur();
+  let k = its.findIndex(e => e.classList.contains('kb'));
+  const cols = Math.max(1, its.filter(e => e.offsetTop === its[0].offsetTop).length);
+  if (k < 0) k = 0;
+  else k = Math.max(0, Math.min(its.length - 1, k + (dir === 'left' ? -1 : dir === 'right' ? 1 : dir === 'up' ? -cols : cols)));
+  its.forEach((e, j) => e.classList.toggle('kb', j === k)); its[k].scrollIntoView({ block:'nearest' }); sfx('tick');
+}
+function coverPick() { const el = $('cres').querySelector('.it.kb'); if (el) { el.click(); return true; } return false; }

@@ -42,13 +42,15 @@
   <div class="helpbar"><span><b>↑ ↓</b>navegar</span><span><b>PgUp PgDn</b>pular</span><span><b>Enter</b>jogar</span><span><b>Esc</b>voltar</span><span><b>A-Z</b>buscar</span></div>
 </section>
 <section id="favgrid" class="screen">
+  <div class="fgbg" id="fgBg"></div>
   <header id="fgHeader"><button class="homebtn" id="fgHome" title="Voltar ao início (Esc)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg></button><div id="fgHead"></div></header>
   <div class="fgview" id="fgView"><div class="fgtrack" id="fgTrack"></div></div>
   <div class="fgdots" id="fgDots"></div>
-  <div class="fgdet" id="fgDet" data-dock="left"><div class="fdgrip" title="Arraste para mover">⋮⋮</div><div class="fdbody"><div class="fdn"></div><div class="fdm"><span class="fds"></span> · <a class="fdp plink"></a></div></div></div>
+  <div class="fgdet" id="fgDet" data-dock="left" title="Arraste para mover · canto inferior direito para redimensionar"><img class="fdctrl" alt=""><div class="fdbody"><div class="fdn"></div><div class="fdc"></div><div class="fdm"><span class="fds"></span> · <a class="fdp plink"></a></div></div></div>
 </section>
 <div class="fpmodal" id="fpModal"><img id="fpImg" alt="" draggable="false"><div class="fpframe" id="fpFrame"></div>
   <div class="fpbar"><b>Reposicionar imagem</b><span>Arraste a imagem (mouse ou D-pad) · roda do mouse / LB RB = zoom <span id="fpZoom">100%</span></span><button class="btn sec sm" id="fpReset">Centralizar</button><button class="btn sec sm" id="fpCancel">Cancelar (Esc)</button><button class="btn sm" id="fpOk">Salvar (Enter)</button></div></div>
+<div class="fgfx" id="fgFx"><div class="fxlbl"><div class="fxspin"></div><div>Bom jogo.</div></div></div>
 <div class="modal" id="fgInfo"><div class="fginfobox" id="fgInfoBox"></div></div>
 <section id="config" class="screen">
   <div class="cfhead"><h1>⚙ Configuração</h1><span class="msg" id="cfSaved" style="margin-right:10px"></span><button class="btn" id="cfCancel">Voltar (Esc)</button></div>

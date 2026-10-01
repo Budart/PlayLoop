@@ -84,7 +84,7 @@ async function openFavGrid() {
   renderFavGrid();
 }
 function renderFavGrid() {
-  fgLayout(); fgPinAll(); fgCell(); fg.moving = null;
+  fgLayout(); fgPinAll(); fgCell(); fg.moving = null; fgMulti.clear();
   const { R, C } = fgDim();
   if (!fg.items.length) { fgDetails(); $('fgTrack').innerHTML = '<div class="empty">Nenhum jogo favoritado ainda — use a ⭐ ao lado de um jogo.</div>'; $('fgDots').innerHTML = ''; return; }
   let html = '';
@@ -149,9 +149,14 @@ function fgMove(dir) {
 }
 function fgBind(el) {
   const i = +el.dataset.i;
-  el.onclick = e => { if (e.target.dataset.rz || el._dragged) { el._dragged = false; return; } fgSelect(i); };
-  el.onpointerdown = e => { if (e.button !== 0 || e.target.dataset.rz) return; fgDragStart(e, el, i); };
-  el.ondblclick = e => { if (e.target.dataset.rz) return; fgSelect(i, true); launch(); };
+  el.onclick = e => {
+    if (e.target.dataset.rz || el._dragged) { el._dragged = false; return; }
+    if (e.ctrlKey) { fgToggleMulti(i); return; }          // Ctrl+clique: seleção em lote
+    if (fgMulti.size) fgClearMulti();
+    fgSelect(i);
+  };
+  el.onpointerdown = e => { if (e.button !== 0 || e.target.dataset.rz || e.ctrlKey) return; if (e.altKey) fgAltPan(e, el, i); else fgDragStart(e, el, i); };
+  el.ondblclick = e => { if (e.target.dataset.rz) return; fgSelect(i, true); fgLaunch(); };
   el.oncontextmenu = e => { e.preventDefault(); fgSelect(i, true); fgCtx(e.clientX, e.clientY); };
   // redimensionar arrastando a lateral direita, a de baixo ou o canto (sempre grudando na grade, máx. 4x4)
   el.querySelectorAll('[data-rz]').forEach(h => h.onpointerdown = e => {
@@ -236,26 +241,72 @@ let fgDock = 'left'; try { fgDock = localStorage.getItem('fgDock') || 'left'; } 
 function fgDetails() {
   const g = fg.items[fg.sel], d = $('fgDet'); if (!d) return;
   if (!g) { d.style.display = 'none'; return; }
+  const s = sysOf(g);
   d.style.display = ''; d.dataset.dock = fgDock;
   d.querySelector('.fdn').textContent = dn(g);
+  d.querySelector('.fdc').textContent = s.name || '';
+  const ci = d.querySelector('.fdctrl'); ci.style.display = ''; ci.onerror = () => { ci.style.display = 'none'; };
+  ci.src = s.type === 'pc' ? logoUrl(s) : `${ART}controllers/${s.art}.svg`;
   d.querySelector('.fdp').textContent = g.path; d.querySelector('.fdp').title = 'Abrir a pasta do arquivo';
   d.querySelector('.fds').textContent = fmtSize(g.size);
+  fgGameBg(g);
 }
+// painel arrastável por qualquer ponto (gruda no canto/centro de baixo mais próximo) e redimensionável pelo canto inferior direito
 (() => {
-  const d = $('fgDet'), grip = d.querySelector('.fdgrip');
-  d.querySelector('.fdp').onclick = () => { const g = fg.items[fg.sel]; if (g) api('/api/reveal', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ path: g.path }) }).catch(e => toast(e.message, true)); };
-  grip.onpointerdown = e => {
-    e.preventDefault(); const r = d.getBoundingClientRect(), ox = e.clientX - r.left, oy = e.clientY - r.top;
-    grip.setPointerCapture(e.pointerId); d.classList.add('moving');
-    grip.onpointermove = ev => { d.style.left = (ev.clientX - ox) + 'px'; d.style.top = (ev.clientY - oy) + 'px'; d.style.right = d.style.bottom = 'auto'; d.style.transform = 'none'; };
-    grip.onpointerup = ev => {
-      grip.onpointermove = grip.onpointerup = null; d.classList.remove('moving');
-      const x = ev.clientX / innerWidth; fgDock = x < .34 ? 'left' : x > .66 ? 'right' : 'center';
-      try { localStorage.setItem('fgDock', fgDock); } catch (e) {}
-      d.style.left = d.style.top = d.style.right = d.style.bottom = d.style.transform = ''; d.dataset.dock = fgDock; sfx('tick');
+  const d = $('fgDet');
+  try { const s = JSON.parse(localStorage.getItem('fgDetSize') || 'null'); if (s) { d.style.width = s.w + 'px'; d.style.height = s.h + 'px'; } } catch (e) {}
+  new ResizeObserver(() => { if (d.offsetWidth) try { localStorage.setItem('fgDetSize', JSON.stringify({ w: d.offsetWidth, h: d.offsetHeight })); } catch (e) {} }).observe(d);
+  d.querySelector('.fdp').onclick = e => { if (d._moved) return; const g = fg.items[fg.sel]; if (g) api('/api/reveal', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ path: g.path }) }).catch(er => toast(er.message, true)); };
+  d.onpointerdown = e => {
+    const r = d.getBoundingClientRect();
+    if (e.button !== 0 || (e.clientX > r.right - 22 && e.clientY > r.bottom - 22)) return;   // canto = redimensionar
+    const ox = e.clientX - r.left, oy = e.clientY - r.top, sx = e.clientX, sy = e.clientY; d._moved = false;
+    const mv = ev => {
+      if (!d._moved && Math.hypot(ev.clientX - sx, ev.clientY - sy) < 6) return;
+      if (!d._moved) { d._moved = true; d.classList.add('moving'); }
+      d.style.left = (ev.clientX - ox) + 'px'; d.style.top = (ev.clientY - oy) + 'px'; d.style.right = d.style.bottom = 'auto'; d.style.transform = 'none';
     };
+    const up = ev => {
+      document.removeEventListener('pointermove', mv); document.removeEventListener('pointerup', up);
+      if (!d._moved) return;
+      d.classList.remove('moving');
+      const x = ev.clientX / innerWidth; fgDock = x < .34 ? 'left' : x > .66 ? 'right' : 'center';
+      try { localStorage.setItem('fgDock', fgDock); } catch (er) {}
+      d.style.left = d.style.top = d.style.right = d.style.bottom = d.style.transform = ''; d.dataset.dock = fgDock; sfx('tick');
+      setTimeout(() => { d._moved = false; }, 0);
+    };
+    document.addEventListener('pointermove', mv); document.addEventListener('pointerup', up);
   };
 })();
+// fundo da tela de favoritos = fundo do jogo selecionado (opcional, Configuração → Favoritos)
+let favBgGame = false, fgBgTok = 0;
+async function fgGameBg(g) {
+  const host = $('fgBg'), tok = ++fgBgTok;
+  if (!favBgGame || !g) { host.querySelectorAll('.bgl').forEach(o => { o.classList.remove('on'); setTimeout(() => o.remove(), 600); }); return; }
+  const over = covers['bg|' + coverKey(g)];
+  let url = over; if (!url) { const a = cachedArt(g) || await resolveArt(g).catch(() => null); if (a) url = a.snap || a.box; }
+  if (tok !== fgBgTok || !url) return;
+  const old = [...host.querySelectorAll('.bgl')];
+  const l = document.createElement('div'); l.className = 'bgl'; l.style.backgroundImage = `url("${cp(url).replace(/"/g, '%22')}")`;
+  host.appendChild(l); requestAnimationFrame(() => requestAnimationFrame(() => l.classList.add('on')));
+  old.forEach(o => { o.classList.remove('on'); setTimeout(() => o.remove(), 600); });
+}
+// abrir o jogo: a imagem do card se expande até a tela inteira, escurece e mostra "Bom jogo."
+let fxOpen = false;
+function fgLaunch() {
+  const g = fg.items[fg.sel], el = $('fgTrack').querySelector(`.fgcard[data-i="${fg.sel}"]`); if (!g) return;
+  launch();
+  const fx = $('fgFx'), im = el && el.querySelector('.fgimg');
+  if (!el) return;
+  const r = el.getBoundingClientRect();
+  fx.style.backgroundImage = im ? im.style.backgroundImage : '';
+  const o = fgOfs(g); fx.style.backgroundPosition = o ? `${o.x}% ${o.y}%` : 'center';
+  fx.className = 'fgfx'; Object.assign(fx.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px', borderRadius: '12px' });
+  fxOpen = true; fx.classList.add('on');
+  requestAnimationFrame(() => requestAnimationFrame(() => { fx.classList.add('grow'); Object.assign(fx.style, { left: '0px', top: '0px', width: innerWidth + 'px', height: innerHeight + 'px', borderRadius: '0px' }); }));
+}
+function fgFxClose() { if (!fxOpen) return; fxOpen = false; const fx = $('fgFx'); fx.classList.add('out'); setTimeout(() => { fx.className = 'fgfx'; }, 350); }
+window.addEventListener('blur', () => fgFxClose());   // o jogo abriu (o foco saiu do app)
 // ---- reposicionar a imagem do card: 'fofs|chave' = "posX%,posY%,zoom" ----
 const fgOfs = g => { const v = covers['fofs|' + coverKey(g)]; if (!v) return null; const [x, y, z] = v.split(',').map(Number); return { x, y, z: z || 1 }; };
 const imgDims = {};
@@ -324,12 +375,45 @@ function fpInput(a) {
   $('fpReset').onclick = () => { fp.x = 50; fp.y = 50; fp.z = 1; fpRender(); };
   window.addEventListener('resize', () => { if (fp.open) fpRender(); });
 })();
+// Alt + arrastar: move só a imagem dentro do card (salva ao soltar)
+async function fgAltPan(e, el, i) {
+  e.preventDefault(); fgSelect(i, true);
+  const g = fg.items[i], im = el.querySelector('.fgimg'); if (!el._url) return;
+  const d = await loadDims(el._url); if (!d) return;
+  const o = fgOfs(g) || { x: 50, y: 50, z: 1 }, W = im.offsetWidth, H = im.offsetHeight, s = Math.max(W / d.w, H / d.h) * o.z, ex = W - d.w * s, ey = H - d.h * s;
+  let lx = e.clientX, ly = e.clientY; el.classList.add('alting'); el._dragged = true;
+  const mv = ev => {
+    if (ex < 0) o.x = Math.max(0, Math.min(100, o.x + (ev.clientX - lx) / ex * 100));
+    if (ey < 0) o.y = Math.max(0, Math.min(100, o.y + (ev.clientY - ly) / ey * 100));
+    lx = ev.clientX; ly = ev.clientY; im.style.backgroundPosition = `${o.x}% ${o.y}%`; if (o.z === 1) im.style.backgroundSize = 'cover';
+  };
+  const up = () => {
+    document.removeEventListener('pointermove', mv); document.removeEventListener('pointerup', up); el.classList.remove('alting');
+    const key = 'fofs|' + coverKey(g), val = `${o.x.toFixed(1)},${o.y.toFixed(1)},${o.z.toFixed(3)}`;
+    covers[key] = val; api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, url: val }) }).catch(() => {});
+    setTimeout(() => { el._dragged = false; }, 0);
+  };
+  document.addEventListener('pointermove', mv); document.addEventListener('pointerup', up);
+}
+// seleção em lote (Ctrl + clique)
+const fgMulti = new Set();
+function fgMultiDom() { $('fgTrack').querySelectorAll('.fgcard').forEach(el => el.classList.toggle('msel', fgMulti.has(+el.dataset.i))); }
+function fgToggleMulti(i) { if (!fgMulti.size && fg.sel !== i && fg.items[fg.sel]) fgMulti.add(fg.sel); if (fgMulti.has(i)) fgMulti.delete(i); else fgMulti.add(i); fgSelect(i, true); fgMultiDom(); sfx('tick'); }
+function fgClearMulti() { fgMulti.clear(); fgMultiDom(); }
+async function fgBatchUnfav() {
+  const list = [...fgMulti].map(k => fg.items[k]).filter(Boolean);
+  if (!await ask(`Desfavoritar ${list.length} jogos?`, 'Eles saem da tela de Favoritos (os jogos continuam no seu PC).', 'Desfavoritar')) return;
+  for (const g of list) { delete covers['fav|' + coverKey(g)]; api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key: 'fav|' + coverKey(g), url: '' }) }).catch(() => {}); }
+  fgMulti.clear(); toast(`${list.length} jogos removidos dos favoritos`); sfx('back'); openFavGrid();
+}
 // menu de contexto do card (botão direito / △)
 function fgCtx(x, y, sizes) {
   const g = fg.items[fg.sel]; if (!g) return;
   if (!x) { const r = $('fgTrack').querySelector('.fgcard.sel').getBoundingClientRect(); x = r.left + 20; y = r.top + 20; }
   const { R, C } = fgDim(), cur = fgSize(g);
-  if (sizes) {
+  if (fgMulti.size > 1 && fgMulti.has(fg.sel) && !sizes) {
+    ctxItems = [['star', `Desfavoritar ${fgMulti.size} jogos`, () => fgBatchUnfav(), 'red'], ['pen', 'Limpar seleção', () => fgClearMulti()]];
+  } else if (sizes) {
     ctxItems = [['pen', '← Voltar', () => fgCtx(x, y)], null];
     for (let h = 1; h <= Math.min(4, R); h++) for (let w = 1; w <= Math.min(4, C); w++) ctxItems.push(['cover', `${w} × ${h}${w === cur.w && h === cur.h ? '  ✓' : ''}`, () => fgResize(g, w, h)]);
   } else ctxItems = [
@@ -388,10 +472,10 @@ function fgInput(a) {
   if (a === 'left' || a === 'right' || a === 'up' || a === 'down') fgMove(a);
   else if (a === 'pgup') { fgPage(fg.page - 1); const i = fg.place.findIndex(p => p.p === fg.page); if (i >= 0) fgSelect(i, true); }
   else if (a === 'pgdn') { fgPage(fg.page + 1); const i = fg.place.findIndex(p => p.p === fg.page); if (i >= 0) fgSelect(i, true); }
-  else if (a === 'ok') { if (fg.items[fg.sel]) launch(); }
+  else if (a === 'ok') { if (fg.items[fg.sel]) fgLaunch(); }
   else if (a === 'menu') fgCtx();
   else if (a === 'fav') fgMoveMode();
-  else if (a === 'back') { fgInfo(false); back(); }
+  else if (a === 'back') { if (fgMulti.size) { fgClearMulti(); return; } fgInfo(false); back(); }
 }
 $('fgHome').onclick = () => { $('fgHome').blur(); back(); };
 let fgWheelT = 0;
