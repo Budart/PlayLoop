@@ -599,3 +599,13 @@ body.th-light .wpsearch .wpbar input::placeholder { color:#9A8B7A; }
 /* fade de saída ao abrir jogo (animação: não depende das transições de cada elemento) */
 @keyframes fgOut { from { opacity:1; } to { opacity:0; } }
 #favgrid.launching > *:not(.fgbg), body:has(#favgrid.launching) .padhelp { opacity:1; animation:fgOut .3s ease forwards; pointer-events:none; }
+
+/* fundo → tela cheia: cresce com a aparência do fundo, depois fica nítido, só então aparece o "Bom jogo" */
+.fgfx.frombg, .fgfx.frombg.grow { opacity:unset; }
+.fgfx.frombg.grow { transition:left .55s cubic-bezier(.2,.8,.2,1), top .55s cubic-bezier(.2,.8,.2,1), width .55s cubic-bezier(.2,.8,.2,1), height .55s cubic-bezier(.2,.8,.2,1); }
+.fgfx.frombg.grow.sharp { transition:opacity .7s ease, filter .7s ease; }
+.fgfx.frombg.grow::before { background:rgba(0,0,0,0); transition:none; }
+.fgfx.frombg.grow.sharp::before { background:rgba(0,0,0,.3); transition:background .5s .7s; }
+.fgfx.frombg.grow .fxlbl { opacity:0; transition:none; }
+.fgfx.frombg.grow.sharp .fxlbl { opacity:1; transition:opacity .4s .8s; }
+.fgfx.frombg.grow.out { opacity:0 !important; transition:opacity .3s; }
