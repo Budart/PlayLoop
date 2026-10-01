@@ -535,3 +535,5 @@
   .apwrap { flex:1; min-height:0; overflow-y:auto; }
   .icogrid.ap .ico { cursor:pointer; } .icogrid.ap .ico.kb { border-color:var(--c1); box-shadow:0 0 0 2px var(--c1), 0 0 16px rgba(0,209,255,.4); }
   .icogrid.ap { max-height:none; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; } .icogrid.ap.bgs .ico img { height:90px; }
+
+  .cfcache.cred .by { color:var(--c1); font-size:13px; font-weight:600; margin:-4px 0 4px; } .cfcache.cred .line { flex-wrap:wrap; gap:8px; margin-top:8px; }

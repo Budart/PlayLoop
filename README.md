@@ -24,3 +24,7 @@ Com Mono (`mcs`) ou o compilador C# do .NET Framework:
 ## Dados do usuário
 
 Configurações, cache de capas e dados do WebView2 ficam em `%LOCALAPPDATA%\CentralDeJogos`. O desinstalador oferece apagar essa pasta.
+
+## Créditos
+
+Logos, fundos e desenhos de controle dos consoles: tema **"carbon"** para EmulationStation, de **Rookervik** (baseado no tema "simple" de Nils Bonenberger) — [fabricecaruso/es-theme-carbon](https://github.com/fabricecaruso/es-theme-carbon), licença **CC BY-NC-SA** (uso não comercial). Capas de jogos: libretro-thumbnails, SteamGridDB, GameTDB, Steam e wikis. Lista completa em [CREDITS.md](CREDITS.md) e no app em Configuração → Sobre e créditos.

@@ -18,8 +18,25 @@ function fieldHtml(i, key, label, val, browse, multi) {
   const inp = multi ? `<textarea data-i="${i}" data-k="${key}" rows="2">${esc(val)}</textarea>` : `<input data-i="${i}" data-k="${key}" value="${esc(val)}">`;
   return `<div class="fld"><label>${label}</label><div class="line">${inp}${browse ? `<button class="btn sec sm" data-browse="${browse}" data-i="${i}" data-k="${key}">Procurar...</button>` : ''}${key === 'emulator' ? `<span class="st" id="st${i}"></span>` : ''}</div></div>`;
 }
-const CF_SECS = [['geral', 'Geral'], ['consoles', 'Consoles'], ['capas', 'Capas e vídeo'], ['favoritos', 'Favoritos']];
+const CF_SECS = [['geral', 'Geral'], ['consoles', 'Consoles'], ['capas', 'Capas e vídeo'], ['favoritos', 'Favoritos'], ['sobre', 'Sobre e créditos']];
 let cfSec = 'geral';
+// créditos e licenças (as imagens do tema carbon são CC BY-NC-SA: exigem atribuição)
+const CREDITS = [
+  ['Tema "carbon" para EmulationStation', 'Rookervik — baseado no tema "simple" de Nils Bonenberger', 'Logos, fundos e desenhos de controle dos consoles. Licença CC BY-NC-SA (atribuição, uso não comercial, compartilha igual). As imagens são exibidas sem alteração de conteúdo (apenas redimensionadas/recortadas na tela).', [['Repositório (fabricecaruso)', 'https://github.com/fabricecaruso/es-theme-carbon'], ['Repositório (RetroPie, reserva)', 'https://github.com/RetroPie/es-theme-carbon'], ['Licença CC BY-NC-SA', 'https://creativecommons.org/licenses/by-nc-sa/4.0/deed.pt_BR']]],
+  ['libretro-thumbnails', 'Projeto libretro / RetroArch e colaboradores', 'Capas, telas e títulos de jogos.', [['Repositório', 'https://github.com/libretro-thumbnails/libretro-thumbnails']]],
+  ['SteamGridDB', 'Comunidade SteamGridDB', 'Capas, fundos e logos (opcional, com a sua chave da API).', [['Site', 'https://www.steamgriddb.com/']]],
+  ['GameTDB', 'GameTDB', 'Capas de jogos de GameCube, Wii, Wii U, 3DS e DS.', [['Site', 'https://www.gametdb.com/']]],
+  ['Steam', 'Valve Corporation', 'Capas e fundos de jogos de PC.', [['Loja', 'https://store.steampowered.com/']]],
+  ['Fandom, PCGamingWiki, StrategyWiki e Wikipédia', 'Comunidades de cada wiki', 'Capas encontradas pelas APIs públicas das wikis.', [['PCGamingWiki', 'https://www.pcgamingwiki.com/'], ['StrategyWiki', 'https://strategywiki.org/'], ['Wikipédia', 'https://pt.wikipedia.org/']]],
+  ['YouTube', 'Google', 'Vídeos de gameplay exibidos pelo player oficial incorporado.', [['Termos do YouTube', 'https://www.youtube.com/t/terms']]],
+  ['Fonte Poppins', 'Indian Type Foundry', 'Licença SIL Open Font License 1.1.', [['Google Fonts', 'https://fonts.google.com/specimen/Poppins']]],
+  ['Microsoft Edge WebView2', 'Microsoft', 'Motor da janela do aplicativo.', [['Documentação', 'https://developer.microsoft.com/microsoft-edge/webview2/']]],
+];
+function creditsHtml() {
+  return `<div class="cfcache"><h3>PlayLoop</h3><div class="msg">Front-end para os seus emuladores e jogos. Os jogos, capas, logos e vídeos pertencem aos seus respectivos donos; o PlayLoop apenas os exibe a partir das fontes abaixo.</div></div>` +
+    CREDITS.map(([t, by, what, links]) => `<div class="cfcache cred"><h3>${esc(t)}</h3><div class="by">${esc(by)}</div><div class="msg">${esc(what)}</div><div class="line">${links.map(([l, u]) => `<button class="btn sec sm" data-href="${esc(u)}">🔗 ${esc(l)}</button>`).join('')}</div></div>`).join('') +
+    `<div class="cfcache"><h3>Marcas registradas</h3><div class="msg">Nintendo, PlayStation, Xbox, Sega, Neo Geo, Steam e demais nomes e logos de consoles são marcas registradas de seus respectivos donos e aparecem apenas para identificar cada plataforma. O PlayLoop não é afiliado a nenhuma delas.</div></div>`;
+}
 // opções com desenho ilustrativo (o rádio fica escondido; o cartão inteiro é clicável)
 const pick = (name, val, on, svg, title, sub) => `<label class="pick"><input type="radio" name="${name}" value="${val}" ${on ? 'checked' : ''}><div class="pv">${svg}</div><b>${title}</b><small>${sub || ''}</small></label>`;
 const PV = {
@@ -88,7 +105,8 @@ function renderConfig() {
         <div class="top"><button class="icobtn" data-ico="-2" title="Trocar ícone"><img src="${logoUrl(Object.assign({}, FAVSYS, { logo: favCfg().logo || 'builtin:fav' }))}" alt=""><span>trocar ícone</span></button><button class="icobtn bgb" data-bgp="-2" title="Trocar fundo" style="background-image:url('${favCfg().bg ? bgUrlOf({ bg: favCfg().bg }) : FAV_BG}')"><span>trocar fundo</span></button><input value="⭐ Favoritos" disabled><label class="chk2 en"><input type="checkbox" data-en="-2" ${favCfg().enabled ? 'checked' : ''}> Habilitar</label></div>
         <div class="icopick" id="ip-2" style="display:none"></div>
         <div class="msg">Grade com todos os jogos que você marcou com ⭐. Arraste na tela inicial para mudar a posição deste console.</div>
-      </div></div>`) + '</div>';
+      </div></div>`) +
+    sec('sobre', 'ℹ Sobre e créditos', creditsHtml()) + '</div>';
   $('cfBody').querySelectorAll('[data-nav]').forEach(b => b.onclick = () => { cfSec = b.dataset.nav; $('cfBody').querySelectorAll('[data-nav]').forEach(x => x.classList.toggle('on', x === b)); $('cfBody').querySelectorAll('.cfsec').forEach(s => s.classList.toggle('on', s.dataset.sec === cfSec)); $('cfMain').scrollTop = 0; sfx('tick'); });
   $('cfBody').querySelectorAll('input[name=thm]').forEach(r => r.onchange = () => { cfg.theme = r.value; applyTheme(r.value); });
   $('cfBody').querySelectorAll('input[name=fbg]').forEach(r => r.onchange = () => { cfg.favBgGame = r.value === '1'; favBgGame = cfg.favBgGame; });
@@ -109,6 +127,7 @@ function renderConfig() {
   $('cfSgOn').onchange = () => { if ($('cfSgOn').checked && !cfg.sgdbKey) { $('cfSgOn').checked = false; toast('Cole a chave da API primeiro', true); return; } cfg.useSgdb = $('cfSgOn').checked; };
   $('cfSgTest').onclick = async () => { await saveCfg(); try { await api('/api/sgdb?p=' + encodeURIComponent('/api/v2/search/autocomplete/mario')); toast('Chave válida! ✓'); } catch (e) { toast('Chave inválida ou sem internet: ' + e.message, true); } };
   bindLinks($('cfBody'));
+  $('cfBody').querySelectorAll('button[data-href]').forEach(b => b.onclick = () => api('/api/open', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ url: b.dataset.href }) }).catch(() => {}));
   $('cfBody').querySelectorAll('[data-fs]').forEach(el => el.onchange = () => { cfg.consoles[+el.dataset.fs].fullscreen = el.checked; });
   cfg.consoles.forEach(async (c, i) => { if (c.fsArgs == null && c.emulator && c.type !== 'pc') { try { const r = await api('/api/fsarg?emu=' + encodeURIComponent(c.emulator)); c.fsArgs = r.arg; const el = $('cfBody').querySelector(`[data-i="${i}"][data-k="fsArgs"]`); if (el) el.value = r.arg; } catch (e) {} } });
   $('cfCacheOn').onchange = () => { cfg.coverCache = $('cfCacheOn').checked; };
