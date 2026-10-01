@@ -174,4 +174,4 @@ async function showArt(g) {
   setBg(bgUrl || bgUrlOf(sys), bgOver || a.snap ? 'game' : a.box ? 'blur' : '');
   if (!bgOver) queueVideo(g); else stopVideo();   // fundo escolhido manualmente tem prioridade sobre o vídeo
 }
-window.addEventListener('resize', () => { if (lastArt && !lastArt.done) return rerenderCase(); if (lastArt && screen === 'games' && shown[gIdx] === lastArt.g) $('art').innerHTML = buildCase(lastArt.g, lastArt.url, false, lastArt.ratio); if (lastArt.logo) { const sp = $('art').querySelector('.spine'); if (sp) sp.innerHTML = `<img class="spl" src="${esc(lastArt.logo)}" alt="">`; } });
+window.addEventListener('resize', () => { if (lastArt && !lastArt.done) return rerenderCase(); if (lastArt && screen === 'games' && shown[gIdx] === lastArt.g) $('art').innerHTML = buildCase(lastArt.g, lastArt.url, false, lastArt.ratio); if (lastArt && lastArt.logo) { const sp = $('art').querySelector('.spine'); if (sp) sp.innerHTML = `<img class="spl" src="${esc(lastArt.logo)}" alt="">`; } });

@@ -56,7 +56,7 @@ function selectSystem(i) {
 async function openSystem(id) {
   sys = id ? systems.find(s => s.id === id) : systems[sysIdx];
   if (!sys) return;
-  if (sys.virtual) { sysIdx = systems.indexOf(sys); return openFavGrid(); }
+  if (sys.virtual) { sysIdx = systems.indexOf(sys); return openFavorites(); }
   sysIdx = systems.indexOf(sys); globalMode = false; favMode = false; sfx('ok'); music.play(sys.type === 'pc' ? 'pc' : sys.id);
   show('games'); history.replaceState(null, '', '#' + sys.id);
   $('gHead').innerHTML = logo(sys);

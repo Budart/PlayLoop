@@ -482,3 +482,13 @@ function fgInput(a) {
 $('fgHome').onclick = () => { $('fgHome').blur(); back(); };
 let fgWheelT = 0;
 $('favgrid').addEventListener('wheel', e => { if (e.target.closest && e.target.closest('.fgdet')) return; if (screen !== 'favgrid') return; if (Date.now() - fgWheelT < 350) { e.preventDefault(); return; } fgWheelT = Date.now(); const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY; if (Math.abs(d) < 20) return; e.preventDefault(); fgInput(d > 0 ? 'pgdn' : 'pgup'); }, { passive:false });
+
+// janela "em pé" (mais alta que larga): os Favoritos viram a lista comum (como nos consoles); voltando a ficar larga, volta a grade
+const isPortrait = () => innerWidth < innerHeight;
+let favAsList = false;
+function openFavorites() { if (isPortrait()) { favAsList = true; openGlobal('', true); } else { favAsList = false; openFavGrid(); } }
+window.addEventListener('resize', () => {
+  if (fgInfoOpen || fp.open || fxOpen) return;
+  if (screen === 'favgrid' && isPortrait()) { favAsList = true; openGlobal('', true); }
+  else if (screen === 'games' && favMode && favAsList && !isPortrait()) { favAsList = false; stopVideo(); openFavGrid(); }
+});
