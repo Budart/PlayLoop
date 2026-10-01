@@ -129,7 +129,9 @@ function zoomMax() {
   else { w = art.width; h = art.height; }
   return Math.max(.5, Math.min(2.6, w / (base.w * 1.35), h / (base.h * 1.15)));   // folga para a lateral/rotação da caixa
 }
-function applyView() { view3d.z = Math.max(.5, Math.min(view3d.z, zoomMax())); const r = $('art').querySelector('.rot'); if (r) r.style.transform = viewTf(); }
+// giro limitado: a caixa já fica virada ~30° (balanço); somando, nunca passa de ~±78°, então o verso nunca aparece
+const RY_MIN = -106, RY_MAX = 46, RX_LIM = 50;
+function applyView() { view3d.ry = Math.max(RY_MIN, Math.min(RY_MAX, view3d.ry)); view3d.rx = Math.max(-RX_LIM, Math.min(RX_LIM, view3d.rx)); view3d.z = Math.max(.5, Math.min(view3d.z, zoomMax())); const r = $('art').querySelector('.rot'); if (r) r.style.transform = viewTf(); }
 (() => {
   const a = $('art'); let drag = null;
   a.addEventListener('pointerdown', e => { if (e.button !== 0) return; drag = { x: e.clientX, y: e.clientY, ry: view3d.ry, rx: view3d.rx }; a.setPointerCapture(e.pointerId); a.style.cursor = 'grabbing'; });
