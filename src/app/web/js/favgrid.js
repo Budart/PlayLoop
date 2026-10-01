@@ -305,7 +305,7 @@ function playFx(rect, bgImage, bgPos, radius, bgSize) {
   if (fxOpen) return;
   const fx = $('fgFx');
   clearTimeout(fxTimer); fxTimer = setTimeout(() => { if (fxOpen) launch(); }, 1400);
-  if (window.chrome && chrome.webview) chrome.webview.postMessage('fxon');
+  if (window.chrome && chrome.webview && !$('fgFx').classList.contains('frombg')) chrome.webview.postMessage('fxon');   // pelo fundo: só ocupa a janela, sem tela cheia (evita a piscada)
   fx.style.backgroundImage = bgImage || ''; fx.style.backgroundPosition = bgPos || 'center'; fx.style.backgroundSize = bgSize && bgSize !== 'auto' ? bgSize : 'cover';
   fx.className = 'fgfx' + (fx.classList.contains('frombg') ? ' frombg' : ''); Object.assign(fx.style, { left: rect.left + 'px', top: rect.top + 'px', width: rect.width + 'px', height: rect.height + 'px', borderRadius: (radius || 0) + 'px' });
   fxOpen = true; fxAt = Date.now(); fx.classList.add('on');
