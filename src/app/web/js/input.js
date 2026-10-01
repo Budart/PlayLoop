@@ -59,20 +59,22 @@ function cfgPad(a) {
     if (cur.classList.contains('pick')) { const r = cur.querySelector('input'); if (r && !r.checked) { r.checked = true; r.dispatchEvent(new Event('change', { bubbles: true })); } sfx('ok'); return; }
     if (cur.tagName === 'INPUT' && cur.type === 'checkbox') { cur.click(); sfx('ok'); return; }
     if (cur.tagName === 'BUTTON') { cur.click(); sfx('ok'); return; }
-    cur.focus(); cur.select && cur.select();   // campo de texto: fica pronto para digitar
+    openOsk(cur);   // campo de texto: abre o teclado virtual
   }
 }
 /* ---------- controles: teclado + gamepad ---------- */
 function input(a) {
+  if (oskOpen) { oskInput(a); return; }
   if (askOpen) { askPad(a); return; }
   if ($('ctx').classList.contains('on')) { if (a === 'down') ctxMove(1); else if (a === 'up') ctxMove(-1); else if (a === 'ok') ctxOk(); else if (a === 'back' || a === 'menu') closeCtx(); return; }
-  if (modalOpen) { if (a === 'back') closeCover(); else if (['left','right','up','down'].includes(a)) coverNav(a); else if (a === 'ok') coverPick(); return; }
+  if (modalOpen) { if (a === 'back') closeCover(); else if (['left','right','up','down'].includes(a)) coverNav(a); else if (a === 'ok') coverPick(); else if (a === 'menu') openOsk($('cq')); return; }
   if (fxOpen) { if (a === 'back') fgFxClose(); return; }
   if (fp.open) { fpInput(a); return; }
   if (fgInfoOpen) { if (a === 'back') fgInfo(false); else if (a === 'ok') { fgInfo(false); fgLaunch(); } return; }
   if (screen === 'config') { cfgPad(a); return; }
   if (a === 'start') { openConfig(); return; }
   if (a === 'select') { setCrt(!crtOn); return; }
+  if (a === 'search') { if (screen === 'games') { $('q').focus(); openOsk($('q')); } else if (screen === 'systems' || screen === 'favgrid') { openGlobal(''); setTimeout(() => openOsk($('q')), 50); } return; }
   if (screen === 'favgrid') { fgInput(a); return; }
   if (screen === 'systems') {
     if (a === 'left') selectSystem(sysIdx - 1); else if (a === 'right') selectSystem(sysIdx + 1);
@@ -87,6 +89,7 @@ function input(a) {
   }
 }
 document.addEventListener('keydown', e => {
+  if (oskOpen) { if (e.key === 'Escape') { e.preventDefault(); closeOsk(false); } else if (e.key === 'Enter') { closeOsk(false); } else setTimeout(oskShow, 0); return; }
   if (askOpen) {
     if (e.key === 'Escape') { e.preventDefault(); askDone(false); return; }
     const d = { ArrowLeft:'left', ArrowRight:'right', ArrowUp:'up', ArrowDown:'down' }[e.key]; if (d) { e.preventDefault(); askPad(d); }
@@ -145,12 +148,12 @@ function pollPad1() {
   const p = [...(navigator.getGamepads ? navigator.getGamepads() : [])].find(g => g && g.connected !== false);
   updatePadHelp(p);
   // Xbox / DualSense / genéricos (mapeamento padrão): A/✕ ok · B/○ voltar · X/□ favoritar · Y/△ menu · LB/RB pular · Start configuração · Select modo TV
-  if (p && !renaming && screen !== 'welcome') {
+  if (p && (!renaming || oskOpen) && screen !== 'welcome') {
     const ax = p.axes[0] || 0, ay = p.axes[1] || 0, b = i => p.buttons[i] && p.buttons[i].pressed;
-    const st = { up: b(12) || ay < -.6, down: b(13) || ay > .6, left: b(14) || ax < -.6, right: b(15) || ax > .6, ok: b(0), back: b(1), fav: b(2), menu: b(3), pgup: b(4), pgdn: b(5), select: b(8), start: b(9) };
+    const st = { up: b(12) || ay < -.6, down: b(13) || ay > .6, left: b(14) || ax < -.6, right: b(15) || ax > .6, ok: b(0), back: b(1), fav: b(2), menu: b(3), pgup: b(4), pgdn: b(5), select: b(8), start: b(9), search: b(10) || b(11) };
     const now = performance.now();
     for (const k in st) {
-      if (st[k] && !padPrev[k]) { input(k); padRepeat = now + 380; }
+      if (st[k] && !padPrev[k]) { lastInputPad = true; input(k); padRepeat = now + 380; }
       else if (st[k] && ['up','down','left','right'].includes(k) && now > padRepeat) { input(k); padRepeat = now + 70; }
     }
     padPrev = st;

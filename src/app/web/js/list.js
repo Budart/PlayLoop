@@ -14,6 +14,7 @@ function startRename(i) {
   const nm = row.querySelector('.nm');
   nm.innerHTML = `<input class="rn" value="${esc(dn(g))}" spellcheck="false">`;
   const inp = nm.querySelector('input'); inp.focus(); inp.select();
+  if (lastInputPad) setTimeout(() => openOsk(inp), 0);   // renomear pelo controle: teclado virtual
   inp.onclick = e => e.stopPropagation(); inp.ondblclick = e => e.stopPropagation();
   let finished = false;
   const finish = async save => {
