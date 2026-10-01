@@ -9,3 +9,13 @@ window.addEventListener('keydown', e => {
     else if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(() => {});
   }
 }, true);
+
+/* ---------- jogo aberto: o app ignora teclado/controle até o jogo fechar ---------- */
+let gameOn = false;
+function setGameOn(on) {
+  gameOn = on;
+  if (on) { try { document.activeElement && document.activeElement.blur(); } catch (e) {} }
+}
+if (host) host.addEventListener('message', e => { if (e.data === 'game:on') setGameOn(true); else if (e.data === 'game:off') setGameOn(false); });
+// clicar no app com o mouse = o usuário voltou de propósito
+document.addEventListener('mousedown', () => { if (gameOn) { setGameOn(false); if (host) host.postMessage('gameoff'); } }, true);

@@ -25,9 +25,15 @@ function askPad(a) {
   }
 }
 /* ---------- configuração com o controle: D-pad navega, ✕ ativa, ○ volta ao menu lateral / sai ---------- */
+// cards (.ccard): o D-pad anda de card em card; ✕ entra no card e aí navega entre os campos dele; ○ sai do card
+let cfgIn = null;
 function cfgFocusables() {
   const sec = document.querySelector('#cfBody .cfsec.on'); if (!sec) return [];
-  return [...sec.querySelectorAll('.pick, input:not([type=radio]), textarea, button')].filter(e => e.offsetParent && !e.disabled && !e.closest('.pick') || e.classList.contains('pick'));
+  if (cfgIn && !sec.contains(cfgIn)) cfgIn = null;
+  const all = [...(cfgIn || sec).querySelectorAll('.pick, input:not([type=radio]), textarea, button')].filter(e => e.offsetParent && !e.disabled && !e.closest('.pick') || e.classList.contains('pick'));
+  if (cfgIn) return all;
+  const out = []; all.forEach(e => { const c = e.closest('.ccard'); const it = c || e; if (!out.includes(it)) out.push(it); });
+  return out;
 }
 function cfgMark(el) {
   document.querySelectorAll('#cfBody .kbf').forEach(e => e.classList.remove('kbf'));
@@ -38,6 +44,7 @@ function cfgPad(a) {
   const nav = [...document.querySelectorAll('#cfBody .cfnav button')], cur = document.querySelector('#cfBody .kbf'), inNav = !cur || nav.includes(cur);
   if (a === 'start') { $('cfCancel').onclick(); return; }
   if (inNav) {
+    cfgIn = null;
     if (!cur) { cfgMark(nav.find(b => b.classList.contains('on')) || nav[0]); return; }   // 1º toque: só mostra o foco
     const k = Math.max(0, nav.indexOf(cur) < 0 ? nav.findIndex(b => b.classList.contains('on')) : nav.indexOf(cur));
     if (a === 'up' || a === 'down') { const n = nav[Math.max(0, Math.min(nav.length - 1, k + (a === 'up' ? -1 : 1)))]; n.click(); cfgMark(n); }
@@ -45,7 +52,17 @@ function cfgPad(a) {
     else if (a === 'back') $('cfCancel').onclick();
     return;
   }
+  if (cfgIn && (a === 'back' || (a === 'left' && cur && cur.tagName !== 'INPUT' && cur.tagName !== 'TEXTAREA' && cfgFocusables().indexOf(cur) === 0))) { const c = cfgIn; cfgIn = null; cfgMark(c); sfx('back'); return; }
+  if (a === 'ok' && cur && cur.classList.contains('ccard')) { cfgIn = cur; const f0 = cfgFocusables(); if (f0.length) cfgMark(f0[0]); sfx('ok'); return; }
   const f = cfgFocusables(), k = f.indexOf(cur);
+  if (cur && cur.classList.contains('ccard') && ['left','right','up','down'].includes(a)) {   // cards lado a lado: anda pela posição na tela
+    const r = cur.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2; let best = null, bd = 1e9;
+    f.forEach(e => { if (e === cur) return; const q = e.getBoundingClientRect(), dx = q.left + q.width / 2 - cx, dy = q.top + q.height / 2 - cy;
+      const ok = a === 'left' ? dx < -20 && Math.abs(dy) < r.height / 2 : a === 'right' ? dx > 20 && Math.abs(dy) < r.height / 2 : a === 'up' ? dy < -20 : dy > 20;
+      if (!ok) return; const d = Math.abs(dx) * (a === 'up' || a === 'down' ? 2 : 1) + Math.abs(dy) * (a === 'left' || a === 'right' ? 2 : 1); if (d < bd) { bd = d; best = e; } });
+    if (best) { cfgMark(best); sfx('tick'); } else if (a === 'left') { cfgMark(nav.find(b => b.classList.contains('on'))); sfx('back'); }
+    return;
+  }
   if (a === 'back' || (a === 'left' && !(cur.tagName === 'INPUT' && cur.type !== 'checkbox') && !cur.classList.contains('pick'))) { cfgMark(nav.find(b => b.classList.contains('on'))); sfx('back'); return; }
   if (a === 'up' || a === 'down' || a === 'left' || a === 'right') {
     // cartões ilustrados lado a lado: ←/→ andam entre eles; ↑/↓ andam na ordem da tela
@@ -82,6 +99,7 @@ function topInput(a) {
 document.addEventListener('mousedown', () => { if (topSel >= 0) topMark(-1); }, true);
 /* ---------- controles: teclado + gamepad ---------- */
 function input(a) {
+  if (gameOn) return;   // jogo aberto: comandos só voltam quando ele fecha
   if (oskOpen) { oskInput(a); return; }
   if (ARTPICK.open) { apInput(a); return; }
   if (askOpen) { askPad(a); return; }
@@ -110,6 +128,7 @@ function input(a) {
   }
 }
 document.addEventListener('keydown', e => {
+  if (gameOn) { e.preventDefault(); return; }
   if (ARTPICK.open && !oskOpen) { const d = { ArrowLeft:'left', ArrowRight:'right', ArrowUp:'up', ArrowDown:'down', Escape:'back' }[e.key]; const inQ = document.activeElement === $('apQ'); if (d && !(inQ && (d === 'left' || d === 'right'))) { e.preventDefault(); apInput(d); } else if (e.key === 'Enter' && !inQ) { e.preventDefault(); apInput('ok'); } return; }
   if (oskOpen) { if (e.key === 'Escape') { e.preventDefault(); closeOsk(false); } else if (e.key === 'Enter') { closeOsk(false); } else setTimeout(oskShow, 0); return; }
   if (askOpen) {

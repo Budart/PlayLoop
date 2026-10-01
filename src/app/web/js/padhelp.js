@@ -38,7 +38,7 @@ function padContext() {
   if (typeof fp !== 'undefined' && fp.open) return ['fp', [['dpad', 'mover imagem'], ['lb', 'zoom'], ['ok', 'salvar'], ['back', 'cancelar']]];
   if (modalOpen) return ['cover', [['dpad', 'escolher imagem'], ['ok', 'usar'], ['tri', 'digitar busca'], ['back', 'fechar']]];
   if (typeof fgInfoOpen !== 'undefined' && fgInfoOpen) return ['info', [['ok', 'jogar'], ['rs', 'girar capa'], ['lt', 'zoom'], ['back', 'fechar']]];
-  if (screen === 'config') return ['config', [['dpad', 'navegar'], ['ok', 'selecionar'], ['back', 'voltar'], ['start', 'sair']]];
+  if (screen === 'config') { const c = document.querySelector('#cfBody .kbf'); if (typeof cfgIn !== 'undefined' && cfgIn) return ['configin', [['dpad', 'campos do card'], ['ok', 'selecionar'], ['back', 'sair do card'], ['start', 'sair']]]; if (c && c.classList.contains('ccard')) return ['configcard', [['dpad', 'navegar'], ['ok', 'editar card'], ['back', 'voltar'], ['start', 'sair']]]; return ['config', [['dpad', 'navegar'], ['ok', 'selecionar'], ['back', 'voltar'], ['start', 'sair']]]; }
   if (screen === 'favgrid') {
     if (fg.moving) return ['fgmove', [['dpad', 'mover card'], ['sq', 'soltar'], ['back', 'cancelar']]];
     return ['favgrid', [['dpad', 'navegar'], ['ok', 'jogar'], ['sq', 'mover card'], ['tri', 'menu'], ['lb', 'página'], ['back', 'voltar']]];
@@ -58,6 +58,8 @@ const KB = {
   favgrid: [['Setas', 'navegar'], ['Enter', 'jogar'], ['Espaço', 'mover card'], ['I', 'info'], ['PgUp PgDn', 'página'], ['A-Z', 'buscar'], ['Esc', 'voltar']],
   fgmove: [['Setas', 'mover card'], ['Espaço', 'soltar'], ['Esc', 'cancelar']],
   config: [['Clique', 'escolher'], ['F1', 'configuração'], ['Esc', 'voltar']],
+  configcard: [['↑ ↓', 'cards'], ['Enter', 'editar card'], ['Esc', 'voltar']],
+  configin: [['Tab', 'campos'], ['Clique', 'editar'], ['Esc', 'voltar']],
   ask: [['← →', 'escolher'], ['Enter', 'confirmar'], ['Esc', 'cancelar']],
   ctx: [['↑ ↓', 'escolher'], ['Enter', 'selecionar'], ['Esc', 'fechar']],
   cover: [['Setas', 'escolher imagem'], ['Enter', 'usar'], ['Esc', 'fechar']],

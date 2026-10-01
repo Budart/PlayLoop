@@ -97,12 +97,13 @@ static class WebHost
                         uint pid; GetWindowThreadProcessId(fg, out pid);
                         string n = ""; try { n = Process.GetProcessById((int)pid).ProcessName.ToLowerInvariant(); } catch { }
                         bool store = n.Contains("steam") || n.Contains("epicgames") || n == "explorer" || n.Contains("galaxyclient") || n.Contains("eadesktop") || n.Contains("ubisoftconnect") || n == "playloop";
-                        if (!store) { if (!found) { found = true; stopAt = DateTime.Now.AddSeconds(20); } Place(fg); }
+                        if (!store) { if (!found) { found = true; stopAt = DateTime.Now.AddSeconds(20); WatchGame((int)pid, fg); } Place(fg); }
                     }
                 }
                 catch { }
                 Thread.Sleep(250);
             }
+            if (!found) GameEnded();
         }) { IsBackground = true }.Start();
     }
 
@@ -162,11 +163,12 @@ static class WebHost
         view = new WebView2 { Dock = DockStyle.Fill, DefaultBackgroundColor = Color.FromArgb(18, 18, 18) };
         form.Controls.Add(view);
         // o controle só funciona com o foco dentro da página: devolve o foco ao WebView sempre que a janela é ativada
-        form.Activated += (s, e) => { try { if (view != null) view.Focus(); } catch { } };
+        form.Activated += (s, e) => { try { if (view != null && !GameOn) view.Focus(); } catch { } };
         form.FormClosing += (s, e) => { if (e.CloseReason == CloseReason.UserClosing) { e.Cancel = true; form.Hide(); } };
         form.Shown += async (s, e) =>
         {
             FormHandle = form.Handle;
+            StartGuidePoll();
             try
             {
                 CoreWebView2Environment.SetLoaderDllFolderPath(BinDir);
@@ -229,6 +231,97 @@ static class WebHost
         else Task.Run(work);
     }
 
+
+    // ---------- jogo aberto: o foco vai para o jogo; o app só volta a aceitar comandos quando o jogo fecha ----------
+    public static volatile bool GameOn;
+    [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr h);
+    [DllImport("user32.dll")] static extern bool BringWindowToTop(IntPtr h);
+    [DllImport("user32.dll")] static extern bool AllowSetForegroundWindow(int pid);
+    [DllImport("user32.dll")] static extern void keybd_event(byte vk, byte scan, uint flags, UIntPtr extra);
+    [DllImport("user32.dll")] static extern bool ShowWindow(IntPtr h, int cmd);
+    [DllImport("user32.dll")] static extern bool IsIconic(IntPtr h);
+    static void Post(string m) { try { form.BeginInvoke((Action)(() => { try { view.CoreWebView2.PostWebMessageAsString(m); } catch { } })); } catch { } }
+    static void ForceForeground(IntPtr h)
+    {
+        if (h == IntPtr.Zero) return;
+        try { AllowSetForegroundWindow(-1); keybd_event(0x12, 0, 0, UIntPtr.Zero); keybd_event(0x12, 0, 2, UIntPtr.Zero); if (IsIconic(h)) ShowWindow(h, 9); BringWindowToTop(h); SetForegroundWindow(h); } catch { }
+    }
+    // emulador: chamado logo após Process.Start
+    public static void GameStarted(Process p)
+    {
+        GameOn = true; Post("game:on");
+        if (p == null) return;   // jogo de PC: FollowForeground cuida
+        new Thread(() =>
+        {
+            var until = DateTime.Now.AddSeconds(20); bool focused = false;
+            try
+            {
+                while (!p.HasExited && DateTime.Now < until && !focused)
+                {
+                    p.Refresh(); IntPtr h = p.MainWindowHandle;
+                    if (h != IntPtr.Zero && IsWindowVisible(h)) { ForceForeground(h); focused = true; }
+                    else Thread.Sleep(150);
+                }
+                p.WaitForExit();
+            }
+            catch { }
+            GameEnded();
+        }) { IsBackground = true }.Start();
+    }
+    static void WatchGame(int pid, IntPtr h)
+    {
+        ForceForeground(h);
+        new Thread(() => { try { Process.GetProcessById(pid).WaitForExit(); } catch { } GameEnded(); }) { IsBackground = true }.Start();
+    }
+    static void GameEnded()
+    {
+        if (!GameOn) return;
+        GameOn = false; Post("game:off");
+        // o jogo fechou: se nenhuma outra janela tomou a frente, o PlayLoop volta a ter o foco
+        try
+        {
+            IntPtr fg = GetForegroundWindow(); string n = "";
+            if (fg != IntPtr.Zero) { uint pid; GetWindowThreadProcessId(fg, out pid); try { n = Process.GetProcessById((int)pid).ProcessName.ToLowerInvariant(); } catch { } }
+            if (fg == IntPtr.Zero || n == "explorer" || fg == FormHandle) form.BeginInvoke((Action)(() => { ForceForeground(FormHandle); try { view.Focus(); } catch { } }));
+        }
+        catch { }
+    }
+    // ---------- botão Home do controle (Guide do Xbox / PS via Steam ou DS4Windows): traz o PlayLoop para a frente ----------
+    [DllImport("xinput1_4.dll", EntryPoint = "#100")] static extern int XInputGetStateEx14(int i, byte[] st);
+    [DllImport("xinput1_3.dll", EntryPoint = "#100")] static extern int XInputGetStateEx13(int i, byte[] st);
+    static void StartGuidePoll()
+    {
+        new Thread(() =>
+        {
+            int ver = 14; bool[] was = new bool[4]; var st = new byte[64];
+            while (true)
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    int r;
+                    try { r = ver == 14 ? XInputGetStateEx14(i, st) : XInputGetStateEx13(i, st); }
+                    catch { if (ver == 14) { ver = 13; continue; } return; }
+                    bool down = r == 0 && (BitConverter.ToUInt16(st, 4) & 0x0400) != 0;
+                    if (down && !was[i]) form.BeginInvoke((Action)ShowFromHome);
+                    was[i] = down;
+                }
+                Thread.Sleep(80);
+            }
+        }) { IsBackground = true, Priority = ThreadPriority.BelowNormal }.Start();
+    }
+    static void ShowFromHome()
+    {
+        try
+        {
+            if (GetForegroundWindow() == FormHandle && form.Visible) return;
+            GameOn = false; Post("game:off");
+            if (!form.Visible) form.Show();
+            if (form.WindowState == FormWindowState.Minimized) form.WindowState = FormWindowState.Maximized;
+            ForceForeground(form.Handle); view.Focus();
+        }
+        catch { }
+    }
+
     static void OnMessage(string msg)
     {
         switch (msg)
@@ -240,7 +333,8 @@ static class WebHost
             case "fs": form.ToggleFull(); fxFull = false; view.Focus(); break;
             // animação "Bom jogo.": o app vai para tela cheia de verdade e volta ao normal depois
             case "fxon": if (!form.Full && form.WindowState != FormWindowState.Minimized) { form.ToggleFull(); fxFull = true; view.Focus(); } break;
-            case "fxoff": if (fxFull) { fxFull = false; if (form.Full) form.ToggleFull(); } view.Focus(); break;
+            case "fxoff": if (fxFull) { fxFull = false; if (form.Full) form.ToggleFull(); } if (!GameOn) view.Focus(); break;
+            case "gameoff": GameOn = false; break;
             case "drag":
                 // arrastar pela barra: o Windows cuida de encaixar nas laterais (Aero Snap) e de restaurar se estiver maximizada
                 ReleaseCapture(); SendMessage(form.Handle, 0xA1, 2, 0); break;

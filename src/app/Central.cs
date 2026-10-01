@@ -333,7 +333,7 @@ static class Central
             {
                 // busca em wikis que não liberam acesso direto do navegador (Fandom, PCGamingWiki, StrategyWiki...)
                 string u = req.QueryString["u"] ?? "";
-                if (!Regex.IsMatch(u, @"^https://([a-z0-9-]+\.fandom\.com|www\.pcgamingwiki\.com|strategywiki\.org|[a-z]{2,3}\.wikipedia\.org)/", RegexOptions.IgnoreCase))
+                if (!Regex.IsMatch(u, @"^https://([a-z0-9-]+\.fandom\.com|www\.pcgamingwiki\.com|strategywiki\.org|wallhaven\.cc|[a-z]{2,3}\.wikipedia\.org)/", RegexOptions.IgnoreCase))
                 { Send(ctx, 400, "text/plain", new byte[0]); return; }
                 ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072;
                 using (var wc = new WebClient { Encoding = Encoding.UTF8 })
@@ -453,7 +453,7 @@ static class Central
                 long size = 0; int n = 0;
                 if (Directory.Exists(CacheDir)) foreach (var fi in new DirectoryInfo(CacheDir).GetFiles()) { size += fi.Length; n++; }
                 object en; bool on = !(cfg.TryGetValue("coverCache", out en) && en is bool && !(bool)en);
-                SendJson(ctx, new Dictionary<string, object> { { "enabled", on }, { "size", size }, { "files", n }, { "bgMode", bgMode }, { "coverStyle", S(cfg, "coverStyle") }, { "favGrid", S(cfg, "favGrid") }, { "theme", S(cfg, "theme") }, { "favBgGame", cfg.ContainsKey("favBgGame") && cfg["favBgGame"] is bool && (bool)cfg["favBgGame"] }, { "sgdb", S(cfg, "sgdbKey") != "" && cfg.ContainsKey("useSgdb") && cfg["useSgdb"] is bool && (bool)cfg["useSgdb"] }, { "fav", cfg.ContainsKey("fav") ? cfg["fav"] : null }, { "favConsole", !(cfg.ContainsKey("favConsole") && cfg["favConsole"] is bool && !(bool)cfg["favConsole"]) } });
+                SendJson(ctx, new Dictionary<string, object> { { "enabled", on }, { "size", size }, { "files", n }, { "bgMode", bgMode }, { "coverStyle", S(cfg, "coverStyle") }, { "favGrid", S(cfg, "favGrid") }, { "theme", S(cfg, "theme") }, { "favBgGame", !(cfg.ContainsKey("favBgGame") && cfg["favBgGame"] is bool && !(bool)cfg["favBgGame"]) }, { "sgdb", S(cfg, "sgdbKey") != "" && cfg.ContainsKey("useSgdb") && cfg["useSgdb"] is bool && (bool)cfg["useSgdb"] }, { "fav", cfg.ContainsKey("fav") ? cfg["fav"] : null }, { "favConsole", !(cfg.ContainsKey("favConsole") && cfg["favConsole"] is bool && !(bool)cfg["favConsole"]) } });
             }
             else if (path == "/api/cache/clear" && req.HttpMethod == "POST")
             {
@@ -538,6 +538,7 @@ static class Central
                     bool ok = L(c, "romDirs").Any(rd => game.StartsWith(Full(root, rd).TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase));
                     if (!ok || !File.Exists(game)) { SendJson(ctx, Err("Atalho inválido"), 400); return; }
                     Process.Start(new ProcessStartInfo(game) { WorkingDirectory = Path.GetDirectoryName(game), UseShellExecute = true });
+                    WebHost.GameStarted(null);
                     WebHost.FollowForeground();   // jogo de PC (Steam etc.): leva a janela nova para o monitor do PlayLoop
                     SendJson(ctx, new Dictionary<string, object> { { "ok", true } });
                     return;
@@ -552,6 +553,7 @@ static class Central
                 string fsArgs = c.ContainsKey("fsArgs") ? S(c, "fsArgs") : FullscreenArg(emu);
                 if (fs && fsArgs != "") args = fsArgs + " " + args;
                 var proc = Process.Start(new ProcessStartInfo(emu, args.Replace("{rom}", rom)) { WorkingDirectory = Path.GetDirectoryName(emu), UseShellExecute = true });
+                WebHost.GameStarted(proc);
                 WebHost.FollowToAppScreen(proc);   // abre no mesmo monitor do PlayLoop
                 SendJson(ctx, new Dictionary<string, object> { { "ok", true } });
             }

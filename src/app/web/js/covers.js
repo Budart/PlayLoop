@@ -148,8 +148,9 @@ async function doLaunch(g) {
     const nt = $('details').querySelector('.notice'); if (nt) nt.remove();
   }
   sfx('launch'); music.pause(); toast('▶ Abrindo ' + dn(g) + '…');
+  setGameOn(true);
   try { await api('/api/launch', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ console: g.sid || sys.id, path: g.path }) }); toast('▶ Abrindo ' + g.name); return true; }
-  catch (e) { toast(e.message, true); return false; }
+  catch (e) { setGameOn(false); toast(e.message, true); return false; }
 }
 
 // navegar pelas imagens com as setas / D-pad (Enter ou ✕ escolhe)

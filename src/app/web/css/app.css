@@ -542,3 +542,16 @@
   body.th-light .padhelp .kk { background:#E8DCCB; color:#2E2721; }
 
 .topsearch .padsel{outline:3px solid var(--acc,#4ea1ff);outline-offset:2px;border-radius:10px}
+
+.fgempty { border-radius:12px; border:2px dashed rgba(255,255,255,.14); background:rgba(255,255,255,.04); opacity:0; transition:opacity .2s; pointer-events:none; }
+#favgrid.arrange .fgempty { opacity:1; }
+body.th-light .fgempty { border-color:rgba(46,39,33,.22); background:rgba(46,39,33,.05); }
+
+.cfadd { display:flex; gap:10px; flex-wrap:wrap; margin:0 0 16px; }
+.ccard.kbf { outline:3px solid var(--c1); outline-offset:2px; }
+.wpsearch { margin-top:12px; } .wpsearch .line { display:flex; gap:8px; } .wpsearch input { flex:1; }
+.wpres { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:10px; margin-top:10px; }
+.wpres .msg { grid-column:1/-1; }
+.wpimg { position:relative; aspect-ratio:16/9; border-radius:10px; border:2px solid transparent; background:#111 center/cover; cursor:pointer; padding:0; }
+.wpimg span { position:absolute; right:6px; bottom:4px; font-size:11px; color:#fff; text-shadow:0 1px 3px #000; }
+.wpimg.on, .wpimg.kbf, .wpimg:hover { border-color:var(--c1); }

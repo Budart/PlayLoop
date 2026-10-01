@@ -87,11 +87,14 @@ async function openFavGrid() {
 }
 function renderFavGrid() {
   fgLayout(); fgPinAll(); fgCell(); fg.moving = null; fgMulti.clear();
+  $('favgrid').classList.remove('arrange');
   const { R, C } = fgDim();
   if (!fg.items.length) { fgDetails(); $('fgTrack').innerHTML = '<div class="empty">Nenhum jogo favoritado ainda — use a ⭐ ao lado de um jogo.</div>'; $('fgDots').innerHTML = ''; return; }
   let html = '';
   for (let p = 0; p < fg.pages; p++) {
     html += `<div class="fgpage" style="grid-template-columns:repeat(${C},var(--cell));grid-template-rows:repeat(${R},var(--cell))">`;
+    // espaços vazios (só aparecem ao mover/arrastar um card)
+    for (let y = 0; y < R; y++) for (let x = 0; x < C; x++) html += `<div class="fgempty" style="grid-column:${x + 1};grid-row:${y + 1}"></div>`;
     fg.place.forEach((pl, i) => {
       if (pl.p !== p) return;
       const g = fg.items[i];
@@ -213,7 +216,7 @@ function fgDragStart(e, el, i) {
   const move = ev => {
     if (!ghost) {
       if (Math.hypot(ev.clientX - sx, ev.clientY - sy) < 7) return;
-      fgSelect(i, true); el._dragged = true; el.classList.add('dragsrc');
+      fgSelect(i, true); el._dragged = true; el.classList.add('dragsrc'); $('favgrid').classList.add('arrange');
       ghost = el.cloneNode(true); ghost.className = el.className.replace('dragsrc', '') + ' sel fgghost'; ghost.style.cssText = `width:${r0.width}px;height:${r0.height}px;`; document.body.appendChild(ghost);
       $('fgView').insertAdjacentHTML('beforeend', '<div class="fgslot" id="fgSlot"></div>');
     }
@@ -233,7 +236,7 @@ function fgDragStart(e, el, i) {
   const up = () => {
     document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up); clearInterval(tick); clearTimeout(prevT);
     if (!ghost) return;
-    ghost.remove(); const s = $('fgSlot'); if (s) s.remove(); el.classList.remove('dragsrc');
+    ghost.remove(); const s = $('fgSlot'); if (s) s.remove(); el.classList.remove('dragsrc'); $('favgrid').classList.remove('arrange');
     if (!target) return;
     fgDropInto(i, target); sfx('ok'); renderFavGrid();
   };
@@ -456,7 +459,7 @@ function fgMoveMode() {
   if (!fg.moving) { fg.moving = { i, t: { p: pl.p, x: pl.x, y: pl.y } }; fgLift(); sfx('ok'); return; }
   const t = fg.moving.t; fg.moving = null; fgDropInto(i, t); sfx('ok'); renderFavGrid();
 }
-function fgLift() { const el = $('fgTrack').querySelector(`.fgcard[data-i="${fg.moving.i}"]`); if (el) el.classList.add('lift'); }
+function fgLift() { $('favgrid').classList.add('arrange'); const el = $('fgTrack').querySelector(`.fgcard[data-i="${fg.moving.i}"]`); if (el) el.classList.add('lift'); }
 function fgMoveStep(dir) {
   const m = fg.moving, pl = fg.place[m.i], t = m.t, { R, C } = fgDim();
   if (dir === 'up') t.y = Math.max(0, t.y - 1); else if (dir === 'down') t.y = Math.min(R - pl.h, t.y + 1);

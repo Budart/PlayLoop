@@ -67,7 +67,7 @@ function renderConfig() {
       <label class="chk2"><input type="checkbox" id="cfAuto" ${cfg.autostart === false ? '' : 'checked'}> Abrir na inicialização do Windows (em segundo plano, perto do relógio)</label>
     </div>
     `) +
-    sec('consoles', '🎮 Consoles e emuladores', `<div class="cfgrid">
+    sec('consoles', '🎮 Consoles e emuladores', `<div class="cfadd"><button class="btn sec" id="cfAdd">+ Adicionar console</button> <button class="btn sec" id="cfAddPc">+ Adicionar jogos de PC</button></div><div class="cfgrid">
       ${cs.map((c, i) => `
       <div class="ccard${c.enabled === false ? ' off' : ''}">
         <div class="top"><button class="icobtn" data-ico="${i}" title="Trocar ícone"><img src="${logoUrl(c)}" alt="" onerror="this.style.opacity=.2"><span>trocar ícone</span></button><button class="icobtn bgb" data-bgp="${i}" title="Trocar fundo do console" style="background-image:url('${bgUrlOf(c)}')"><span>trocar fundo</span></button><input data-i="${i}" data-k="name" value="${esc(c.name)}"><label class="chk2 en"><input type="checkbox" data-en="${i}" ${c.enabled === false ? '' : 'checked'}> Habilitar</label></div>
@@ -76,8 +76,7 @@ function renderConfig() {
         ${fieldHtml(i, 'romDirs', c.type === 'pc' ? 'Pastas com atalhos dos jogos (uma por linha)' : 'Pastas de jogos (uma por linha)', (c.romDirs || []).join('\n'), 'folder-add', true)}
         ${fieldHtml(i, 'extensions', 'Extensões dos jogos (separadas por vírgula)', (c.extensions || []).join(', '))}
       </div>`).join('')}
-    </div>
-    <div style="margin-top:18px"><button class="btn sec" id="cfAdd">+ Adicionar console</button> <button class="btn sec" id="cfAddPc">+ Adicionar jogos de PC</button></div>`) +
+    </div>`) +
     sec('capas', '🖼 Capas e vídeo', `<div class="cfcache">
       <h3>🎬 Fundo dos jogos</h3>
       <div class="picks">${pick('bgm', 'video', cfg.bgMode !== 'image', PV.video, 'Vídeo', 'gameplay do YouTube')}${pick('bgm', 'image', cfg.bgMode === 'image', PV.image, 'Imagem', 'tela ou arte do jogo')}</div>
@@ -100,7 +99,8 @@ function renderConfig() {
     sec('favoritos', '⭐ Favoritos', `<div class="cfcache"><h3>Grade dos favoritos</h3>
         <div class="picks">${['4x10', '4x12', '6x12'].map(d => pick('fgd', d, (cfg.favGrid || '4x12') === d, gridPv(d), d.replace('x', ' × '), d === '4x12' ? 'padrão' : (d === '6x12' ? 'mais jogos por página' : 'cards maiores'))).join('')}</div>
         <h3 style="margin-top:16px">Fundo da tela</h3>
-        <div class="picks">${pick('fbg', '0', !cfg.favBgGame, PV.image, 'Fundo fixo', 'o fundo do console Favoritos')}${pick('fbg', '1', !!cfg.favBgGame, PV.video.replace('#ff2d2d', '#8B5CF6'), 'Fundo do jogo', 'muda ao selecionar um card')}</div>
+        <div class="picks">${pick('fbg', '1', cfg.favBgGame !== false, PV.video.replace('#ff2d2d', '#8B5CF6'), 'Fundo do jogo', 'muda ao selecionar um card')}${pick('fbg', '0', cfg.favBgGame === false, PV.image, 'Fundo fixo', 'uma imagem que você escolhe')}</div>
+        <div class="wpsearch" id="wpBox" style="display:${cfg.favBgGame === false ? '' : 'none'}"><div class="line"><input id="wpQ" placeholder="Buscar imagem de fundo (ex.: paisagem noturna, synthwave, montanhas)" autocomplete="off"><button class="btn sec sm" id="wpGo">Buscar</button></div><div class="wpres" id="wpRes"><div class="msg">Escreva o que você quer e aperte Buscar. Só aparecem imagens grandes (resolução de wallpaper).</div></div></div>
         <div class="msg">Cada jogo favorito vira um card. Arraste um card para mudar de lugar (até para outra página), arraste a borda direita/de baixo para aumentar (até 4 × 4) ou use o botão direito → Redimensionar.</div></div><div class="cfgrid"><div class="ccard${favCfg().enabled ? '' : ' off'}">
         <div class="top"><button class="icobtn" data-ico="-2" title="Trocar ícone"><img src="${logoUrl(Object.assign({}, FAVSYS, { logo: favCfg().logo || 'builtin:fav' }))}" alt=""><span>trocar ícone</span></button><button class="icobtn bgb" data-bgp="-2" title="Trocar fundo" style="background-image:url('${favCfg().bg ? bgUrlOf({ bg: favCfg().bg }) : FAV_BG}')"><span>trocar fundo</span></button><input value="⭐ Favoritos" disabled><label class="chk2 en"><input type="checkbox" data-en="-2" ${favCfg().enabled ? 'checked' : ''}> Habilitar</label></div>
         <div class="icopick" id="ip-2" style="display:none"></div>
@@ -109,7 +109,9 @@ function renderConfig() {
     sec('sobre', 'ℹ Sobre e créditos', creditsHtml()) + '</div>';
   $('cfBody').querySelectorAll('[data-nav]').forEach(b => b.onclick = () => { cfSec = b.dataset.nav; $('cfBody').querySelectorAll('[data-nav]').forEach(x => x.classList.toggle('on', x === b)); $('cfBody').querySelectorAll('.cfsec').forEach(s => s.classList.toggle('on', s.dataset.sec === cfSec)); $('cfMain').scrollTop = 0; sfx('tick'); });
   $('cfBody').querySelectorAll('input[name=thm]').forEach(r => r.onchange = () => { cfg.theme = r.value; applyTheme(r.value); });
-  $('cfBody').querySelectorAll('input[name=fbg]').forEach(r => r.onchange = () => { cfg.favBgGame = r.value === '1'; favBgGame = cfg.favBgGame; });
+  $('cfBody').querySelectorAll('input[name=fbg]').forEach(r => r.onchange = () => { cfg.favBgGame = r.value === '1'; favBgGame = cfg.favBgGame; $('wpBox').style.display = favBgGame ? 'none' : ''; });
+  $('wpGo').onclick = () => wpSearch($('wpQ').value);
+  $('wpQ').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); wpSearch($('wpQ').value); } });
   $('cfBody').querySelectorAll('input[name=fgd]').forEach(r => r.onchange = () => { cfg.favGrid = r.value; favGridDim = r.value; });
   $('cfBody').querySelectorAll('[data-k]').forEach(el => el.oninput = () => setField(+el.dataset.i, el.dataset.k, el.value));
   $('cfBody').querySelectorAll('[data-browse]').forEach(el => el.onclick = () => browse(el));
@@ -135,8 +137,8 @@ function renderConfig() {
   cacheInfo();
   $('cfBody').querySelectorAll('[data-ico]').forEach(el => el.onclick = () => iconPicker(+el.dataset.ico, 'logo'));
   $('cfBody').querySelectorAll('[data-bgp]').forEach(el => el.onclick = () => iconPicker(+el.dataset.bgp, 'bg'));
-  $('cfAddPc').onclick = () => { cfg.consoles.push({ id: 'pc' + Date.now(), type: 'pc', name: 'Jogos de PC', art: 'pc', thumbs: '', emulator: '', args: '', romDirs: [], extensions: ['lnk', 'url', 'exe'] }); renderConfig(); $('cfMain').scrollTop = 1e9; };
-  $('cfAdd').onclick = () => { cfg.consoles.push({ id: 'c' + Date.now(), name: 'Novo console', art: '', thumbs: '', emulator: '', args: '"{rom}"', romDirs: [], extensions: [] }); renderConfig(); $('cfMain').scrollTop = 1e9; };
+  $('cfAddPc').onclick = () => { cfg.consoles.push({ id: 'pc' + Date.now(), type: 'pc', name: 'Jogos de PC', art: 'pc', thumbs: '', emulator: '', args: '', romDirs: [], extensions: ['lnk', 'url', 'exe'] }); renderConfig(); $('cfMain').scrollTop = 1e9; const cc = [...document.querySelectorAll('#cfBody .cfsec.on .ccard')].pop(); if (cc && typeof cfgMark === 'function' && document.querySelector('#cfBody .kbf')) cfgMark(cc); };
+  $('cfAdd').onclick = () => { cfg.consoles.push({ id: 'c' + Date.now(), name: 'Novo console', art: '', thumbs: '', emulator: '', args: '"{rom}"', romDirs: [], extensions: [] }); renderConfig(); $('cfMain').scrollTop = 1e9; const cc = [...document.querySelectorAll('#cfBody .cfsec.on .ccard')].pop(); if (cc && typeof cfgMark === 'function' && document.querySelector('#cfBody .kbf')) cfgMark(cc); };
   cs.forEach((c, i) => checkEmu(i));
   $('cfBody').querySelectorAll('.icobtn.bgb').forEach(b => { const m = (b.style.backgroundImage || '').match(/url\("?(.*?)"?\)$/); if (m) setBgImage(b, m[1]); });   // fundos com reserva
 }
@@ -202,3 +204,31 @@ async function saveCfg() {
 setInterval(() => { if (screen === 'config') saveCfg(); }, 1500);
 $('cfCancel').onclick = async () => { await saveCfg(); location.href = '/'; };
 $('gear').onclick = openConfig;
+
+/* ---------- busca de wallpaper para o fundo fixo dos Favoritos (só busca quando o usuário pede) ---------- */
+let wpTok = 0;
+async function wpSearch(q) {
+  q = (q || '').trim(); const box = $('wpRes'); if (!q) { $('wpQ').focus(); return; }
+  const tok = ++wpTok; box.innerHTML = '<div class="msg">Buscando…</div>';
+  let res = [];
+  try {   // Wallhaven: só imagens SFW com no mínimo 1920×1080
+    const r = await api('/api/proxy?u=' + encodeURIComponent('https://wallhaven.cc/api/v1/search?purity=100&categories=111&atleast=1920x1080&sorting=relevance&q=' + encodeURIComponent(q)));
+    res = (r.data || []).map(x => ({ full: x.path, thumb: x.thumbs && (x.thumbs.large || x.thumbs.small), w: x.dimension_x, h: x.dimension_y }));
+  } catch (e) {}
+  if (res.length < 6) try {   // reserva: Wikimedia Commons, só fotos grandes
+    const u = 'https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrnamespace=6&gsrlimit=40&prop=imageinfo&iiprop=url|size&iiurlwidth=480&gsrsearch=' + encodeURIComponent(q + ' filetype:bitmap');
+    const r = await (await fetch(u)).json();
+    Object.values((r.query && r.query.pages) || {}).forEach(p => { const ii = p.imageinfo && p.imageinfo[0]; if (ii && ii.width >= 1920 && ii.height >= 1000 && ii.width >= ii.height) res.push({ full: ii.url, thumb: ii.thumburl, w: ii.width, h: ii.height }); });
+  } catch (e) {}
+  if (tok !== wpTok) return;
+  res = res.filter(x => x.full && x.thumb && x.w >= 1920);
+  if (!res.length) { box.innerHTML = '<div class="msg">Nada encontrado em alta resolução. Tente outras palavras (em inglês costuma render mais).</div>'; return; }
+  box.innerHTML = res.slice(0, 24).map((x, k) => `<button class="wpimg" data-k="${k}" style="background-image:url('${x.thumb.replace(/'/g, '%27')}')"><span>${x.w}×${x.h}</span></button>`).join('');
+  box.querySelectorAll('.wpimg').forEach(b => b.onclick = () => {
+    const x = res[+b.dataset.k]; favCfg().bg = x.full; FAVSYS.bg = x.full;
+    box.querySelectorAll('.wpimg').forEach(o => o.classList.toggle('on', o === b));
+    const bb = document.querySelector('#cfBody [data-bgp="-2"]'); if (bb) bb.style.backgroundImage = `url('${x.full.replace(/'/g, '%27')}')`;
+    sfx('ok'); toast('Fundo escolhido — salve a configuração para aplicar');
+  });
+  if (document.querySelector('#cfBody .kbf') && typeof cfgMark === 'function') cfgMark(box.querySelector('.wpimg'));
+}
