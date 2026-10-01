@@ -331,6 +331,7 @@ function fgLaunch(noWait) {
       fx.classList.add('frombg');
       fx.style.opacity = cs.opacity; fx.style.filter = cs.filter === 'none' ? '' : cs.filter;   // começa igual ao fundo atual (opacidade e efeitos)
       playFx(host.getBoundingClientRect(), lay.style.backgroundImage, cs.backgroundPosition, 0, cs.backgroundSize);
+      host.classList.add('hidebg');   // o fundo original some na hora: a cópia que cresce está exatamente por cima, igual a ele
       clearTimeout(fxTimer); fxTimer = setTimeout(() => { if (fxOpen) launch(); }, 2000);   // animação mais longa: o jogo abre depois dela
       setTimeout(() => { if (fxOpen) { fx.classList.add('sharp'); fx.style.opacity = '1'; fx.style.filter = 'none'; } }, 600);   // depois de crescer: fica nítido aos poucos
     }, 320);
@@ -350,7 +351,7 @@ function listLaunch() {
   if (!img) { launch(); return; }
   playFx(right.getBoundingClientRect(), img, 'center', 10);
 }
-function fgFxClose() { clearTimeout(fxTimer); if (!fxOpen) return; fxOpen = false; $('favgrid').classList.remove('launching'); const fx = $('fgFx'); fx.classList.add('out'); setTimeout(() => { fx.className = 'fgfx'; fx.style.backgroundSize = ''; fx.style.opacity = ''; fx.style.filter = ''; }, 350); if (window.chrome && chrome.webview) chrome.webview.postMessage('fxoff'); }
+function fgFxClose() { clearTimeout(fxTimer); if (!fxOpen) return; fxOpen = false; $('favgrid').classList.remove('launching'); $('fgBg').classList.remove('hidebg'); const fx = $('fgFx'); fx.classList.add('out'); setTimeout(() => { fx.className = 'fgfx'; fx.style.backgroundSize = ''; fx.style.opacity = ''; fx.style.filter = ''; }, 350); if (window.chrome && chrome.webview) chrome.webview.postMessage('fxoff'); }
 window.addEventListener('blur', () => { if (fxOpen && Date.now() - fxAt > 1300) fgFxClose(); });   // o jogo abriu (o foco saiu do app)
 // ---- reposicionar a imagem do card: 'fofs|chave' = "posX%,posY%,zoom" ----
 const fgBgOfs = g => { const v = covers['bofs|' + coverKey(g)]; if (!v) return null; const [x, y, z] = v.split(',').map(Number); return { x, y, z: z || 1 }; };

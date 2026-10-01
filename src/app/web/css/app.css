@@ -609,3 +609,5 @@ body.th-light .wpsearch .wpbar input::placeholder { color:#9A8B7A; }
 .fgfx.frombg.grow .fxlbl { opacity:0; transition:none; }
 .fgfx.frombg.grow.sharp .fxlbl { opacity:1; transition:opacity .4s .8s; }
 .fgfx.frombg.grow.out { opacity:0 !important; transition:opacity .3s; }
+
+#fgBg.hidebg .bgl { opacity:0 !important; transition:none !important; }
