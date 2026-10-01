@@ -5,19 +5,12 @@ const WF = '<svg viewBox="0 0 24 24"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4l2 2h9
 const WE = '<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3" fill="#3b82f6"/><path d="M9 9l6 3-6 3z" fill="#fff"/></svg>';
 const WR = '<svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2" fill="#8b5cf6"/><rect x="8" y="6" width="8" height="5" rx="1" fill="#fff" opacity=".85"/></svg>';
 const wrow = (lvl, ico, name, note) => `<div class="wt" style="--l:${lvl}">${ico}<b>${name}</b>${note ? `<i>${note}</i>` : ''}</div>`;
-const WEL_TREE = `<span>Organize assim e o PlayLoop faz o resto: <b>ele encontra os consoles, os emuladores e os jogos e configura tudo automaticamente.</b></span>
+const WEL_TREE = `<span>Uma pasta para cada console. O PlayLoop configura o resto sozinho.</span>
 <div class="wtree">
-  ${wrow(0, WF, 'Uma pasta principal', 'é ela que você escolhe abaixo')}
-  ${wrow(1, WF, 'Super Nintendo', 'uma subpasta por console, com o nome dele')}
-  ${wrow(2, WE, 'emulador (.exe)', 'o programa do emulador pode ficar aqui dentro')}
-  ${wrow(2, WF, 'ROMs', 'os jogos desse console')}
-  ${wrow(3, WR, 'jogo.sfc · jogo.zip …', '')}
-  ${wrow(1, WF, 'PlayStation 2', '')}
-  ${wrow(2, WE, 'emulador (.exe)', '')}
-  ${wrow(2, WF, 'ROMs', '')}
-  ${wrow(1, WF, '…', 'um console por pasta')}
-</div>
-<ul class="wtips"><li>Use o nome do console na pasta (ex.: <b>Nintendo 64</b>, <b>Mega Drive</b>, <b>PSP</b>) — abreviações conhecidas como <b>SNES</b> ou <b>GBA</b> também funcionam.</li><li>Jogos em <b>.zip</b> e <b>.7z</b> são aceitos na maioria dos consoles.</li><li>Faltou algo? Dá para ajustar depois em <b>Configuração → Consoles</b>.</li></ul>`;
+  ${wrow(0, WF, 'Super Nintendo', '')}
+  ${wrow(0, WF, 'PlayStation 2', '')}
+  ${wrow(0, WF, '…', '')}
+</div>`;
 function runWelcome() {
   return new Promise(async resolve => {
     show('welcome'); let st = 0; const picks = { root: '', pc: '', sgdbKey: '' };

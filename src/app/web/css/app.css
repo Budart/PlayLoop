@@ -627,3 +627,8 @@ body.th-light .wpsearch .wpbar input::placeholder { color:#9A8B7A; }
 .wt::before { content:""; position:absolute; left:calc(var(--l) * 22px - 12px); top:50%; width:8px; border-top:1px solid rgba(255,255,255,.25); display:var(--d, block); }
 .wt[style*="--l:0"]::before { display:none; }
 .wtips { text-align:left; margin:8px 0 0; padding-left:18px; font-size:13px; opacity:.85; line-height:1.5; }
+
+/* logo de título: menor e com limites; sobre o fundo (acima dos detalhes) ou sobre o vídeo */
+#vidLogo { max-width:min(30%, 300px) !important; max-height:min(18%, 110px) !important; }
+.right > #vidLogo { left:24px; bottom:calc(var(--dh, 150px) + 18px); }
+#vidBox > #vidLogo { left:16px; bottom:14px; }

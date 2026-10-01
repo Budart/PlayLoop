@@ -81,6 +81,7 @@ function renderConfig() {
     sec('capas', '🖼 Capas e vídeo', `<div class="cfcache">
       <h3>🎬 Fundo dos jogos</h3>
       <div class="picks">${pick('bgm', 'video', cfg.bgMode !== 'image', PV.video, 'Vídeo', 'gameplay do YouTube')}${pick('bgm', 'image', cfg.bgMode === 'image', PV.image, 'Imagem', 'tela ou arte do jogo')}</div>
+      <label class="chk2" style="margin-top:12px"><input type="checkbox" id="cfVidSound" ${(() => { try { return localStorage.getItem('vidsound') !== '0'; } catch (e) { return true; } })() ? 'checked' : ''}> Som do vídeo</label>
     </div>
     <div class="cfcache">
       <h3>📦 Estilo das capas</h3>
@@ -110,6 +111,7 @@ function renderConfig() {
     sec('sobre', 'ℹ Sobre e créditos', creditsHtml()) + '</div>';
   $('cfBody').querySelectorAll('[data-nav]').forEach(b => b.onclick = () => { cfSec = b.dataset.nav; $('cfBody').querySelectorAll('[data-nav]').forEach(x => x.classList.toggle('on', x === b)); $('cfBody').querySelectorAll('.cfsec').forEach(s => s.classList.toggle('on', s.dataset.sec === cfSec)); $('cfMain').scrollTop = 0; sfx('tick'); });
   $('cfBody').querySelectorAll('input[name=lng]').forEach(r => r.onchange = () => { cfg.lang = r.value; setLang(r.value); sfx('ok'); });
+  $('cfVidSound').onchange = e => { try { localStorage.setItem('vidsound', e.target.checked ? '1' : '0'); } catch (er) {} vidApplySound(); };
   $('cfBody').querySelectorAll('input[name=thm]').forEach(r => r.onchange = () => { cfg.theme = r.value; applyTheme(r.value); });
   $('cfBody').querySelectorAll('input[name=fbg]').forEach(r => r.onchange = () => { cfg.favBgGame = r.value === '1'; favBgGame = cfg.favBgGame; $('wpBox').style.display = favBgGame ? 'none' : ''; });
   $('wpGo').onclick = () => wpSearch($('wpQ').value);

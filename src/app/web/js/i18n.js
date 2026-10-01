@@ -152,7 +152,7 @@ const I18N_RAW = [
   ['Grade com todos os jogos que você marcou com ⭐. Arraste na tela inicial para mudar a posição deste console.', 'A grid with every game you marked with ⭐. Drag it on the home screen to move this console.', 'Cuadrícula con todos los juegos que marcaste con ⭐. Arrástrala en la pantalla de inicio para mover esta consola.'],
   ['Tema', 'Theme', 'Tema'], ['Azul', 'Blue', 'Azul'], ['Preto', 'Black', 'Negro'], ['Branco', 'White', 'Blanco'],
   ['ideal para telas OLED', 'great for OLED screens', 'ideal para pantallas OLED'], ['claro', 'light', 'claro'], ['padrão', 'default', 'predeterminado'], ['Padrão', 'Default', 'Predeterminado'],
-  ['Idioma', 'Language', 'Idioma'], ['Português', 'Portuguese', 'Portugués'], ['Inglês', 'English', 'Inglés'], ['Espanhol', 'Spanish', 'Español'],
+  ['Idioma', 'Language', 'Idioma'], ['Som do vídeo', 'Video sound', 'Sonido del vídeo'], ['Português', 'Portuguese', 'Portugués'], ['Inglês', 'English', 'Inglés'], ['Espanhol', 'Spanish', 'Español'],
   ['Marcas registradas', 'Trademarks', 'Marcas registradas'],
   ['Nintendo, PlayStation, Xbox, Sega, Neo Geo, Steam e demais nomes e logos de consoles são marcas registradas de seus respectivos donos e aparecem apenas para identificar cada plataforma. O PlayLoop não é afiliado a nenhuma delas.', 'Nintendo, PlayStation, Xbox, Sega, Neo Geo, Steam and other console names and logos are trademarks of their respective owners and appear only to identify each platform. PlayLoop is not affiliated with any of them.', 'Nintendo, PlayStation, Xbox, Sega, Neo Geo, Steam y demás nombres y logos de consolas son marcas registradas de sus respectivos dueños y aparecen solo para identificar cada plataforma. PlayLoop no está afiliado a ninguna de ellas.'],
   ['Front-end para os seus emuladores e jogos. Os jogos, capas, logos e vídeos pertencem aos seus respectivos donos; o PlayLoop apenas os exibe a partir das fontes abaixo.', 'A front-end for your emulators and games. Games, covers, logos and videos belong to their respective owners; PlayLoop only displays them from the sources below.', 'Front-end para tus emuladores y juegos. Los juegos, portadas, logos y vídeos pertenecen a sus respectivos dueños; PlayLoop solo los muestra a partir de las fuentes de abajo.'],
@@ -175,6 +175,7 @@ const I18N_RAW = [
   ['Documentação', 'Documentation', 'Documentación'], ['Loja', 'Store', 'Tienda'], ['Site', 'Website', 'Sitio'], ['reserva', 'fallback', 'respaldo'],
   ['Fonte Poppins', 'Poppins font', 'Fuente Poppins'],
   // boas-vindas
+  ['Uma pasta para cada console. O PlayLoop configura o resto sozinho.', 'One folder per console. PlayLoop sets up the rest on its own.', 'Una carpeta por consola. PlayLoop configura el resto solo.'],
   ['Organize assim e o PlayLoop faz o resto:', 'Organize it like this and PlayLoop does the rest:', 'Organízalo así y PlayLoop hace el resto:'],
   ['ele encontra os consoles, os emuladores e os jogos e configura tudo automaticamente.', 'it finds the consoles, emulators and games and sets everything up automatically.', 'encuentra las consolas, los emuladores y los juegos y lo configura todo automáticamente.'],
   ['Uma pasta principal', 'One main folder', 'Una carpeta principal'], ['é ela que você escolhe abaixo', 'this is the one you choose below', 'es la que eliges abajo'],

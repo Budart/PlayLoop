@@ -7,7 +7,8 @@ function rerenderCase() { if (lastArt && lastArt.g && screen === 'games') { if (
 function setVidPlay(on) {
   const r = document.querySelector('.right'); if (!r || r.classList.contains('vidplay') === on) return;
   const el0 = $('art').firstElementChild, a0 = el0 && el0.getBoundingClientRect();
-  r.classList.toggle('vidplay', on); rerenderCase();
+  r.classList.toggle('vidplay', on); rerenderCase(); placeVidLogo(on);
+  if (on && vidSoundOn()) music.pause(); else if (!on && !muted && screen === 'games') music.resume();
   const el = $('art').firstElementChild; if (!a0 || !el || !a0.width) return;
   const a1 = el.getBoundingClientRect(); if (!a1.width) return;
   const s = a0.width / a1.width;
@@ -49,7 +50,7 @@ function playCandidate(g, list, k) {
   const f = document.createElement('iframe');
   f.className = 'vid lite'; f.allow = 'autoplay; encrypted-media; fullscreen; picture-in-picture'; f.allowFullscreen = true; f.tabIndex = -1; f.dataset.start = v.start;
   f._next = reason => { if (f._dead) return; f._dead = true; diag(`${v.id} falhou: ${reason}`); playCandidate(g, list, k + 1); };
-  f.src = `https://www.youtube-nocookie.com/embed/${v.id}?autoplay=1&mute=1&controls=0&disablekb=1&fs=0&start=${v.start}&rel=0&iv_load_policy=3&cc_load_policy=0&enablejsapi=1&origin=${encodeURIComponent(location.origin)}`;
+  f.src = `https://www.youtube-nocookie.com/embed/${v.id}?autoplay=1&mute=${vidSoundOn() ? 0 : 1}&controls=0&disablekb=1&fs=0&start=${v.start}&rel=0&iv_load_policy=3&cc_load_policy=0&enablejsapi=1&origin=${encodeURIComponent(location.origin)}`;
   f.onload = () => {
     setTimeout(() => { if (f.isConnected && !f._t0 && vidFor === g) f._next('não começou a tocar em 3 s (restrição de idade, bloqueio regional ou incorporação desativada)'); }, 3000);
     const t = setInterval(() => { if (!f.isConnected || f.classList.contains('on')) return clearInterval(t); try { f.contentWindow.postMessage(JSON.stringify({ event:'listening', id: 1 }), '*'); } catch (e) {} }, 250);
@@ -191,3 +192,20 @@ function setVidLogo(g, url) {
   im.onerror = () => im.classList.remove('on');
   im.src = src;
 }
+
+// som do vídeo: ligado por padrão; desligado pelo botão de som do app ou em Configuração → Capas e vídeo
+function vidSoundOn() { let v = '1'; try { v = localStorage.getItem('vidsound') || '1'; } catch (e) {} return v !== '0' && !muted; }
+function vidApplySound() {
+  const on = vidSoundOn();
+  document.querySelectorAll('#vidBox .vid').forEach(f => { try { f.contentWindow.postMessage(JSON.stringify({ event: 'command', func: on ? 'unMute' : 'mute', args: [] }), '*'); } catch (e) {} });
+  if (document.querySelector('.right.vidplay')) { if (on) music.pause(); else if (!muted) music.resume(); }
+}
+// logo de título: em cima do fundo enquanto não há vídeo; dentro do vídeo quando ele toca
+function placeVidLogo(on) {
+  const im = $('vidLogo'), r = document.querySelector('.right'); if (!im || !r) return;
+  const host = on ? $('vidBox') : r; if (im.parentNode !== host) host.appendChild(im);
+}
+(() => {   // altura do painel de detalhes, para a logo ficar logo acima dele
+  const d = $('details'), r = document.querySelector('.right'); if (!d || !r || !window.ResizeObserver) return;
+  new ResizeObserver(() => r.style.setProperty('--dh', d.offsetHeight + 'px')).observe(d);
+})();

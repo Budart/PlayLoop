@@ -105,7 +105,7 @@ const music = {
 };
 function setMute(m) {
   muted = m; try { localStorage.setItem('mute', m ? '1' : '0'); } catch (e) {}
-  $('mute').textContent = m ? '🔇' : '🔊';
+  $('mute').textContent = m ? '🔇' : '🔊'; if (typeof vidApplySound === 'function') vidApplySound();
   if (AC) master.gain.setTargetAtTime(m ? 0 : 1, AC.currentTime, .05);
   if (!m) { audio(); if (!music.timer) music.start(); } else music.stop();
 }
