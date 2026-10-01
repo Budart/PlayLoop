@@ -541,7 +541,7 @@ window.addEventListener('resize', () => {
 // cabeçalho redimensionável: arrastar a borda de baixo (90–320 px), lembrado entre sessões
 (() => {
   const h = $('fgHeader'); if (!h) return;
-  const set = v => { v = Math.max(90, Math.min(320, Math.round(v))); h.style.setProperty('--fgh', v + 'px'); return v; };
+  const set = v => { v = Math.max(90, Math.min(320, Math.round(v))); $('favgrid').style.setProperty('--fgh', v + 'px'); return v; };
   let cur = 150; try { cur = +localStorage.getItem('fgh') || 150; } catch (e) {}
   set(cur);
   const g = document.createElement('div'); g.className = 'fghgrip'; g.title = 'Arraste para redimensionar'; h.appendChild(g);
