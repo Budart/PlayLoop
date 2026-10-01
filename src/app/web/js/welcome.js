@@ -7,9 +7,12 @@ const WR = '<svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx
 const wrow = (lvl, ico, name, note) => `<div class="wt" style="--l:${lvl}">${ico}<b>${name}</b>${note ? `<i>${note}</i>` : ''}</div>`;
 const WEL_TREE = `<span>Uma pasta para cada console. O PlayLoop configura o resto sozinho.</span>
 <div class="wtree">
-  ${wrow(0, WF, 'Super Nintendo', '')}
-  ${wrow(0, WF, 'PlayStation 2', '')}
-  ${wrow(0, WF, '…', '')}
+  ${wrow(0, WF, 'Emuladores', '')}
+  ${wrow(1, WF, 'PlayStation', '')}
+  ${wrow(2, WF, 'ROMs', '')}
+  ${wrow(2, WE, 'Emulador de PS1', '')}
+  ${wrow(1, WF, 'Super Nintendo', '')}
+  ${wrow(1, WF, '…', '')}
 </div>`;
 function runWelcome() {
   return new Promise(async resolve => {
@@ -30,6 +33,7 @@ function runWelcome() {
       } else { if (s.k === 'root') $('wText').innerHTML = WEL_TREE; else $('wText').textContent = s.p; $('wPath').style.display = ''; $('wPick').style.display = ''; }
       $('wPath').textContent = picks[s.k] || 'Nenhuma pasta escolhida'; $('wPath').classList.toggle('ok', !!picks[s.k]);
       $('wSkip').style.display = s.skip ? '' : 'none';
+      $('wBack').style.display = st > 0 ? '' : 'none';
       $('wNext').textContent = st === steps.length - 1 ? 'Concluir' : 'Continuar'; $('wNext').disabled = !picks[s.k] && !s.skip;
       $('wSkip').textContent = s.key ? 'Continuar sem' : 'Pular';
       if (s.key) { $('wNext').textContent = 'Salvar chave e prosseguir'; $('wNext').disabled = !picks.sgdbKey; }
@@ -46,6 +50,7 @@ function runWelcome() {
       setTimeout(() => { location.href = '/'; }, 700);
     };
     $('wNext').onclick = next;
+    $('wBack').onclick = () => { if (st > 0) { st--; sfx('back'); render(); } };
     $('wSkip').onclick = () => { picks[steps[st].k] = ''; next(); };
     render();
     setTimeout(() => $('wCard').classList.add('on'), 850);   // logo aparece e some em menos de 1 s

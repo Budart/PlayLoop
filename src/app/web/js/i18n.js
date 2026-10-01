@@ -175,6 +175,7 @@ const I18N_RAW = [
   ['Documentação', 'Documentation', 'Documentación'], ['Loja', 'Store', 'Tienda'], ['Site', 'Website', 'Sitio'], ['reserva', 'fallback', 'respaldo'],
   ['Fonte Poppins', 'Poppins font', 'Fuente Poppins'],
   // boas-vindas
+  ['Emuladores', 'Emulators', 'Emuladores'], ['Emulador de PS1', 'PS1 emulator', 'Emulador de PS1'],
   ['Uma pasta para cada console. O PlayLoop configura o resto sozinho.', 'One folder per console. PlayLoop sets up the rest on its own.', 'Una carpeta por consola. PlayLoop configura el resto solo.'],
   ['Organize assim e o PlayLoop faz o resto:', 'Organize it like this and PlayLoop does the rest:', 'Organízalo así y PlayLoop hace el resto:'],
   ['ele encontra os consoles, os emuladores e os jogos e configura tudo automaticamente.', 'it finds the consoles, emulators and games and sets everything up automatically.', 'encuentra las consolas, los emuladores y los juegos y lo configura todo automáticamente.'],
