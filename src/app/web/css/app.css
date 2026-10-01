@@ -426,27 +426,6 @@
   body.th-oled .bg::after { background:linear-gradient(180deg,rgba(0,0,0,.2),rgba(0,0,0,.92)); }
   body.th-oled .cfhead, body.th-oled .helpbar { background:#000 !important; }
 
-  /* ---- tema BRANCO ---- */
-  body.th-light { --bg:#F1F5F9; --bar:#ffffff; --text:#0f172a; --muted:#64748b; --surf:#ffffff; --c1:#2563EB; }
-  body.th-light #favgrid { background:radial-gradient(ellipse at 50% 0%, #ffffff, #e2e8f0 70%); }
-  body.th-light .fgcard { background:#fff; border-color:rgba(15,23,42,.1); box-shadow:0 6px 18px rgba(15,23,42,.12); }
-  body.th-light .fgimg { background-color:#e2e8f0; }
-  body.th-light .fgcard:not(.has) .fgimg { background-color:#e2e8f0; }
-  body.th-light .fgdet, body.th-light .fpbar { background:rgba(255,255,255,.92); border-color:rgba(15,23,42,.12); color:#0f172a; }
-  body.th-light #fgInfo .fginfobox, body.th-light .mbox, body.th-light .ctx { background:#fff !important; color:#0f172a; border-color:rgba(15,23,42,.12); }
-  body.th-light .ctx .ci { color:#1e293b; } body.th-light .ctx .ci:hover, body.th-light .ctx .ci.kb { background:rgba(15,23,42,.07); }
-  body.th-light .row { color:#1e293b; } body.th-light .row:hover { background:rgba(15,23,42,.06); }
-  body.th-light .details { background:rgba(255,255,255,.75); }
-  body.th-light .search input, body.th-light .topsearch input, body.th-light .cfbody input, body.th-light .cfbody textarea, body.th-light .mbox input { background:#fff !important; color:#0f172a !important; border-color:#cbd5e1 !important; }
-  body.th-light .cfnav { background:#fff; border-color:#e2e8f0; } body.th-light .cfnav button { color:#334155; }
-  body.th-light .cfcache, body.th-light .ccard { background:#fff !important; border-color:#e2e8f0 !important; color:#0f172a; }
-  body.th-light .cfhead { background:#fff !important; color:#0f172a; border-color:#e2e8f0; }
-  body.th-light .pick { background:#fff; border-color:#e2e8f0; } body.th-light .pick:has(input:checked) { background:rgba(37,99,235,.06); }
-  body.th-light .bg { opacity:.35; } body.th-light .bg::after { background:linear-gradient(180deg,rgba(241,245,249,.1),rgba(241,245,249,.85)); }
-  body.th-light .helpbar { background:#fff !important; color:#334155; }
-  body.th-light .cathead { border-color:#cbd5e1; }
-  body.th-light .gear, body.th-light .btn.sec, body.th-light button.sec { background:#e2e8f0; color:#0f172a; }
-  body.th-light .fgbg .bgl.on { opacity:.22; }
 
   .fgdet { resize:none; }
   /* a grade fica por cima (brilho do card), mas só os cards capturam o mouse — o painel embaixo continua clicável */
@@ -455,7 +434,6 @@
   /* cabeçalho dos Favoritos com os detalhes do jogo (segue o tema) */
   #fgHeader { background:var(--bar); color:var(--text); border-bottom:1px solid rgba(255,255,255,.08); height:110px; justify-content:flex-start; padding-left:100px; }
   #fgHeader .homebtn { top:31px; background:rgba(255,255,255,.08); color:var(--text); }
-  body.th-light #fgHeader { border-bottom-color:#e2e8f0; } body.th-light #fgHeader .homebtn { background:rgba(15,23,42,.06); }
   .fghead { display:flex; align-items:center; gap:22px; min-width:0; height:100%; padding:10px 0; }
   .fghead .fdctrl { height:78px; width:auto; max-width:180px; flex:none; object-fit:contain; filter:drop-shadow(0 4px 14px rgba(0,209,255,.35)); }
   .fghead .fdbody { padding:0; min-width:0; }
@@ -473,11 +451,9 @@
   #fgInfo .fginfobox { height:min(720px, 78vh); }
 
   .cfhead .homebtn { position:static; flex:none; background:rgba(255,255,255,.08); color:var(--text); }
-  body.th-light .cfhead .homebtn { background:rgba(15,23,42,.06); }
 
   /* logo simples e branca no canto da Home */
   .brand img { filter:brightness(0) invert(1); opacity:.92; }
-  body.th-light .brand img { filter:brightness(0); opacity:.85; }
 
   /* foco do controle na configuração */
   #cfBody .kbf { outline:3px solid var(--c1) !important; outline-offset:3px; box-shadow:0 0 18px rgba(0,209,255,.35); border-radius:8px; }
@@ -486,3 +462,42 @@
   .right.vidplay > .art { overflow:visible; }
 
   .cfnav button { font-size:17px; padding:12px 16px; }
+
+  /* ---- tema CLARO (aconchegante): creme quente, superfícies claras e degradês ainda escuros onde dão profundidade ---- */
+  body.th-light { --bg:#EDE4D8; --bar:#F7F0E6; --text:#2E2721; --muted:#7D6F62; --surf:#FBF6EF; --c1:#C2410C; --sel:#2E2721; }
+  body.th-light .bg { opacity:.55; } body.th-light .bg::after { background:linear-gradient(180deg, rgba(46,39,33,.10), rgba(46,39,33,.55)); }
+  body.th-light .sysinfo { color:#F7F0E6; text-shadow:0 2px 8px rgba(0,0,0,.5); }
+  body.th-light .topsearch input { background:rgba(251,246,239,.92) !important; color:#2E2721 !important; border-color:#D9CBB8 !important; }
+  body.th-light .gear { background:rgba(251,246,239,.9); color:#2E2721; border-color:#D9CBB8; }
+  body.th-light .brand img { filter:brightness(0) invert(1); opacity:.95; }
+  body.th-light .helpbar { background:#F7F0E6 !important; color:#7D6F62; border-top:1px solid #E3D6C4; }
+  body.th-light #games header, body.th-light #fgHeader { background:#F7F0E6; border-bottom:1px solid #E3D6C4; }
+  body.th-light .homebtn { background:rgba(46,39,33,.07); color:#2E2721; }
+  body.th-light .row { color:#3A322B; } body.th-light .row:hover { background:rgba(46,39,33,.06); }
+  body.th-light .row.cur, body.th-light .row.cur .nm { color:#fff; }
+  body.th-light .cathead { color:#C2410C; border-color:#DCCCB8; } body.th-light .cathead.folder { color:#9A3412; }
+  body.th-light .search input, body.th-light .cfbody input, body.th-light .cfbody textarea, body.th-light .mbox input { background:#FBF6EF !important; color:#2E2721 !important; border-color:#D9CBB8 !important; }
+  body.th-light .btn.sec, body.th-light button.sec, body.th-light .cbtn, body.th-light #sortBtn { background:#E8DCCB !important; color:#3A322B !important; border-color:#D4C3AC !important; }
+  body.th-light .details { background:rgba(251,246,239,.88); color:#2E2721; } body.th-light .details .m { color:#7D6F62; }
+  body.th-light #gameBg { opacity:.9; }
+  body.th-light .ctx { background:#FBF6EF !important; border-color:#D9CBB8; color:#2E2721; } body.th-light .ctx .ci { color:#3A322B; } body.th-light .ctx .ci:hover, body.th-light .ctx .ci.kb { background:rgba(194,65,12,.1); } body.th-light .ctx .sep { background:#E3D6C4; }
+  body.th-light .mbox, body.th-light #fgInfo .fginfobox { background:#FBF6EF !important; color:#2E2721; border-color:#D9CBB8; }
+  body.th-light .modal { background:rgba(46,39,33,.55); }
+  /* favoritos: fundo quente com degradê mais escuro embaixo */
+  body.th-light #favgrid { background:radial-gradient(ellipse at 50% -10%, #F7F0E6, #E4D6C3 55%, #CDB9A0 100%); }
+  body.th-light .fgcard { background:#2E2721; border-color:rgba(46,39,33,.15); box-shadow:0 8px 20px rgba(60,40,20,.22); }
+  body.th-light .fgimg, body.th-light .fgcard:not(.has) .fgimg { background-color:#3A322B; }
+  body.th-light .fgcard.sel { border-color:#C2410C; box-shadow:0 0 0 2px #C2410C, 0 0 24px rgba(194,65,12,.45); }
+  body.th-light .fgdots span { background:rgba(46,39,33,.25); } body.th-light .fgdots span.on { background:#C2410C; }
+  body.th-light .fgbg .bgl.on { opacity:.35; }
+  body.th-light .fghead .fdctrl { filter:brightness(0) opacity(.75); }
+  body.th-light .fghead .fdc { color:#C2410C; }
+  /* configuração */
+  body.th-light .cfhead { background:#F7F0E6 !important; color:#2E2721; border-color:#E3D6C4; }
+  body.th-light .cfnav { background:#F2E9DD; border-color:#E3D6C4; } body.th-light .cfnav button { color:#4A4037; } body.th-light .cfnav button:hover { background:rgba(46,39,33,.06); }
+  body.th-light .cfnav button.on { color:#fff; }
+  body.th-light .cfmain { background:#EDE4D8; }
+  body.th-light .cfcache, body.th-light .ccard { background:#FBF6EF !important; border-color:#E3D6C4 !important; color:#2E2721; }
+  body.th-light .pick { background:#FBF6EF; border-color:#E3D6C4; } body.th-light .pick:has(input:checked) { background:rgba(194,65,12,.07); }
+  body.th-light .cfhead .homebtn { background:rgba(46,39,33,.07); }
+  body.th-light .strip { background:rgba(247,240,230,.95); }

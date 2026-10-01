@@ -161,6 +161,8 @@ static class WebHost
         form.WindowState = FormWindowState.Maximized;
         view = new WebView2 { Dock = DockStyle.Fill, DefaultBackgroundColor = Color.FromArgb(18, 18, 18) };
         form.Controls.Add(view);
+        // o controle só funciona com o foco dentro da página: devolve o foco ao WebView sempre que a janela é ativada
+        form.Activated += (s, e) => { try { if (view != null) view.Focus(); } catch { } };
         form.FormClosing += (s, e) => { if (e.CloseReason == CloseReason.UserClosing) { e.Cancel = true; form.Hide(); } };
         form.Shown += async (s, e) =>
         {
@@ -235,10 +237,10 @@ static class WebHost
             case "max":
                 form.WindowState = form.WindowState == FormWindowState.Maximized ? FormWindowState.Normal : FormWindowState.Maximized; break;
             case "close": form.Hide(); break;
-            case "fs": form.ToggleFull(); fxFull = false; break;
+            case "fs": form.ToggleFull(); fxFull = false; view.Focus(); break;
             // animação "Bom jogo.": o app vai para tela cheia de verdade e volta ao normal depois
-            case "fxon": if (!form.Full && form.WindowState != FormWindowState.Minimized) { form.ToggleFull(); fxFull = true; } break;
-            case "fxoff": if (fxFull) { fxFull = false; if (form.Full) form.ToggleFull(); } break;
+            case "fxon": if (!form.Full && form.WindowState != FormWindowState.Minimized) { form.ToggleFull(); fxFull = true; view.Focus(); } break;
+            case "fxoff": if (fxFull) { fxFull = false; if (form.Full) form.ToggleFull(); } view.Focus(); break;
             case "drag":
                 // arrastar pela barra: o Windows cuida de encaixar nas laterais (Aero Snap) e de restaurar se estiver maximizada
                 ReleaseCapture(); SendMessage(form.Handle, 0xA1, 2, 0); break;

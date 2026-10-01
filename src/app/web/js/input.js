@@ -122,7 +122,11 @@ document.addEventListener('wheel', e => { if (screen === 'systems') selectSystem
 // gamepad (Xbox/PS): D-pad/analógico, A = entrar/jogar, B = voltar
 let padPrev = {}, padRepeat = 0;
 function pollPad() {
-  const p = [...(navigator.getGamepads ? navigator.getGamepads() : [])].find(Boolean);
+  requestAnimationFrame(pollPad);   // agenda antes: um erro em qualquer tela nunca mais "desliga" o controle
+  try { pollPad1(); } catch (e) { console.error('controle:', e); }
+}
+function pollPad1() {
+  const p = [...(navigator.getGamepads ? navigator.getGamepads() : [])].find(g => g && g.connected !== false);
   // Xbox / DualSense / genéricos (mapeamento padrão): A/✕ ok · B/○ voltar · X/□ favoritar · Y/△ menu · LB/RB pular · Start configuração · Select modo TV
   if (p && !renaming && screen !== 'welcome') {
     const ax = p.axes[0] || 0, ay = p.axes[1] || 0, b = i => p.buttons[i] && p.buttons[i].pressed;
@@ -142,6 +146,6 @@ function pollPad() {
       view3d.ry += rx * 4; view3d.rx = Math.max(-60, Math.min(60, view3d.rx - ry * 3)); applyView();
     }
   }
-  requestAnimationFrame(pollPad);
 }
 requestAnimationFrame(pollPad);
+window.addEventListener('gamepadconnected', e => toast('🎮 Controle conectado: ' + (e.gamepad.id || '').replace(/\(.*\)/, '').trim()));
