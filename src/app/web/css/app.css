@@ -501,3 +501,6 @@
   body.th-light .pick { background:#FBF6EF; border-color:#E3D6C4; } body.th-light .pick:has(input:checked) { background:rgba(194,65,12,.07); }
   body.th-light .cfhead .homebtn { background:rgba(46,39,33,.07); }
   body.th-light .strip { background:rgba(247,240,230,.95); }
+
+  /* foco visível nos botões das janelas (controle/teclado) */
+  #askModal .mfoot button:focus, #askModal .emurec a:focus { outline:3px solid var(--c1); outline-offset:3px; box-shadow:0 0 16px rgba(0,209,255,.4); }

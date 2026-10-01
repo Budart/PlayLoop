@@ -12,6 +12,18 @@ function setCrt(on) {
 $('crtBtn').onclick = () => { setCrt(!crtOn); sfx('ok'); $('crtBtn').blur(); };
 setCrt(crtOn);
 
+/* ---------- janelas de confirmação com o controle: D-pad escolhe o botão/link, ✕ aperta o que está em foco, ○ cancela ---------- */
+function askItems() { return [...$('askModal').querySelectorAll('.emurec a, .mfoot button')].filter(e => e.offsetParent); }
+function askPad(a) {
+  const it = askItems(); if (!it.length) return;
+  let k = it.indexOf(document.activeElement);
+  if (a === 'back') { askDone(false); return; }
+  if (a === 'ok') { (k >= 0 ? it[k] : $('askNo')).click(); return; }
+  if (['left','right','up','down'].includes(a)) {
+    k = k < 0 ? 0 : (k + ((a === 'left' || a === 'up') ? -1 : 1) + it.length) % it.length;
+    it[k].focus(); sfx('tick');
+  }
+}
 /* ---------- configuração com o controle: D-pad navega, ✕ ativa, ○ volta ao menu lateral / sai ---------- */
 function cfgFocusables() {
   const sec = document.querySelector('#cfBody .cfsec.on'); if (!sec) return [];
@@ -52,7 +64,7 @@ function cfgPad(a) {
 }
 /* ---------- controles: teclado + gamepad ---------- */
 function input(a) {
-  if (askOpen) { if (a === 'ok') askDone(true); else if (a === 'back') askDone(false); return; }
+  if (askOpen) { askPad(a); return; }
   if ($('ctx').classList.contains('on')) { if (a === 'down') ctxMove(1); else if (a === 'up') ctxMove(-1); else if (a === 'ok') ctxOk(); else if (a === 'back' || a === 'menu') closeCtx(); return; }
   if (modalOpen) { if (a === 'back') closeCover(); else if (['left','right','up','down'].includes(a)) coverNav(a); else if (a === 'ok') coverPick(); return; }
   if (fxOpen) { if (a === 'back') fgFxClose(); return; }
@@ -75,7 +87,11 @@ function input(a) {
   }
 }
 document.addEventListener('keydown', e => {
-  if (askOpen) { if (e.key === 'Escape') { e.preventDefault(); askDone(false); } return; }
+  if (askOpen) {
+    if (e.key === 'Escape') { e.preventDefault(); askDone(false); return; }
+    const d = { ArrowLeft:'left', ArrowRight:'right', ArrowUp:'up', ArrowDown:'down' }[e.key]; if (d) { e.preventDefault(); askPad(d); }
+    return;   // Enter/Espaço apertam o botão em foco (comportamento nativo)
+  }
   if ($('ctx').classList.contains('on')) { e.preventDefault(); if (e.key === 'ArrowDown') ctxMove(1); else if (e.key === 'ArrowUp') ctxMove(-1); else if (e.key === 'Enter') ctxOk(); else if (e.key === 'Escape') closeCtx(); return; }
   if (e.key === 'F1') { e.preventDefault(); if (screen !== 'config' && screen !== 'welcome') { if (modalOpen) closeCover(); openConfig(); } return; }
   if (screen === 'welcome' || renaming) return;

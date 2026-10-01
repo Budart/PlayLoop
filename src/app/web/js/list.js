@@ -122,7 +122,7 @@ const sysOf = g => allSystems.find(s => s.id === g.sid) || sys;
 // confirmação (modal próprio, funciona também com controle)
 function ask(title, text, yes, alt, html) {   // alt: 3º botão opcional (resolve com 'alt')
   return new Promise(res => {
-    $('askTitle').textContent = title; if (html) { $('askText').innerHTML = text; $('askText').querySelectorAll('a[data-href]').forEach(a => a.onclick = e => { e.preventDefault(); api('/api/open', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ url: a.dataset.href }) }).catch(() => {}); }); } else $('askText').textContent = text; $('askYes').textContent = yes || 'Excluir';
+    $('askTitle').textContent = title; if (html) { $('askText').innerHTML = text; $('askText').querySelectorAll('a[data-href]').forEach(a => a.tabIndex = 0); $('askText').querySelectorAll('a[data-href]').forEach(a => a.onclick = e => { e.preventDefault(); api('/api/open', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ url: a.dataset.href }) }).catch(() => {}); }); } else $('askText').textContent = text; $('askYes').textContent = yes || 'Excluir';
     $('askAlt').style.display = alt ? '' : 'none'; $('askAlt').textContent = alt || '';
     $('askModal').classList.add('on'); askOpen = true; $('askNo').focus();
     const done = v => { $('askModal').classList.remove('on'); askOpen = false; res(v); };
