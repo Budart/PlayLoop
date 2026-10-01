@@ -41,6 +41,7 @@ document.addEventListener('keydown', e => {
   if (screen === 'welcome' || renaming) return;
   if (fgInfoOpen && !modalOpen) { if (e.key === 'Escape' || e.key === 'Backspace') { e.preventDefault(); fgInfo(false); } else if (e.key === 'Enter') { e.preventDefault(); launch(); } return; }
   if (screen === 'favgrid' && !modalOpen && e.key === 'Backspace') { e.preventDefault(); back(); return; }
+  if (screen === 'favgrid' && !modalOpen && e.key === ' ') { e.preventDefault(); fgInput('fav'); return; }   // Espaço = □ (mover card)
   if (e.key === 'F2' && screen === 'games' && shown[gIdx]) { e.preventDefault(); startRename(gIdx); return; }
   if (screen === 'config') { if (e.key === 'Escape') $('cfCancel').onclick(); return; }
   if (modalOpen) { if (e.key === 'Escape') { e.preventDefault(); closeCover(); } return; }

@@ -314,7 +314,7 @@
   .fgview { flex:1; min-height:0; overflow:hidden; margin:22px 34px 10px; }
   .fgtrack { display:flex; height:100%; transition:transform .35s cubic-bezier(.2,.7,.3,1); }
   .fgtrack > .empty { flex:none; width:100%; }
-  .fgpage { flex:none; width:100%; height:100%; display:grid; gap:20px; box-sizing:border-box; }
+  .fgpage { flex:none; width:100%; height:100%; display:grid; gap:20px; box-sizing:border-box; justify-content:center; align-content:center; }
   .fgcard { position:relative; border-radius:12px; overflow:hidden; cursor:pointer; background:#151c30; border:2px solid rgba(255,255,255,.08); box-shadow:0 6px 18px rgba(0,0,0,.45); transition:border-color .15s, box-shadow .15s, transform .15s; min-width:0; min-height:0; }
   .fgcard:hover { border-color:rgba(255,255,255,.3); }
   .fgcard.sel { border-color:var(--c1); box-shadow:0 0 0 2px var(--c1), 0 0 26px rgba(0,209,255,.45); transform:scale(1.015); z-index:2; }
@@ -370,3 +370,11 @@
   .fdm { font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .fdp { cursor:pointer; }
   .fgview { margin-bottom:8px; } .fgdots { margin-bottom:76px; } .fgdet { bottom:16px; }
   .fgcard.fgghost { z-index:60; position:fixed; }
+
+  .fgcard.fgghost { transition:none !important; transform-origin:0 0; }
+  .fgcard.lift { transform:scale(1.1) translateY(-4px); z-index:6; box-shadow:0 0 0 3px var(--c1), 0 22px 40px rgba(0,0,0,.65), 0 0 30px rgba(0,209,255,.5); }
+  /* painel de detalhes: o dobro do tamanho */
+  .fgdet { max-width:min(1000px, 70vw); border-radius:20px; }
+  .fdgrip { padding:0 14px; font-size:22px; }
+  .fdbody { padding:18px 30px; } .fdn { font-size:32px; line-height:1.2; } .fdm { font-size:20px; margin-top:4px; }
+  .fgdots { margin-bottom:120px; }

@@ -8,11 +8,46 @@ const fgSize = g => { const v = covers['fsz|' + coverKey(g)]; if (!v) return { w
 
 // posição escolhida pelo usuário (arrastando): 'fpos|chave' = "página,coluna,linha"
 const fgPos = g => { const v = covers['fpos|' + coverKey(g)]; if (!v) return null; const [p, x, y] = v.split(',').map(Number); return { p, x, y }; };
+let fgJournal = null;   // durante a prévia, guarda os valores antigos para desfazer
 function fgSetPos(g, pos) {
   const key = 'fpos|' + coverKey(g), val = pos ? `${pos.p},${pos.x},${pos.y}` : '';
+  if (fgJournal) { if (!(key in fgJournal)) fgJournal[key] = covers[key]; if (val) covers[key] = val; else delete covers[key]; return; }
   if (val) covers[key] = val; else delete covers[key];
   api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, url: val }) }).catch(() => {});
 }
+// solta o card i no lugar t; quem estava embaixo sai do caminho (vai para o próximo espaço livre)
+function fgDropInto(i, t) {
+  const pl = fg.place[i]; fgSetPos(fg.items[i], { p: t.p, x: t.x, y: t.y });
+  fg.items.forEach((o, k) => { const q = fg.place[k]; if (k !== i && q && q.p === t.p && q.x < t.x + pl.w && q.x + q.w > t.x && q.y < t.y + pl.h && q.y + q.h > t.y) fgSetPos(o, null); });
+}
+// prévia: reorganiza os cards na tela como ficariam, sem salvar nada
+function fgPreview(i, t) {
+  const place0 = fg.place, pages0 = fg.pages;
+  fgJournal = {}; fgDropInto(i, t); fgLayout();
+  for (const k in fgJournal) { if (fgJournal[k] === undefined) delete covers[k]; else covers[k] = fgJournal[k]; }
+  fgJournal = null;
+  fgApplyDom(); fg.place = place0; fg.pages = pages0;
+}
+function fgApplyDom() {
+  const tr = $('fgTrack');
+  fg.place.forEach((pl, i) => {
+    const el = tr.querySelector(`.fgcard[data-i="${i}"]`); if (!el || !pl) return;
+    while (tr.children.length <= pl.p) fgAddPage();
+    if (el.parentNode !== tr.children[pl.p]) tr.children[pl.p].appendChild(el);
+    el.style.gridColumn = `${pl.x + 1} / span ${pl.w}`; el.style.gridRow = `${pl.y + 1} / span ${pl.h}`;
+  });
+}
+// geometria da grade (células quadradas, centralizadas na página)
+function fgCell() {
+  const { R, C } = fgDim(), v = $('fgView').getBoundingClientRect(), gap = 20;
+  const cell = Math.max(20, Math.floor(Math.min((v.width - gap * (C - 1)) / C, (v.height - gap * (R - 1)) / R)));
+  $('fgTrack').style.setProperty('--cell', cell + 'px');
+}
+function fgGeom(pg) {
+  const { R, C } = fgDim(), r = pg.getBoundingClientRect(), gap = 20, cell = parseFloat(getComputedStyle($('fgTrack')).getPropertyValue('--cell')) || 100;
+  return { ox: r.left + (r.width - (C * cell + (C - 1) * gap)) / 2, oy: r.top + (r.height - (R * cell + (R - 1) * gap)) / 2, pitch: cell + gap, cell, gap };
+}
+window.addEventListener('resize', () => { if (screen === 'favgrid') fgCell(); });
 // 1º os cards com lugar fixo (arrastados), depois os demais no primeiro espaço livre (linha por linha); não coube → próxima página
 function fgLayout() {
   const { R, C } = fgDim(), pages = [];
@@ -44,12 +79,12 @@ async function openFavGrid() {
   renderFavGrid();
 }
 function renderFavGrid() {
-  fgLayout();
+  fgLayout(); fgCell(); fg.moving = null;
   const { R, C } = fgDim();
   if (!fg.items.length) { fgDetails(); $('fgTrack').innerHTML = '<div class="empty">Nenhum jogo favoritado ainda — use a ⭐ ao lado de um jogo.</div>'; $('fgDots').innerHTML = ''; return; }
   let html = '';
   for (let p = 0; p < fg.pages; p++) {
-    html += `<div class="fgpage" style="grid-template-columns:repeat(${C},1fr);grid-template-rows:repeat(${R},1fr)">`;
+    html += `<div class="fgpage" style="grid-template-columns:repeat(${C},var(--cell));grid-template-rows:repeat(${R},var(--cell))">`;
     fg.place.forEach((pl, i) => {
       if (pl.p !== p) return;
       const g = fg.items[i];
@@ -75,7 +110,7 @@ async function fgArt(i, el) {
   if (url) { im.style.backgroundImage = `url("${cp(url).replace(/"/g, '%22')}")`; el.classList.add('has'); }
 }
 function fgPage(p, quiet) {
-  fg.page = Math.max(0, Math.min(fg.pages - 1, p));
+  fg.page = Math.max(0, Math.min(Math.max(fg.pages, $('fgTrack').querySelectorAll('.fgpage').length) - 1, p));
   $('fgTrack').style.transform = `translateX(-${fg.page * 100}%)`;
   $('fgDots').querySelectorAll('[data-p]').forEach(d => d.classList.toggle('on', +d.dataset.p === fg.page));
   if (!quiet) sfx('tick');
@@ -116,8 +151,8 @@ function fgBind(el) {
   // redimensionar arrastando a lateral direita, a de baixo ou o canto (sempre grudando na grade, máx. 4x4)
   el.querySelectorAll('[data-rz]').forEach(h => h.onpointerdown = e => {
     e.preventDefault(); e.stopPropagation(); fgSelect(i, true);
-    const page = el.parentNode.getBoundingClientRect(), { R, C } = fgDim(), pl = fg.place[i];
-    const gap = parseFloat(getComputedStyle(el.parentNode).columnGap) || 0, cw = (page.width + gap) / C, ch = (page.height + gap) / R, mode = h.dataset.rz, sx = e.clientX, sy = e.clientY;
+    const { R, C } = fgDim(), pl = fg.place[i], G = fgGeom(el.parentNode);
+    const cw = G.pitch, ch = G.pitch, mode = h.dataset.rz, sx = e.clientX, sy = e.clientY;
     let w = pl.w, hh = pl.h;
     h.setPointerCapture(e.pointerId); el.classList.add('rz');
     h.onpointermove = ev => {
@@ -143,7 +178,7 @@ function fgResize(g, w, h) {
 // arrastar o card para qualquer lugar da grade (encostar na lateral da tela troca de página, inclusive para uma nova)
 function fgDragStart(e, el, i) {
   const sx = e.clientX, sy = e.clientY, r0 = el.getBoundingClientRect(), pl = fg.place[i];
-  let ghost = null, target = null, edgeT = 0, edgeDir = 0, last = e;
+  let ghost = null, target = null, edgeT = 0, edgeDir = 0, last = e, prevKey = '', prevT = 0;
   const edge = () => {
     const v = $('fgView').getBoundingClientRect(), dir = last.clientX > v.right - 50 ? 1 : last.clientX < v.left + 50 ? -1 : 0;
     if (dir !== edgeDir) { edgeDir = dir; edgeT = performance.now(); }
@@ -157,16 +192,15 @@ function fgDragStart(e, el, i) {
   const { R, C } = fgDim();
   const cellAt = (x, y) => {
     const pg = $('fgTrack').children[fg.page]; if (!pg) return null;
-    const r = pg.getBoundingClientRect(), gap = parseFloat(getComputedStyle(pg).columnGap) || 0;
-    const cw = (r.width + gap) / C, ch = (r.height + gap) / R;
-    const gx = Math.round((x - (sx - r0.left) - r.left) / cw), gy = Math.round((y - (sy - r0.top) - r.top) / ch);
-    return { p: fg.page, x: Math.max(0, Math.min(C - pl.w, gx)), y: Math.max(0, Math.min(R - pl.h, gy)), r, cw, ch, gap };
+    const G = fgGeom(pg);
+    const gx = Math.round((x - (sx - r0.left) - G.ox) / G.pitch), gy = Math.round((y - (sy - r0.top) - G.oy) / G.pitch);
+    return { p: fg.page, x: Math.max(0, Math.min(C - pl.w, gx)), y: Math.max(0, Math.min(R - pl.h, gy)), G };
   };
   const move = ev => {
     if (!ghost) {
       if (Math.hypot(ev.clientX - sx, ev.clientY - sy) < 7) return;
       fgSelect(i, true); el._dragged = true; el.classList.add('dragsrc');
-      ghost = el.cloneNode(true); ghost.className = 'fgcard sel fgghost'; ghost.style.cssText = `width:${r0.width}px;height:${r0.height}px;`; document.body.appendChild(ghost);
+      ghost = el.cloneNode(true); ghost.className = el.className.replace('dragsrc', '') + ' sel fgghost'; ghost.style.cssText = `width:${r0.width}px;height:${r0.height}px;`; document.body.appendChild(ghost);
       $('fgView').insertAdjacentHTML('beforeend', '<div class="fgslot" id="fgSlot"></div>');
     }
     ghost.style.transform = `translate(${ev.clientX - (sx - r0.left)}px, ${ev.clientY - (sy - r0.top)}px)`;
@@ -177,22 +211,21 @@ function fgDragStart(e, el, i) {
     const v = $('fgView').getBoundingClientRect();
     target = cellAt(last.clientX, last.clientY);
     const s = $('fgSlot');
-    if (s && target) { s.style.cssText = `left:${target.r.left - v.left + target.x * target.cw}px;top:${target.r.top - v.top + target.y * target.ch}px;width:${pl.w * target.cw - target.gap}px;height:${pl.h * target.ch - target.gap}px`; }
+    if (s && target) { const G = target.G; s.style.cssText = `left:${G.ox - v.left + target.x * G.pitch}px;top:${G.oy - v.top + target.y * G.pitch}px;width:${pl.w * G.pitch - G.gap}px;height:${pl.h * G.pitch - G.gap}px`; }
+    // depois de um instante parado no mesmo lugar, mostra como os outros cards ficariam
+    const key = target ? `${target.p},${target.x},${target.y}` : '';
+    if (key !== prevKey) { prevKey = key; clearTimeout(prevT); if (target) { const t = target; prevT = setTimeout(() => { if (ghost) fgPreview(i, t); }, 260); } }
   }
   const up = () => {
-    document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up); clearInterval(tick);
+    document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up); clearInterval(tick); clearTimeout(prevT);
     if (!ghost) return;
     ghost.remove(); const s = $('fgSlot'); if (s) s.remove(); el.classList.remove('dragsrc');
     if (!target) return;
-    const g = fg.items[i];
-    fgSetPos(g, { p: target.p, x: target.x, y: target.y });
-    // cards que estavam no lugar saem do caminho (vão para o próximo espaço livre)
-    fg.items.forEach((o, k) => { const q = fg.place[k]; if (k !== i && q && q.p === target.p && q.x < target.x + pl.w && q.x + q.w > target.x && q.y < target.y + pl.h && q.y + q.h > target.y) fgSetPos(o, null); });
-    sfx('ok'); renderFavGrid();
+    fgDropInto(i, target); sfx('ok'); renderFavGrid();
   };
   document.addEventListener('pointermove', move); document.addEventListener('pointerup', up);
 }
-function fgAddPage() { const { R, C } = fgDim(); $('fgTrack').insertAdjacentHTML('beforeend', `<div class="fgpage" style="grid-template-columns:repeat(${C},1fr);grid-template-rows:repeat(${R},1fr)"></div>`); }
+function fgAddPage() { const { R, C } = fgDim(); $('fgTrack').insertAdjacentHTML('beforeend', `<div class="fgpage" style="grid-template-columns:repeat(${C},var(--cell));grid-template-rows:repeat(${R},var(--cell))"></div>`); }
 // painel flutuante com os detalhes do jogo selecionado (arraste pelo topo; gruda no canto/centro de baixo mais próximo)
 let fgDock = 'left'; try { fgDock = localStorage.getItem('fgDock') || 'left'; } catch (e) {}
 function fgDetails() {
@@ -257,13 +290,33 @@ function fgInfo(on) {
   }
 }
 $('fgInfo').onclick = e => { if (e.target === $('fgInfo')) fgInfo(false); };
+// mover com o controle: □ "levanta" o card, o D-pad leva célula por célula (passa de página nas laterais), □ de novo solta
+function fgMoveMode() {
+  const i = fg.sel, pl = fg.place[i]; if (!pl) return;
+  if (!fg.moving) { fg.moving = { i, t: { p: pl.p, x: pl.x, y: pl.y } }; fgLift(); sfx('ok'); return; }
+  const t = fg.moving.t; fg.moving = null; fgDropInto(i, t); sfx('ok'); renderFavGrid();
+}
+function fgLift() { const el = $('fgTrack').querySelector(`.fgcard[data-i="${fg.moving.i}"]`); if (el) el.classList.add('lift'); }
+function fgMoveStep(dir) {
+  const m = fg.moving, pl = fg.place[m.i], t = m.t, { R, C } = fgDim();
+  if (dir === 'up') t.y = Math.max(0, t.y - 1); else if (dir === 'down') t.y = Math.min(R - pl.h, t.y + 1);
+  else if (dir === 'left') { if (t.x > 0) t.x--; else if (t.p > 0) { t.p--; t.x = C - pl.w; } }
+  else if (dir === 'right') { if (t.x < C - pl.w) t.x++; else { t.p++; t.x = 0; } }
+  fgPreview(m.i, t); fgLift(); if (t.p !== fg.page) fgPage(t.p, true); sfx('tick');
+}
 function fgInput(a) {
+  if (fg.moving) {
+    if (a === 'left' || a === 'right' || a === 'up' || a === 'down') return fgMoveStep(a);
+    if (a === 'fav' || a === 'ok') return fgMoveMode();
+    if (a === 'back') { fg.moving = null; sfx('back'); renderFavGrid(); return; }
+    return;
+  }
   if (a === 'left' || a === 'right' || a === 'up' || a === 'down') fgMove(a);
   else if (a === 'pgup') { fgPage(fg.page - 1); const i = fg.place.findIndex(p => p.p === fg.page); if (i >= 0) fgSelect(i, true); }
   else if (a === 'pgdn') { fgPage(fg.page + 1); const i = fg.place.findIndex(p => p.p === fg.page); if (i >= 0) fgSelect(i, true); }
   else if (a === 'ok') { if (fg.items[fg.sel]) launch(); }
   else if (a === 'menu') fgCtx();
-  else if (a === 'fav' && fg.items[fg.sel]) { toggleFav(fg.items[fg.sel]).then(openFavGrid); }
+  else if (a === 'fav') fgMoveMode();
   else if (a === 'back') { fgInfo(false); back(); }
 }
 $('fgHome').onclick = () => { $('fgHome').blur(); back(); };
