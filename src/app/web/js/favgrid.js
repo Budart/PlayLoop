@@ -538,3 +538,18 @@ window.addEventListener('resize', () => {
   if (screen === 'favgrid' && isPortrait()) { favAsList = true; openGlobal('', true); }
   else if (screen === 'games' && favMode && favAsList && !isPortrait()) { favAsList = false; stopVideo(); openFavGrid(); }
 });
+// cabeçalho redimensionável: arrastar a borda de baixo (90–320 px), lembrado entre sessões
+(() => {
+  const h = $('fgHeader'); if (!h) return;
+  const set = v => { v = Math.max(90, Math.min(320, Math.round(v))); h.style.setProperty('--fgh', v + 'px'); return v; };
+  let cur = 150; try { cur = +localStorage.getItem('fgh') || 150; } catch (e) {}
+  set(cur);
+  const g = document.createElement('div'); g.className = 'fghgrip'; g.title = 'Arraste para redimensionar'; h.appendChild(g);
+  g.addEventListener('pointerdown', e => {
+    e.preventDefault(); e.stopPropagation(); g.setPointerCapture(e.pointerId); g.classList.add('on');
+    const y0 = e.clientY, h0 = h.offsetHeight;
+    const mv = ev => { cur = set(h0 + ev.clientY - y0); if (typeof fgCell === 'function') fgCell(); };
+    const up = () => { g.removeEventListener('pointermove', mv); g.removeEventListener('pointerup', up); g.classList.remove('on'); try { localStorage.setItem('fgh', cur); } catch (e) {} if (typeof fgCell === 'function') { fgCell(); } };
+    g.addEventListener('pointermove', mv); g.addEventListener('pointerup', up);
+  });
+})();

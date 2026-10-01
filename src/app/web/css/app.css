@@ -573,3 +573,14 @@ body.th-light .wpsearch .wpbar input::placeholder { color:#9A8B7A; }
 #fgHeader #fgLogo.on { opacity:1; }
 .fgcard .fgi { opacity:0; pointer-events:none; transition:opacity .15s, transform .15s; }
 .fgcard:hover .fgi, .fgcard.sel .fgi { opacity:1; pointer-events:auto; }
+/* cabeçalho dos Favoritos redimensionável (--fgh) */
+#fgHeader { height:var(--fgh, 150px); }
+#fgHeader .homebtn { top:calc((var(--fgh, 150px) - 48px) / 2); }
+#fgHeader .fghead .fdctrl { height:calc(var(--fgh, 150px) * .7); max-width:calc(var(--fgh, 150px) * 1.65); }
+.fghead .fdn { font-size:calc(var(--fgh, 150px) * .22); }
+.fghead .fdc { font-size:calc(var(--fgh, 150px) * .1); }
+.fghead .fdm { font-size:calc(var(--fgh, 150px) * .085); }
+#fgHeader #fgLogo { max-height:74%; max-width:min(calc(var(--fgh, 150px) * 3), 34vw); }
+.fghgrip { position:absolute; left:0; right:0; bottom:-5px; height:10px; cursor:ns-resize; z-index:6; }
+.fghgrip::after { content:""; position:absolute; left:50%; top:3px; width:48px; height:4px; margin-left:-24px; border-radius:2px; background:rgba(255,255,255,.18); opacity:0; transition:opacity .15s; }
+#fgHeader:hover .fghgrip::after, .fghgrip.on::after { opacity:1; }
