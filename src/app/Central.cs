@@ -602,11 +602,7 @@ static class Central
                 owner.Show(); owner.Activate();
                 if (folder)
                 {
-                    using (var d = new FolderBrowserDialog { Description = "Escolha a pasta", ShowNewFolderButton = false })
-                    {
-                        if (Directory.Exists(start)) d.SelectedPath = start;
-                        if (d.ShowDialog(owner) == DialogResult.OK) result = d.SelectedPath;
-                    }
+                    result = FolderPicker.Pick(owner, "Escolha a pasta", start);
                 }
                 else
                 {

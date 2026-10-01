@@ -196,6 +196,8 @@ function pollPad1() {
     for (const k in st) {
       if (st[k] && !padPrev[k]) { lastInputPad = true; legendMode = 'pad'; input(k); padRepeat = now + 380; }
       else if (st[k] && ['up','down','left','right'].includes(k) && now > padRepeat) { input(k); padRepeat = now + 70; }
+      // teclado virtual: segurar □ (apagar) ou ✕ sobre a tecla ⌫ apaga em sequência
+      else if (st[k] && oskOpen && (k === 'fav' || (k === 'ok' && OSK_ROWS[oskSel[0]][oskSel[1]] === '⌫')) && now > padRepeat) { input(k); padRepeat = now + 60; }
     }
     padPrev = st;
     if (Object.values(st).some(Boolean)) legendMode = 'pad';

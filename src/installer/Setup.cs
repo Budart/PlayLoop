@@ -88,7 +88,7 @@ class Setup : Form
             Text = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "PlayLoop") };
         Controls.Add(pathBox);
         browseBtn = Btn("Procurar...", new Point(x + 308, 150), 96, false);
-        browseBtn.Click += (s, e) => { using (var d = new FolderBrowserDialog()) if (d.ShowDialog(this) == DialogResult.OK) pathBox.Text = Path.Combine(d.SelectedPath, "PlayLoop"); };
+        browseBtn.Click += (s, e) => { var p = FolderPicker.Pick(this, "Onde instalar o PlayLoop", Directory.Exists(Path.GetDirectoryName(pathBox.Text) ?? "") ? Path.GetDirectoryName(pathBox.Text) : null); if (p != null) pathBox.Text = Path.Combine(p, "PlayLoop"); };
 
         cDesk = Chk("Criar atalho na Área de Trabalho", 196);
         cStart = Chk("Criar atalho no menu Iniciar", 224);

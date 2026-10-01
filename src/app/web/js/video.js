@@ -148,11 +148,13 @@ function applyView() { view3d.ry = Math.max(RY_MIN, Math.min(RY_MAX, view3d.ry))
 async function showArt(g) {
   const my = ++artReq, box = $('art'), bg = $('gameBg');
   // troca de jogo: mostra na hora a caixa genérica do novo jogo (nunca a capa anterior)
+  setVidLogo(g, covers['logo|' + coverKey(g)] || ((cachedArt(g) || {}).logo));
   const pre = lastArt && lastArt.g === g && lastArt.done ? lastArt : null;   // já desenhada a partir do cache
   if (!pre) { lastArt = { g, url: null }; box.innerHTML = skeletonCase(g); }
 
   const a = await resolveArt(g);
   if (my !== artReq || shown[gIdx] !== g || screen !== 'games') return;
+  if (!covers['logo|' + coverKey(g)] && a.logo) setVidLogo(g, a.logo);
   let front = cp(a.box), ratio = front ? ratioCache[front] : undefined;
   // a caixa assume o formato da imagem (horizontal/vertical); espera no máx. 0,3 s pela medida
   const TO = new Promise(r => setTimeout(() => r(undefined), 300));
@@ -177,3 +179,15 @@ async function showArt(g) {
   if (!bgOver) queueVideo(g); else stopVideo();   // fundo escolhido manualmente tem prioridade sobre o vídeo
 }
 window.addEventListener('resize', () => { if (lastArt && !lastArt.done) return rerenderCase(); if (lastArt && screen === 'games' && shown[gIdx] === lastArt.g) $('art').innerHTML = buildCase(lastArt.g, lastArt.url, false, lastArt.ratio); if (lastArt && lastArt.logo) { const sp = $('art').querySelector('.spine'); if (sp) sp.innerHTML = `<img class="spl" src="${esc(lastArt.logo)}" alt="">`; } });
+
+// logo de título no canto inferior esquerdo do vídeo (só aparece quando a imagem carrega; sem placeholder)
+function setVidLogo(g, url) {
+  const im = $('vidLogo'); if (!im) return;
+  const src = url ? cp(url) : '';
+  if (im._g === g && im._src === src) return;
+  im._g = g; im._src = src; im.classList.remove('on');
+  if (!src) { im.removeAttribute('src'); return; }
+  im.onload = () => { if (im._src === src) im.classList.add('on'); };
+  im.onerror = () => im.classList.remove('on');
+  im.src = src;
+}

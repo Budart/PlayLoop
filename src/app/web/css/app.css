@@ -614,3 +614,6 @@ body.th-light .wpsearch .wpbar input::placeholder { color:#9A8B7A; }
 /* sem "Bom jogo" nem loading: só a imagem */
 .fgfx .fxlbl { display:none !important; }
 .fgfx.frombg::before { display:none; }
+
+#vidLogo { position:absolute; left:18px; bottom:16px; z-index:3; max-width:38%; max-height:30%; object-fit:contain; object-position:left bottom; opacity:0; transition:opacity .4s; pointer-events:none; filter:drop-shadow(0 2px 8px rgba(0,0,0,.8)); }
+#vidLogo.on { opacity:1; }

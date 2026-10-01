@@ -312,8 +312,10 @@ function playFx(rect, bgImage, bgPos, radius, bgSize) {
   requestAnimationFrame(() => requestAnimationFrame(() => { fx.classList.add('grow'); Object.assign(fx.style, { left: '0px', top: '0px', width: '100vw', height: '100vh', borderRadius: '0px' }); }));
 }
 let fgLaunching = false;
+const emuReady = g => { const s = sysOf(g) || sys || {}; return s.type === 'pc' || !!s.emulatorOk; };
 function fgLaunch(noWait) {
   const g = fg.items[fg.sel], el = $('fgTrack').querySelector(`.fgcard[data-i="${fg.sel}"]`); if (!g || fxOpen) return;
+  if (!emuReady(g)) { launch(); return; }   // sem emulador: primeiro a oferta de emuladores, sem animação por cima
   // com o fundo do jogo na tela: os itens somem e o próprio fundo cresce até a tela cheia
   const host = $('fgBg');
   if (favBgGame && host._g !== g && !noWait && !fgLaunching && !(fgLaunch._w > 0)) {   // fundo do jogo ainda carregando (ex.: clique duplo num card novo): espera até 0,8 s
@@ -344,6 +346,7 @@ function fgLaunch(noWait) {
 // lista de jogos dos consoles: parte do painel da capa, com o fundo do jogo (ou a capa)
 function listLaunch() {
   const g = shown[gIdx]; if (!g || fxOpen) return;
+  if (!emuReady(g)) { launch(); return; }
   const right = document.querySelector('#games .right') || $('art'), a = cachedArt(g);
   const src = covers['bg|' + coverKey(g)] || (a && (a.snap || a.box)) || (lastArt && lastArt.g === g && lastArt.url);   // fundo do jogo > tela > capa
   let img = src ? `url("${cp(src).replace(/"/g, '%22')}")` : '';
