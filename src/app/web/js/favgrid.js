@@ -293,7 +293,7 @@ async function fgGameBg(g, force) {
   if (tok !== fgBgTok || !url) return;
   const old = [...host.querySelectorAll('.bgl')];
   const l = document.createElement('div'); l.className = 'bgl'; l.style.backgroundImage = `url("${cp(url).replace(/"/g, '%22')}")`;
-  host.appendChild(l); host._url = url; host._g = g; fgApplyBgOfs(l, url, g); if (!fgBgOfs(g)) fgBgExtend(l, url, tok); requestAnimationFrame(() => requestAnimationFrame(() => l.classList.add('on')));
+  host.appendChild(l); host._url = url; host._g = g; fgBgRender(l, url, g); requestAnimationFrame(() => requestAnimationFrame(() => l.classList.add('on')));
   old.forEach(o => { o.classList.remove('on'); setTimeout(() => o.remove(), 600); });
 }
 // abrir o jogo: a imagem do card se expande até a tela inteira, escurece e mostra "Bom jogo."
@@ -358,33 +358,48 @@ function fgFxClose() { clearTimeout(fxTimer); if (!fxOpen) return; fxOpen = fals
 window.addEventListener('blur', () => { if (fxOpen && Date.now() - fxAt > 1300) fgFxClose(); });   // o jogo abriu (o foco saiu do app)
 // ---- reposicionar a imagem do card: 'fofs|chave' = "posX%,posY%,zoom" ----
 const fgBgOfs = g => { const v = covers['bofs|' + coverKey(g)]; if (!v) return null; const [x, y, z] = v.split(',').map(Number); return { x, y, z: z || 1 }; };
-// fundo menor que a tela: mostra a imagem sem ampliar além do tamanho real e "estica" os últimos pixels de cada borda até o fim da área
-async function fgBgExtend(l, url, tok) {
+// fundo do jogo: por padrão preenche tudo (cover). Só "estica as bordas" quando o usuário escolheu uma imagem menor que a área
+// ou afastou/diminuiu o fundo em "Reposicionar fundo" deixando cantos vazios — e aí as bordas esticadas ficam embaçadas e escurecidas
+async function fgBgRender(l, url, g) {
+  const tok = fgBgTok, o = fgBgOfs(g), manual = !!covers['bg|' + coverKey(g)];
   const src = cp(url), im = await new Promise(ok => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = src; });
-  if (!im || tok !== fgBgTok) return;
+  if (!im || tok !== fgBgTok && l.parentNode !== $('fgBg')) return;
   const W = l.offsetWidth || innerWidth, H = l.offsetHeight || innerHeight, iw = im.naturalWidth, ih = im.naturalHeight;
-  const cover = Math.max(W / iw, H / ih), contain = Math.min(W / iw, H / ih), sc = Math.min(cover, Math.max(contain, 1));
-  if (sc >= cover * .999) return;   // a imagem já cobre a tela toda
+  const cover = Math.max(W / iw, H / ih), contain = Math.min(W / iw, H / ih);
+  const sc = o ? cover * o.z : manual ? Math.min(cover, Math.max(contain, 1)) : cover;
+  const px = o ? o.x : 50, py = o ? o.y : 50, dw = iw * sc, dh = ih * sc;
+  l.style.backgroundImage = `url("${src.replace(/"/g, '%22')}")`;
+  if (dw >= W - .5 && dh >= H - .5) { l.style.backgroundSize = `${dw}px ${dh}px`; l.style.backgroundPosition = `${px}% ${py}%`; return; }
   try {
-    const k = Math.min(1, 1920 / W), cw = Math.round(W * k), ch = Math.round(H * k), dw = iw * sc * k, dh = ih * sc * k, x0 = (cw - dw) / 2, y0 = (ch - dh) / 2;
+    const k = Math.min(1, 1920 / W), cw = Math.round(W * k), ch = Math.round(H * k), w = dw * k, h = dh * k;
+    const x0 = (cw - w) * px / 100, y0 = (ch - h) * py / 100, x1 = x0 + w, y1 = y0 + h;
     const cv = document.createElement('canvas'); cv.width = cw; cv.height = ch; const x = cv.getContext('2d');
-    x.drawImage(im, x0, y0, dw, dh);
-    if (x0 > 0) { x.drawImage(im, 0, 0, 1, ih, 0, y0, Math.ceil(x0) + 1, dh); x.drawImage(im, iw - 1, 0, 1, ih, Math.floor(x0 + dw) - 1, y0, cw - Math.floor(x0 + dw) + 1, dh); }
-    if (y0 > 0) { x.drawImage(cv, 0, Math.ceil(y0), cw, 1, 0, 0, cw, Math.ceil(y0) + 1); x.drawImage(cv, 0, Math.floor(y0 + dh) - 1, cw, 1, 0, Math.floor(y0 + dh) - 1, cw, ch - Math.floor(y0 + dh) + 1); }
-    const data = cv.toDataURL('image/jpeg', .9);
-    if (tok !== fgBgTok) return;
-    l.style.backgroundImage = `url("${data}")`; l.style.backgroundSize = '100% 100%'; l.style.backgroundPosition = 'center';
-  } catch (e) {}   // imagem sem permissão de leitura: fica como está
+    // 1) bordas esticadas (últimos pixels de cada lado) — depois embaçadas
+    const ed = document.createElement('canvas'); ed.width = cw; ed.height = ch; const e = ed.getContext('2d');
+    e.drawImage(im, x0, y0, w, h);
+    if (x0 > 0) e.drawImage(im, 0, 0, 1, ih, 0, y0, Math.ceil(x0) + 1, h);
+    if (x1 < cw) e.drawImage(im, iw - 1, 0, 1, ih, Math.floor(x1) - 1, y0, cw - Math.floor(x1) + 1, h);
+    if (y0 > 0) e.drawImage(ed, 0, Math.ceil(Math.max(0, y0)), cw, 1, 0, 0, cw, Math.ceil(y0) + 1);
+    if (y1 < ch) e.drawImage(ed, 0, Math.floor(Math.min(ch, y1)) - 1, cw, 1, 0, Math.floor(y1) - 1, cw, ch - Math.floor(y1) + 1);
+    x.filter = 'blur(28px)'; x.drawImage(ed, -40, -40, cw + 80, ch + 80); x.filter = 'none';
+    // 2) degradê escurecendo as bordas esticadas, mais forte longe da imagem
+    const dark = (gx0, gy0, gx1, gy1, rx, ry, rw, rh) => { const gr = x.createLinearGradient(gx0, gy0, gx1, gy1); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,.55)'); x.fillStyle = gr; x.fillRect(rx, ry, rw, rh); };
+    if (x0 > 0) dark(x0, 0, 0, 0, 0, 0, x0, ch);
+    if (x1 < cw) dark(x1, 0, cw, 0, x1, 0, cw - x1, ch);
+    if (y0 > 0) dark(0, y0, 0, 0, 0, 0, cw, y0);
+    if (y1 < ch) dark(0, y1, 0, ch, 0, y1, cw, ch - y1);
+    // 3) a imagem nítida por cima, com a borda suavizada (sem corte seco)
+    const sh = document.createElement('canvas'); sh.width = cw; sh.height = ch; const s2 = sh.getContext('2d');
+    s2.drawImage(im, x0, y0, w, h);
+    const f = Math.min(40, w * .06, h * .06); s2.globalCompositeOperation = 'destination-in';
+    const mk = document.createElement('canvas'); mk.width = cw; mk.height = ch; const m = mk.getContext('2d');
+    m.filter = `blur(${f / 2}px)`; m.fillStyle = '#000'; m.fillRect(x0 + (x0 > 0 ? f / 2 : -f), y0 + (y0 > 0 ? f / 2 : -f), w - (x0 > 0 ? f / 2 : -f) - (x1 < cw ? f / 2 : -f), h - (y0 > 0 ? f / 2 : -f) - (y1 < ch ? f / 2 : -f));
+    s2.drawImage(mk, 0, 0); x.drawImage(sh, 0, 0);
+    if (l.parentNode !== $('fgBg')) return;
+    l.style.backgroundImage = `url("${cv.toDataURL('image/jpeg', .9)}")`; l.style.backgroundSize = '100% 100%'; l.style.backgroundPosition = 'center';
+  } catch (er) {}   // imagem sem permissão de leitura: fica só a imagem
 }
-async function fgApplyBgOfs(l, url, g) {   // posição/zoom do fundo do jogo ('bofs|chave')
-  const o = fgBgOfs(g);
-  if (!o) { l.style.backgroundSize = ''; l.style.backgroundPosition = ''; return; }
-  l.style.backgroundPosition = `${o.x}% ${o.y}%`;
-  if (o.z === 1) { l.style.backgroundSize = 'cover'; return; }
-  const d = await loadDims(url); if (!d) return;
-  const W = l.offsetWidth || innerWidth, H = l.offsetHeight || innerHeight, sc = Math.max(W / d.w, H / d.h) * o.z;
-  l.style.backgroundSize = `${d.w * sc}px ${d.h * sc}px`;
-}
+function fgApplyBgOfs(l, url, g) { return fgBgRender(l, url, g); }
 const fgOfs = g => { const v = covers['fofs|' + coverKey(g)]; if (!v) return null; const [x, y, z] = v.split(',').map(Number); return { x, y, z: z || 1 }; };
 const imgDims = {};
 const loadDims = url => imgDims[url] ? Promise.resolve(imgDims[url]) : new Promise(ok => { const i = new Image(); i.onload = () => ok(imgDims[url] = { w: i.naturalWidth, h: i.naturalHeight }); i.onerror = () => ok(null); i.src = cp(url); });
@@ -432,11 +447,11 @@ function fpRender() {
 }
 function fpPan(dx, dy) {   // dx/dy em pixels de tela
   const ex = fp.W - fp.Dw, ey = fp.H - fp.Dh;
-  if (ex < 0) fp.x = Math.max(0, Math.min(100, fp.x + dx / ex * 100));
-  if (ey < 0) fp.y = Math.max(0, Math.min(100, fp.y + dy / ey * 100));
+  if (ex < 0 || (fp.kind === 'bg' && ex > 0)) fp.x = Math.max(0, Math.min(100, fp.x + dx / ex * 100));
+  if (ey < 0 || (fp.kind === 'bg' && ey > 0)) fp.y = Math.max(0, Math.min(100, fp.y + dy / ey * 100));
   fpRender();
 }
-function fpZoom(f) { fp.z = Math.max(1, Math.min(4, fp.z * f)); fpRender(); }
+function fpZoom(f) { fp.z = Math.max(fp.kind === 'bg' ? .3 : 1, Math.min(4, fp.z * f)); fpRender(); }   // fundo pode ficar menor que a tela (as bordas são preenchidas)
 function fpClose(save) {
   if (!fp.open) return;
   fp.open = false; $('fpModal').classList.remove('on');
