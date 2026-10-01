@@ -222,6 +222,45 @@ function spineLogo(url, my) {   // logo do SteamGridDB na lateral, só depois de
 }
 function loadRatio(url) { return new Promise(ok => { const i = new Image(); i.onload = () => { const r = i.naturalWidth > 1 ? i.naturalWidth / i.naturalHeight : null; if (r) ratioCache[url] = r; ok(r); }; i.onerror = () => ok(null); i.src = url; }); }
 let coverStyle2d = false;
+// ---- cor principal da capa: a cor mais presente (com peso para cores vivas) vira a cor de toda a caixa 3D ----
+const caseColor = {};
+function caseVars(url) {
+  if (!url) return '';
+  const c = caseColor[url];
+  if (c === undefined) { caseColor[url] = null; setTimeout(() => caseTint(url), 0); return ''; }
+  return c ? `--edge:${c.bg};--etxt:${c.fg};` : '';
+}
+function caseTint(url) {
+  const tryLoad = (src, cors) => new Promise(res => { const im = new Image(); if (cors) im.crossOrigin = 'anonymous'; im.onload = () => res(im); im.onerror = () => res(null); im.src = src; });
+  (async () => {
+    let im = /^https?:/.test(url) ? await tryLoad('/api/img?u=' + encodeURIComponent(url)) : await tryLoad(url);
+    let col = im && mainColor(im);
+    if (!col && /^https?:/.test(url)) { im = await tryLoad(url, true); col = im && mainColor(im); }
+    if (!col) return;
+    caseColor[url] = col;
+    document.querySelectorAll('.case3d').forEach(el => { if (el.dataset.u === url) { el.style.setProperty('--edge', col.bg); el.style.setProperty('--etxt', col.fg); } });
+  })();
+}
+function mainColor(im) {
+  try {
+    const N = 40, cv = document.createElement('canvas'); cv.width = N; cv.height = N;
+    const x = cv.getContext('2d', { willReadFrequently: true }); x.drawImage(im, 0, 0, N, N);
+    const d = x.getImageData(0, 0, N, N).data, B = {};
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i + 3] < 128) continue;
+      const r = d[i], g = d[i + 1], b = d[i + 2], mx = Math.max(r, g, b), mn = Math.min(r, g, b), sat = mx ? (mx - mn) / mx : 0;
+      const k = (r >> 4) + ',' + (g >> 4) + ',' + (b >> 4), w = 1 + sat * 2;   // cores vivas pesam mais que cinza/branco/preto
+      const o = B[k] || (B[k] = { n: 0, r: 0, g: 0, b: 0 }); o.n += w; o.r += r * w; o.g += g * w; o.b += b * w;
+    }
+    let best = null; for (const k in B) if (!best || B[k].n > best.n) best = B[k];
+    if (!best) return null;
+    let r = best.r / best.n, g = best.g / best.n, b = best.b / best.n;
+    const L = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+    if (L > .82) { r *= .9; g *= .9; b *= .9; }   // branco puro fica levemente acinzentado (caixa não "some")
+    const hex = v => Math.round(v).toString(16).padStart(2, '0');
+    return { bg: '#' + hex(r) + hex(g) + hex(b), fg: L > .55 ? '#111' : '#fff' };
+  } catch (e) { return null; }   // imagem de outro site sem permissão de leitura
+}
 function buildCase(g, url, back, ratio) {
   const base = CASES[sys.type === 'pc' ? 'pc' : sys.id] || { r:.72, d:.1, spine:'#222', txt:'#ddd', rim:0 };
   const gen = base.txt;   // cor da capa genérica
@@ -235,11 +274,11 @@ function buildCase(g, url, back, ratio) {
   const px = v => v.toFixed(2) + 'px';
   const face = (cls, w, h, tf, style, html) => `<div class="face ${cls}" style="width:${px(w)};height:${px(h)};left:${px((W - w) / 2)};top:${px((H - h) / 2)};transform:${tf};${style}">${html || ''}</div>`;
   const fs = Math.max(9, D * .36);
-  const spineHtml = `<span style="color:${c.txt};font-size:${px(fs)}">${esc(cleanTitle(dn(g)) || dn(g))}</span>`;
+  const spineHtml = `<span style="color:var(--etxt, ${c.txt});font-size:${px(fs)}">${esc(cleanTitle(dn(g)) || dn(g))}</span>`;
   const coverStyle = `background:linear-gradient(160deg, ${gen} -20%, ${base.spine} 55%, #000 130%);`;
   const tex = url ? `<div style="position:absolute;inset:0;background:url('${url.replace(/'/g, "%27")}') center/cover no-repeat"></div>` : '';
   const inner = `<div class="generic" style="position:absolute;inset:0;color:#fff"><img class="lg" src="${logoUrl(sys)}" alt=""><div class="gt" style="font-size:${px(Math.max(14, W * .085))}">${esc(cleanTitle(dn(g)) || dn(g))}</div><img class="ct" src="${ART}controllers/${sys.art}.svg" alt=""></div>`;
-  const edge = '#0b0b0b';
+  const edge = 'var(--edge, #0b0b0b)';   // cor principal da capa (calculada da imagem), preto enquanto não sabe
   if (coverStyle2d) {   // 2D: encarte esticado — lombada (logo/nome deitados) encostada na frente, moldura preta
     const S = Math.max(small ? 14 : 22, W * .11), F = Math.max(4, Math.round(H * .025));
     return `<div class="cw c2d"><div class="flip${back ? ' back' : ''}"><div class="flat2d" style="--fr:${F}px">` +
@@ -247,7 +286,7 @@ function buildCase(g, url, back, ratio) {
       `<div class="front" style="width:${px(W)};height:${px(H)}"><div style="position:absolute;inset:0;${coverStyle}"></div>${inner}${tex}</div>` +
       `</div></div></div>`;
   }
-  const rimStyle = `border:${rim}px solid ${c.rimc};box-sizing:border-box;border-radius:${R}px;`;
+  const rimStyle = `border:${rim}px solid var(--edge, ${c.rimc});box-sizing:border-box;border-radius:${R}px;`;
   // quinas arredondadas: fatias finas formando um quarto de cilindro em cada canto, unindo frente, laterais, topo e fundo
   let corners = '';
   const N = 8, seg = (Math.PI * R / 2) / N + 1.5, O = 2;   // O = sobreposição para não sobrar fresta entre as faces
@@ -259,8 +298,8 @@ function buildCase(g, url, back, ratio) {
       corners += face('corner', seg, D + O, `translate3d(${px(x)},${px(y)},0) rotateZ(${(th * 180 / Math.PI + 90).toFixed(2)}deg) rotateX(90deg)`, `background:${edge};filter:brightness(${shade.toFixed(2)});backface-visibility:visible;`);
     }
   });
-  return `<div class="cw" style="transform:${scaleTf()}"><div class="rot" style="transform:${viewTf()};transform-style:preserve-3d"><div class="flip${back ? ' back' : ''}"><div class="case3d" style="width:${px(W)};height:${px(H)}">` +
-    face('front', W, H, `translateZ(${px(D / 2)})`, rimStyle + `background-color:${c.rimc};`, `<div style="position:absolute;inset:0;background-size:cover;background-position:center;${coverStyle}"></div>${inner}${tex}`) +
+  return `<div class="cw" style="transform:${scaleTf()}"><div class="rot" style="transform:${viewTf()};transform-style:preserve-3d"><div class="flip${back ? ' back' : ''}"><div class="case3d" data-u="${esc(url || '')}" style="width:${px(W)};height:${px(H)};${caseVars(url)}">` +
+    face('front', W, H, `translateZ(${px(D / 2)})`, rimStyle + `background-color:var(--edge, ${c.rimc});`, `<div style="position:absolute;inset:0;background-size:cover;background-position:center;${coverStyle}"></div>${inner}${tex}`) +
     face('back', W, H, `rotateY(180deg) translateZ(${px(D / 2)})`, `background:${edge};border-radius:${R}px;filter:brightness(.6);`) +
     face('spine', D + O, H - 2 * R + O, `rotateY(-90deg) translateZ(${px(W / 2)})`, `--sh:${px((H - 2 * R) * .85)};--sw:${px(D * .8)};background:linear-gradient(90deg, rgba(0,0,0,.25), rgba(255,255,255,.08) 50%, rgba(0,0,0,.25)), ${edge};`, spineHtml) +
     face('side', D + O, H - 2 * R + O, `rotateY(90deg) translateZ(${px(W / 2)})`, `background:${edge};filter:brightness(.8);`) +
