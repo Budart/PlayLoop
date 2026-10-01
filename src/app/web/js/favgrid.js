@@ -283,9 +283,11 @@ async function fgLogo(g) {
 $('fgHead').querySelector('.fdp').onclick = () => { const g = fg.items[fg.sel]; if (g) api('/api/reveal', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ path: g.path }) }).catch(er => toast(er.message, true)); };
 // fundo da tela de favoritos = fundo do jogo selecionado (opcional, Configuração → Favoritos)
 let favBgGame = false, fgBgTok = 0;
-async function fgGameBg(g) {
-  const host = $('fgBg'), tok = ++fgBgTok;
-  if (!favBgGame || !g) { host.querySelectorAll('.bgl').forEach(o => { o.classList.remove('on'); setTimeout(() => o.remove(), 600); }); return; }
+async function fgGameBg(g, force) {
+  const host = $('fgBg');
+  if (!force && favBgGame && g && host._g === g && host.querySelector('.bgl')) return;   // mesmo jogo: mantém a camada (clique duplo não pisca o fundo)
+  const tok = ++fgBgTok;
+  if (!favBgGame || !g) { host._g = null; host.querySelectorAll('.bgl').forEach(o => { o.classList.remove('on'); setTimeout(() => o.remove(), 600); }); return; }
   const over = covers['bg|' + coverKey(g)];
   let url = over; if (!url) { const a = cachedArt(g) || await resolveArt(g).catch(() => null); if (a) url = a.snap || a.box; }
   if (tok !== fgBgTok || !url) return;
@@ -309,15 +311,26 @@ function playFx(rect, bgImage, bgPos, radius, bgSize) {
   fxOpen = true; fxAt = Date.now(); fx.classList.add('on');
   requestAnimationFrame(() => requestAnimationFrame(() => { fx.classList.add('grow'); Object.assign(fx.style, { left: '0px', top: '0px', width: '100vw', height: '100vh', borderRadius: '0px' }); }));
 }
-function fgLaunch() {
+let fgLaunching = false;
+function fgLaunch(noWait) {
   const g = fg.items[fg.sel], el = $('fgTrack').querySelector(`.fgcard[data-i="${fg.sel}"]`); if (!g || fxOpen) return;
   // com o fundo do jogo na tela: os itens somem e o próprio fundo cresce até a tela cheia
-  const host = $('fgBg'), lay = [...host.querySelectorAll('.bgl.on')].pop();
+  const host = $('fgBg');
+  if (favBgGame && host._g !== g && !noWait && !fgLaunching && !(fgLaunch._w > 0)) {   // fundo do jogo ainda carregando (ex.: clique duplo num card novo): espera até 0,8 s
+    fgLaunch._w = 1; const t0 = Date.now();
+    const wait = () => { if (host._g === g || Date.now() - t0 > 800) { fgLaunch._w = 0; fgLaunch(true); } else setTimeout(wait, 50); };
+    wait(); return;
+  }
+  const lay = [...host.querySelectorAll('.bgl')].pop();
   if (favBgGame && lay && host._g === g) {
-    $('favgrid').classList.add('launching');
-    $('fgFx').classList.add('frombg');
-    const cs = getComputedStyle(lay);
-    playFx(host.getBoundingClientRect(), lay.style.backgroundImage, cs.backgroundPosition, 0, cs.backgroundSize);
+    if (fgLaunching) return; fgLaunching = true;
+    $('favgrid').classList.add('launching');   // 1) tudo some num fade rápido
+    setTimeout(() => {                          // 2) depois o fundo cresce até a tela cheia
+      fgLaunching = false;
+      $('fgFx').classList.add('frombg');
+      const cs = getComputedStyle(lay);
+      playFx(host.getBoundingClientRect(), lay.style.backgroundImage, cs.backgroundPosition, 0, cs.backgroundSize);
+    }, 220);
     return;
   }
   if (!el) { launch(); return; }

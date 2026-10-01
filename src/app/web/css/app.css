@@ -593,3 +593,6 @@ body.th-light .wpsearch .wpbar input::placeholder { color:#9A8B7A; }
 .fgfx.frombg { opacity:.42; }
 .fgfx.frombg.grow { opacity:1; transition:left .55s cubic-bezier(.2,.8,.2,1), top .55s cubic-bezier(.2,.8,.2,1), width .55s cubic-bezier(.2,.8,.2,1), height .55s cubic-bezier(.2,.8,.2,1), opacity .45s; }
 .fgfx.frombg.grow.out { opacity:0; transition:opacity .3s; }
+
+.fxlbl { font-weight:300; letter-spacing:.5px; }
+#favgrid > *:not(.fgbg) { transition:opacity .2s ease; }

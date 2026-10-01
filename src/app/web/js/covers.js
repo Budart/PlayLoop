@@ -34,7 +34,7 @@ async function setCover(url) {
     try { await api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, url }) }); } catch (e) { toast(e.message, true); return; }
     if (url) covers[key] = url; else delete covers[key];
     closeCover(); toast(url ? 'Fundo salvo!' : 'Voltou para o fundo automático');
-    if (screen === 'favgrid') { fgBgTok++; fgGameBg(g); if (!favBgGame) toast('Fundo salvo — ative "Fundo do jogo" em Configuração → Favoritos para vê-lo nesta tela'); }
+    if (screen === 'favgrid') { fgBgTok++; fgGameBg(g, true); if (!favBgGame) toast('Fundo salvo — ative "Fundo do jogo" em Configuração → Favoritos para vê-lo nesta tela'); }
     else if (shown[gIdx] === g) showArt(g);
     return;
   }
