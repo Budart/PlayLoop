@@ -406,17 +406,18 @@ function filter() {
       if (isCol) return;
       gr.items.forEach(g => {
         const i = shown.push(g) - 1, isHid = !!gr.hid, fav = isFavG(g);
-        vItems.push({ h: vRowH, i, mk: () => `<div class="row${isHid ? ' hid' : ''}${indent ? ' sub' : ''}${multi.has(g) ? ' sel' : ''}" data-i="${i}" draggable="true">${multi.size > 1 ? `<span class="ck${multi.has(g) ? ' on' : ''}" data-ck="${i}"></span>` : ''}${globalMode ? `<span class="tag">${esc(sname(g.sid))}</span>` : ''}<span class="nm">${esc(dn(g))}</span>${ecat(g) && !grouped && !globalMode ? `<span class="cat">${esc(ecat(g))}</span>` : ''}<img class="rctl" src="${ctrlImg(sysOf(g))}" alt="" draggable="false"><span class="eye" data-eye="${i}" title="${isHid ? 'Mostrar jogo' : 'Ocultar jogo'}">${isHid ? EYE_ON : EYE_OFF}</span><span class="pen" data-pen="${i}" title="Renomear (F2)">${PEN}</span>${isHid ? '' : `<span class="star${fav ? ' on' : ''}" data-star="${i}" title="${fav ? 'Remover dos favoritos' : 'Favoritar'}">${STAR}</span>`}</div>` });
+        vItems.push({ h: vRowH, i, mk: () => `<div class="row${isHid ? ' hid' : ''}${indent ? ' sub' : ''}${multi.has(g) ? ' sel' : ''}" data-i="${i}" draggable="true">${multi.size > 1 ? `<span class="ck${multi.has(g) ? ' on' : ''}" data-ck="${i}"></span>` : ''}${globalMode ? `<span class="tag">${esc(sname(g.sid))}</span>` : ''}<span class="nm">${esc(dn(g))}</span>${ecat(g) && !grouped && !globalMode ? `<span class="cat">${esc(ecat(g))}</span>` : ''}<span class="eye" data-eye="${i}" title="${isHid ? 'Mostrar jogo' : 'Ocultar jogo'}">${isHid ? EYE_ON : EYE_OFF}</span><span class="pen" data-pen="${i}" title="Renomear (F2)">${PEN}</span>${isHid ? '' : `<span class="star${fav ? ' on' : ''}" data-star="${i}" title="${fav ? 'Remover dos favoritos' : 'Favoritar'}">${STAR}</span>`}</div>` });
       });
     });
   };
   if (globalMode) {
     // busca geral / Favoritos: uma "pasta" por console, com os jogos direto dentro
+    const nSys = new Set(match.map(g => g.sid)).size;   // mais de um console no resultado: mostra o controle de cada um no título
     allSystems.forEach(s => {
       if (s.enabled === false) return;
       const items = match.filter(g => g.sid === s.id); if (!items.length) return;
       const key = 'c:' + s.id, isCol = collapsed.has(key);
-      head(' folder', '', key, isCol, `📁 ${esc(s.name)} · ${items.length}`);
+      head(' folder', '', key, isCol, `${nSys > 1 ? `<img class="hctl" src="${ctrlImg(s)}" alt="">` : '📁 '}${esc(s.name)} · ${items.length}`);
       if (isCol) { nvis += items.length; return; }
       const vis = items.filter(g => !hidden.has(coverKey(g))).sort(sortCmp);   // só a pasta do console, sem subcategorias
       renderGroups({ groups: [{ cat: '', label: '', items: vis }], nvis: vis.length, grouped: false }, '', true);
