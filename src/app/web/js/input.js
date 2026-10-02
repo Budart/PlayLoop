@@ -165,6 +165,17 @@ document.addEventListener('keydown', e => {
     return;
   }
   if (e.key === 'Escape' && screen === 'games' && clearMulti()) { e.preventDefault(); return; }   // Esc limpa a seleção em lote
+  // Shift + setas (ou PgUp/PgDn/Home/End): seleciona em lote os jogos por onde passa
+  const sm = { ArrowUp: -1, ArrowDown: 1, PageUp: -10, PageDown: 10, Home: -1e9, End: 1e9 }[e.key];
+  if (screen === 'games' && e.shiftKey && sm && shown[gIdx] && !renaming && document.activeElement !== $('q')) {
+    e.preventDefault();
+    if (anchor < 0 || !multi.size) anchor = gIdx;
+    selectGame(Math.max(0, Math.min(shown.length - 1, gIdx + sm)));
+    multi.clear(); const a = Math.min(anchor, gIdx), b = Math.max(anchor, gIdx);
+    for (let k = a; k <= b; k++) multi.add(shown[k]);
+    $('list').classList.toggle('multi', multi.size > 1); vRender(); multiInfo();
+    return;
+  }
   const map = { ArrowLeft:'left', ArrowRight:'right', ArrowUp:'up', ArrowDown:'down', Enter:'ok', Escape:'back', PageUp:'pgup', PageDown:'pgdn', Home:'home', End:'end' };
   const inSearch = document.activeElement === $('q');
   if (map[e.key] && !(inSearch && ['left','right','home','end'].includes(map[e.key]))) {
