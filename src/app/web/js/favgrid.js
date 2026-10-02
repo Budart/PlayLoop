@@ -14,7 +14,7 @@ let fgFree = true; try { fgFree = localStorage.getItem('fgfree') !== '0'; } catc
 const FR_MIN = .6, FR_MAX = 4, FR_STEP = .25;
 const fgFr = g => { const v = covers['ffree|' + coverKey(g)]; if (!v) return null; const [p, x, y, w, h] = v.split(',').map(Number); return { p, x, y, w, h }; };
 function fgSetFr(g, q) {
-  const key = 'ffree|' + coverKey(g), r2 = n => Math.round(n * 100) / 100, val = q ? `${q.p},${r2(q.x)},${r2(q.y)},${r2(q.w)},${r2(q.h)}` : '';
+  const key = 'ffree|' + coverKey(g), r2 = n => Math.round(n * 10000) / 10000, val = q ? `${q.p},${r2(q.x)},${r2(q.y)},${r2(q.w)},${r2(q.h)}` : '';
   if (val) covers[key] = val; else delete covers[key];
   api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, url: val }) }).catch(() => {});
 }
@@ -55,9 +55,9 @@ function fgLayoutFree() {
 function fgPinFree() { fg.items.forEach((g, i) => { const q = fgFr(g), pl = fg.place[i]; if (pl && (!q || q.p !== pl.p || Math.abs(q.x - pl.x) > .005 || Math.abs(q.y - pl.y) > .005 || Math.abs(q.w - pl.w) > .005 || Math.abs(q.h - pl.h) > .005)) fgSetFr(g, pl); }); }
 const frStyle = pl => `grid-column:1 / -1;grid-row:1 / -1;position:absolute;left:calc(${pl.x} * (var(--cell) + 20px));top:calc(${pl.y} * (var(--cell) + 20px));width:calc(${pl.w} * (var(--cell) + 20px) - 20px);height:calc(${pl.h} * (var(--cell) + 20px) - 20px)`;
 // lote: os cards mantêm a arrumação relativa (linhas/colunas) e ficam encostados no card que está sendo puxado
-function frBatchLayout(list, w, h) {
-  const { R, C } = fgDim(), anc = fg.place[list[0]], out = {};
-  const items = list.map(k => ({ k, q: fg.place[k] })).filter(o => o.q && o.q.p === anc.p);
+function frBatchLayout(list, w, h, aq) {
+  const { R, C } = fgDim(), anc = aq || fg.place[list[0]], out = {};
+  const items = list.map(k => ({ k, q: fg.place[k] })).filter(o => o.q && o.q.p === fg.place[list[0]].p);
   const rows = []; items.slice().sort((a, b) => a.q.y - b.q.y).forEach(o => { const r = rows.find(r => Math.abs(r.y - o.q.y) < .5); if (r) r.m.push(o); else rows.push({ y: o.q.y, m: [o] }); });
   rows.forEach(r => r.m.sort((a, b) => a.q.x - b.q.x));
   const ra = rows.findIndex(r => r.m.some(o => o.k === list[0])), ca = rows[ra].m.findIndex(o => o.k === list[0]);
@@ -69,12 +69,16 @@ function frBatchLayout(list, w, h) {
   return out;
 }
 // prévia ao redimensionar (1 card ou lote): mostra na hora onde cada card empurrado vai parar (nada é salvo até soltar)
-function frPreviewResize(list, w, h) {
+function frResizePlan(list, w, h, aq) {   // mesma conta para a prévia e para o resultado final
   const { R, C } = fgDim(), set = new Set(list), placed = [], res = {};
-  const bl = frBatchLayout(list, w, h);
+  const bl = frBatchLayout(list, w, h, aq); if (aq) bl[list[0]] = { p: aq.p, x: aq.x, y: aq.y, w: aq.w, h: aq.h };
   list.forEach(k => { const q = bl[k]; if (placed.some(r => r.p === q.p && frHit(r, q))) { res[k] = null; } else { placed.push(q); res[k] = q; } });
   fg.place.forEach((r, k) => { if (!set.has(k)) { if (placed.some(q => q.p === r.p && frHit(q, r))) res[k] = null; else placed.push(r); } });
   Object.keys(res).forEach(k => { if (res[k] === null) { const r = fg.place[k], s2 = set.has(+k) ? { w: Math.min(w, C), h: Math.min(h, R) } : r; res[k] = frFit(placed, s2.w, s2.h, r.p); placed.push(res[k]); } });
+  return res;
+}
+function frPreviewResize(list, w, h, aq) {
+  const res = frResizePlan(list, w, h, aq);
   const tr = $('fgTrack');
   fg.place.forEach((r, k) => {
     const el = tr.querySelector(`.fgcard[data-i="${k}"]`); if (!el || k === list[0]) return;
@@ -85,13 +89,9 @@ function frPreviewResize(list, w, h) {
   });
 }
 // lote: todos os cards ficam com o mesmo tamanho (cada um no seu lugar); quem ficar por baixo vai para o próximo espaço livre
-function frResizeMany(list, w, h) {
-  const { R, C } = fgDim(), set = new Set(list), news = {};
-  const bl = frBatchLayout(list, w, h);
-  list.forEach(k => { news[k] = bl[k]; fgSetFr(fg.items[k], news[k]); });
-  const kept = [];   // entre os redimensionados, quem bater em outro já mantido vai procurar lugar
-  list.forEach(k => { if (kept.some(j => news[j].p === news[k].p && frHit(news[j], news[k]))) fgSetFr(fg.items[k], { p: -1, x: 0, y: 0, w: news[k].w, h: news[k].h }); else kept.push(k); });
-  fg.items.forEach((o, k) => { const r = fg.place[k]; if (!set.has(k) && r && kept.some(j => news[j].p === r.p && frHit(news[j], r))) fgSetFr(o, { p: -1, x: 0, y: 0, w: r.w, h: r.h }); });
+function frResizeMany(list, w, h, aq) {
+  const res = frResizePlan(list, w, h, aq);
+  Object.keys(res).forEach(k => fgSetFr(fg.items[+k], res[k]));   // grava exatamente o que a prévia mostrou
   sfx('ok'); renderFavGrid();
 }
 // mover vários cards de uma vez: todos andam o mesmo tanto que o card arrastado (presos às bordas); quem ficar por baixo vai para um espaço livre
@@ -391,9 +391,9 @@ function fgBind(el) {
         if (mode.includes('b')) q.h = Math.max(FR_MIN, Math.min(FR_MAX, R - pl.y, pl.h + (ev.clientY - sy) / G.pitch));
         }
         el.style.cssText = frStyle(q);
-        if (!rzRaf) rzRaf = requestAnimationFrame(() => { rzRaf = 0; frPreviewResize([i, ...(batch || [])], q.w, q.h); });   // os outros cards já vão se empurrando
+        if (!rzRaf) rzRaf = requestAnimationFrame(() => { rzRaf = 0; frPreviewResize([i, ...(batch || [])], q.w, q.h, q); });   // os outros cards já vão se empurrando
       };
-      h.onpointerup = () => { h.onpointermove = h.onpointerup = null; el.classList.remove('rz'); if (batch) frResizeMany([i, ...batch], q.w, q.h); else frCommit(i, q); };
+      h.onpointerup = () => { h.onpointermove = h.onpointerup = null; el.classList.remove('rz'); frResizeMany([i, ...(batch || [])], q.w, q.h, q); };   // grava o que a prévia mostrou
       return;
     }
     const { R, C } = fgDim(), pl = fg.place[i], G = fgGeom(el.parentNode);
