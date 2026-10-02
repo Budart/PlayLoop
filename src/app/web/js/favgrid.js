@@ -8,6 +8,93 @@ const fgSize = g => { const v = covers['fsz|' + coverKey(g)]; if (!v) return { w
 
 // posição escolhida pelo usuário (arrastando): 'fpos|chave' = "página,coluna,linha"
 const fgPos = g => { const v = covers['fpos|' + coverKey(g)]; if (!v) return null; const [p, x, y] = v.split(',').map(Number); return { p, x, y }; };
+
+// ---------- modo livre ("não alinhar à grade"): cards com tamanho/posição livres, em unidades de célula (1 = célula + espaço) ----------
+let fgFree = true; try { fgFree = localStorage.getItem('fgfree') !== '0'; } catch (e) {}
+const FR_MIN = .6, FR_MAX = 4, FR_STEP = .25;
+const fgFr = g => { const v = covers['ffree|' + coverKey(g)]; if (!v) return null; const [p, x, y, w, h] = v.split(',').map(Number); return { p, x, y, w, h }; };
+function fgSetFr(g, q) {
+  const key = 'ffree|' + coverKey(g), r2 = n => Math.round(n * 100) / 100, val = q ? `${q.p},${r2(q.x)},${r2(q.y)},${r2(q.w)},${r2(q.h)}` : '';
+  if (val) covers[key] = val; else delete covers[key];
+  api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, url: val }) }).catch(() => {});
+}
+// tamanho inicial pelo formato da imagem (capa em pé, tela deitada...)
+function fgFrSize(g) {
+  const a = cachedArt(g), u = covers[coverKey(g)] || (a && a.box);
+  let r = a && a.ratio; if (!r && u) { const d = imgDims[u] || imgDims[cp(u)]; if (d) r = d.w / d.h; }
+  r = Math.max(.4, Math.min(2.4, r || .72));
+  const h = r > 1.2 ? 1.2 : 1.5, w = Math.max(FR_MIN, Math.min(FR_MAX, h * r));
+  return { w, h };
+}
+const frHit = (a, b) => a.x < b.x + b.w - .001 && a.x + a.w > b.x + .001 && a.y < b.y + b.h - .001 && a.y + a.h > b.y + .001;
+// primeiro lugar livre (de cima para baixo, da esquerda para a direita), encostando nos cards já colocados
+function frFit(placed, w, h, startPage) {
+  const { R, C } = fgDim();
+  for (let p = startPage || 0; p < 60; p++) {
+    const on = placed.filter(q => q && q.p === p);
+    const xs = [0, ...on.map(q => q.x + q.w)].filter(x => x + w <= C + .001), ys = [0, ...on.map(q => q.y + q.h)].filter(y => y + h <= R + .001);
+    xs.sort((a, b) => a - b); ys.sort((a, b) => a - b);
+    for (const y of ys) for (const x of xs) { const c = { p, x, y, w, h }; if (!on.some(q => frHit(c, q))) return c; }
+  }
+  return { p: 60, x: 0, y: 0, w, h };
+}
+function fgLayoutFree() {
+  const { R, C } = fgDim();
+  fg.place = fg.items.map(() => null);
+  const placed = [];
+  fg.items.forEach((g, i) => { const q = fgFr(g); if (q && q.p >= 0 && q.p < 60) { q.w = Math.min(q.w, C); q.h = Math.min(q.h, R); q.x = Math.max(0, Math.min(C - q.w, q.x)); q.y = Math.max(0, Math.min(R - q.h, q.y)); if (!placed.some(o => o.p === q.p && frHit(q, o))) { fg.place[i] = q; placed.push(q); } } });
+  fg.items.forEach((g, i) => {
+    if (fg.place[i]) return;
+    const q = fgFr(g), s = q ? { w: Math.min(q.w, C), h: Math.min(q.h, R) } : fgFrSize(g);
+    const c = frFit(placed, s.w, s.h); fg.place[i] = c; placed.push(c);
+  });
+  const used = [...new Set(fg.place.map(q => q.p))].sort((a, b) => a - b), map = {};
+  used.forEach((p, k) => map[p] = k); fg.place.forEach(q => { q.p = map[q.p]; });
+  fg.pages = Math.max(1, used.length);
+}
+function fgPinFree() { fg.items.forEach((g, i) => { const q = fgFr(g), pl = fg.place[i]; if (pl && (!q || q.p !== pl.p || Math.abs(q.x - pl.x) > .005 || Math.abs(q.y - pl.y) > .005 || Math.abs(q.w - pl.w) > .005 || Math.abs(q.h - pl.h) > .005)) fgSetFr(g, pl); }); }
+const frStyle = pl => `grid-column:1 / -1;grid-row:1 / -1;position:absolute;left:calc(${pl.x} * (var(--cell) + 20px));top:calc(${pl.y} * (var(--cell) + 20px));width:calc(${pl.w} * (var(--cell) + 20px) - 20px);height:calc(${pl.h} * (var(--cell) + 20px) - 20px)`;
+// soltar/redimensionar o card i em q: quem ficar por baixo vai para o próximo lugar livre (mantendo o tamanho)
+function frCommit(i, q) {
+  fgSetFr(fg.items[i], q);
+  fg.items.forEach((o, k) => { const r = fg.place[k]; if (k !== i && r && r.p === q.p && frHit(q, r)) fgSetFr(o, { p: -1, x: 0, y: 0, w: r.w, h: r.h }); });
+  sfx('ok'); renderFavGrid();
+}
+// encosta nas bordas próximas (página e outros cards) para alinhar sem esforço
+function frSnap(i, q) {
+  const { R, C } = fgDim(), d = .22, on = fg.place.filter((r, k) => k !== i && r && r.p === q.p);
+  const xs = [0, C - q.w, ...on.flatMap(r => [r.x + r.w, r.x - q.w, r.x])], ys = [0, R - q.h, ...on.flatMap(r => [r.y + r.h, r.y - q.h, r.y])];
+  let bx = d, by = d; xs.forEach(x => { const e = Math.abs(x - q.x); if (e < bx) { bx = e; q.x = x; } }); ys.forEach(y => { const e = Math.abs(y - q.y); if (e < by) { by = e; q.y = y; } });
+  q.x = Math.max(0, Math.min(C - q.w, q.x)); q.y = Math.max(0, Math.min(R - q.h, q.y));
+  return q;
+}
+// "Alinhar automaticamente": mantém a ordem atual (página, linha, coluna) e encosta todos os cards
+function fgAutoAlign() {
+  const order = fg.items.map((g, i) => i).sort((a, b) => { const p = fg.place[a], q = fg.place[b]; return (p.p - q.p) || (Math.round(p.y * 4) - Math.round(q.y * 4)) || (p.x - q.x); });
+  const placed = [];
+  order.forEach(i => { const pl = fg.place[i], c = frFit(placed, pl.w, pl.h, placed.length ? placed[placed.length - 1].p : 0); placed.push(c); fgSetFr(fg.items[i], c); });
+  sfx('ok'); renderFavGrid(); toast('Cards alinhados');
+}
+function fgSetMode(free) {
+  fgFree = free; try { localStorage.setItem('fgfree', free ? '1' : '0'); } catch (e) {}
+  sfx('ok'); renderFavGrid();
+}
+// menu do botão direito fora dos cards
+function fgViewCtx(x, y) {
+  ctxItems = [
+    ['bg', `Alinhar à grade "opção mais leve"${fgFree ? '' : '  ✓'}`, () => fgSetMode(false)],
+    ['bg', `Não alinhar à grade "opção mais lenta"${fgFree ? '  ✓' : ''}`, () => fgSetMode(true)],
+  ];
+  if (fgFree) ctxItems.push(null, ['cover', 'Alinhar automaticamente', () => fgAutoAlign()]);
+  const m = $('ctx');
+  m.innerHTML = ctxItems.map((it, k) => it ? `<div class="ci ${it[3] || ''}" data-k="${k}">${ICO[it[0]]}${it[1]}</div>` : '<div class="sep"></div>').join('');
+  m.querySelectorAll('.ci').forEach(el => el.onclick = e => { e.stopPropagation(); closeCtx(); ctxItems[+el.dataset.k][2](); });
+  m.classList.add('on'); ctxSel = -1;
+  const r = m.getBoundingClientRect();
+  m.style.left = Math.min(x, innerWidth - r.width - 8) + 'px'; m.style.top = Math.max(8, Math.min(y, innerHeight - r.height - 8)) + 'px';
+  ctxMove(1);
+}
+$('favgrid').addEventListener('contextmenu', e => { if (e.target.closest('.fgcard, #fgHeader, #fgDots, .fgdet')) return; e.preventDefault(); if (screen === 'favgrid') fgViewCtx(e.clientX, e.clientY); });
 let fgJournal = null;   // durante a prévia, guarda os valores antigos para desfazer
 function fgSetPos(g, pos) {
   const key = 'fpos|' + coverKey(g), val = pos ? `${pos.p},${pos.x},${pos.y}` : '';
@@ -86,7 +173,9 @@ async function openFavGrid() {
   renderFavGrid();
 }
 function renderFavGrid() {
-  fgLayout(); fgPinAll(); fgCell(); fg.moving = null; fgMulti.clear();
+  if (fgFree) { fgLayoutFree(); fgPinFree(); } else { fgLayout(); fgPinAll(); }
+  fgCell(); fg.moving = null; fgMulti.clear();
+  $('favgrid').classList.toggle('free', fgFree);
   $('favgrid').classList.remove('arrange');
   const { R, C } = fgDim();
   if (!fg.items.length) { fgDetails(); $('fgTrack').innerHTML = '<div class="empty">Nenhum jogo favoritado ainda — use a ⭐ ao lado de um jogo.</div>'; $('fgDots').innerHTML = ''; return; }
@@ -98,7 +187,7 @@ function renderFavGrid() {
     fg.place.forEach((pl, i) => {
       if (pl.p !== p) return;
       const g = fg.items[i];
-      html += `<div class="fgcard${i === fg.sel ? ' sel' : ''}" data-i="${i}" style="grid-column:${pl.x + 1} / span ${pl.w};grid-row:${pl.y + 1} / span ${pl.h}">
+      html += `<div class="fgcard${i === fg.sel ? ' sel' : ''}" data-i="${i}" style="${fgFree ? frStyle(pl) : `grid-column:${pl.x + 1} / span ${pl.w};grid-row:${pl.y + 1} / span ${pl.h}`}">
         <div class="fgimg"></div><div class="fgname">${esc(dn(g))}</div>
         <button class="fgi" data-info title="Info (I)">i</button><span class="fgrz r" data-rz="r"></span><span class="fgrz b" data-rz="b"></span><span class="fgrz rb" data-rz="rb"></span></div>`;
     });
@@ -168,6 +257,17 @@ function fgBind(el) {
   // redimensionar arrastando a lateral direita, a de baixo ou o canto (sempre grudando na grade, máx. 4x4)
   el.querySelectorAll('[data-rz]').forEach(h => h.onpointerdown = e => {
     e.preventDefault(); e.stopPropagation(); fgSelect(i, true);
+    if (fgFree) {   // livre: qualquer tamanho/formato (limites: mín. 0,6 e máx. 4 células por lado)
+      const { R, C } = fgDim(), pl = fg.place[i], G = fgGeom(el.parentNode), mode = h.dataset.rz, sx = e.clientX, sy = e.clientY;
+      const q = { ...pl }; h.setPointerCapture(e.pointerId); el.classList.add('rz');
+      h.onpointermove = ev => {
+        if (mode.includes('r')) q.w = Math.max(FR_MIN, Math.min(FR_MAX, C - pl.x, pl.w + (ev.clientX - sx) / G.pitch));
+        if (mode.includes('b')) q.h = Math.max(FR_MIN, Math.min(FR_MAX, R - pl.y, pl.h + (ev.clientY - sy) / G.pitch));
+        el.style.cssText = frStyle(q);
+      };
+      h.onpointerup = () => { h.onpointermove = h.onpointerup = null; el.classList.remove('rz'); frCommit(i, q); };
+      return;
+    }
     const { R, C } = fgDim(), pl = fg.place[i], G = fgGeom(el.parentNode);
     const cw = G.pitch, ch = G.pitch, mode = h.dataset.rz, sx = e.clientX, sy = e.clientY;
     let w = pl.w, hh = pl.h;
@@ -210,6 +310,7 @@ function fgDragStart(e, el, i) {
   const cellAt = (x, y) => {
     const pg = $('fgTrack').children[fg.page]; if (!pg) return null;
     const G = fgGeom(pg);
+    if (fgFree) return { ...frSnap(i, { p: fg.page, x: (x - (sx - r0.left) - G.ox) / G.pitch, y: (y - (sy - r0.top) - G.oy) / G.pitch, w: pl.w, h: pl.h }), G };
     const gx = Math.round((x - (sx - r0.left) - G.ox) / G.pitch), gy = Math.round((y - (sy - r0.top) - G.oy) / G.pitch);
     return { p: fg.page, x: Math.max(0, Math.min(C - pl.w, gx)), y: Math.max(0, Math.min(R - pl.h, gy)), G };
   };
@@ -229,6 +330,7 @@ function fgDragStart(e, el, i) {
     target = cellAt(last.clientX, last.clientY);
     const s = $('fgSlot');
     if (s && target) { const G = target.G; s.style.cssText = `left:${G.ox - v.left + target.x * G.pitch}px;top:${G.oy - v.top + target.y * G.pitch}px;width:${pl.w * G.pitch - G.gap}px;height:${pl.h * G.pitch - G.gap}px`; }
+    if (fgFree) return;   // livre: só a marcação de onde vai cair (sem prévia dos outros cards — mais leve)
     // depois de um instante parado no mesmo lugar, mostra como os outros cards ficariam
     const key = target ? `${target.p},${target.x},${target.y}` : '';
     if (key !== prevKey) { prevKey = key; clearTimeout(prevT); if (target) { const t = target; prevT = setTimeout(() => { if (ghost) fgPreview(i, t); }, 260); } }
@@ -238,6 +340,7 @@ function fgDragStart(e, el, i) {
     if (!ghost) return;
     ghost.remove(); const s = $('fgSlot'); if (s) s.remove(); el.classList.remove('dragsrc'); $('favgrid').classList.remove('arrange');
     if (!target) return;
+    if (fgFree) { const { G, ...q } = target; frCommit(i, q); return; }
     fgDropInto(i, target); sfx('ok'); renderFavGrid();
   };
   document.addEventListener('pointermove', move); document.addEventListener('pointerup', up);
@@ -519,6 +622,10 @@ function fgCtx(x, y, sizes) {
   const { R, C } = fgDim(), cur = fgSize(g);
   if (fgMulti.size > 1 && fgMulti.has(fg.sel) && !sizes) {
     ctxItems = [['star', `Desfavoritar ${fgMulti.size} jogos`, () => fgBatchUnfav(), 'red'], ['pen', 'Limpar seleção', () => fgClearMulti()]];
+  } else if (sizes && fgFree) {
+    const i = fg.sel, pl = fg.place[i], { R, C } = fgDim();
+    const rs = f => frCommit(i, { ...pl, w: Math.max(FR_MIN, Math.min(FR_MAX, C - pl.x, pl.w * f)), h: Math.max(FR_MIN, Math.min(FR_MAX, R - pl.y, pl.h * f)) });
+    ctxItems = [['pen', '← Voltar', () => fgCtx(x, y)], null, ['cover', 'Aumentar', () => rs(1.25)], ['cover', 'Diminuir', () => rs(.8)], ['cover', 'Formato da capa', () => { const s2 = fgFrSize(fg.items[i]); frCommit(i, { ...pl, w: Math.min(s2.w, C - pl.x), h: Math.min(s2.h, R - pl.y) }); }]];
   } else if (sizes) {
     ctxItems = [['pen', '← Voltar', () => fgCtx(x, y)], null];
     for (let h = 1; h <= Math.min(4, R); h++) for (let w = 1; w <= Math.min(4, C); w++) ctxItems.push(['cover', `${w} × ${h}${w === cur.w && h === cur.h ? '  ✓' : ''}`, () => fgResize(g, w, h)]);
@@ -530,6 +637,9 @@ function fgCtx(x, y, sizes) {
     ['bg', 'Reposicionar fundo', () => fgBgPosOpen()],
     ['bg', 'Redimensionar ▸', () => setTimeout(() => fgCtx(x, y, true), 0)],
     ['eye', 'Info', () => fgInfo(true)],
+    null,
+    ['bg', fgFree ? 'Alinhar à grade "opção mais leve"' : 'Não alinhar à grade "opção mais lenta"', () => fgSetMode(!fgFree)],
+    ...(fgFree ? [['cover', 'Alinhar automaticamente', () => fgAutoAlign()]] : []),
   ];
   const m = $('ctx');
   m.innerHTML = ctxItems.map((it, k) => it ? `<div class="ci ${it[3] || ''}" data-k="${k}">${ICO[it[0]]}${it[1]}</div>` : '<div class="sep"></div>').join('');
@@ -562,11 +672,22 @@ $('fgiPlay').onclick = () => { fgInfo(false); fgLaunch(); };
 function fgMoveMode() {
   const i = fg.sel, pl = fg.place[i]; if (!pl) return;
   if (!fg.moving) { fg.moving = { i, t: { p: pl.p, x: pl.x, y: pl.y } }; fgLift(); sfx('ok'); return; }
-  const t = fg.moving.t; fg.moving = null; fgDropInto(i, t); sfx('ok'); renderFavGrid();
+  const t = fg.moving.t; fg.moving = null;
+  if (fgFree) { frCommit(i, { p: t.p, x: t.x, y: t.y, w: pl.w, h: pl.h }); return; }
+  fgDropInto(i, t); sfx('ok'); renderFavGrid();
 }
 function fgLift() { $('favgrid').classList.add('arrange'); const el = $('fgTrack').querySelector(`.fgcard[data-i="${fg.moving.i}"]`); if (el) el.classList.add('lift'); }
 function fgMoveStep(dir) {
   const m = fg.moving, pl = fg.place[m.i], t = m.t, { R, C } = fgDim();
+  if (fgFree) {   // livre: anda 1/4 de célula; nas laterais passa de página
+    const st = FR_STEP;
+    if (dir === 'up') t.y = Math.max(0, t.y - st); else if (dir === 'down') t.y = Math.min(R - pl.h, t.y + st);
+    else if (dir === 'left') { if (t.x > .001) t.x = Math.max(0, t.x - st); else if (t.p > 0) { t.p--; t.x = C - pl.w; } }
+    else if (dir === 'right') { if (t.x < C - pl.w - .001) t.x = Math.min(C - pl.w, t.x + st); else { t.p++; t.x = 0; } }
+    const el = $('fgTrack').querySelector(`.fgcard[data-i="${m.i}"]`);
+    if (el) { while ($('fgTrack').children.length <= t.p) fgAddPage(); const pg = $('fgTrack').children[t.p]; if (el.parentNode !== pg) pg.appendChild(el); el.style.cssText = frStyle({ x: t.x, y: t.y, w: pl.w, h: pl.h }); }
+    fgLift(); if (t.p !== fg.page) fgPage(t.p, true); sfx('tick'); return;
+  }
   if (dir === 'up') t.y = Math.max(0, t.y - 1); else if (dir === 'down') t.y = Math.min(R - pl.h, t.y + 1);
   else if (dir === 'left') { if (t.x > 0) t.x--; else if (t.p > 0) { t.p--; t.x = C - pl.w; } }
   else if (dir === 'right') { if (t.x < C - pl.w) t.x++; else { t.p++; t.x = 0; } }

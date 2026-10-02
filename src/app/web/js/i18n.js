@@ -96,6 +96,10 @@ const I18N_RAW = [
   ['Jogar', 'Play', 'Jugar'], ['Fechar', 'Close', 'Cerrar'], ['Cancelar', 'Cancel', 'Cancelar'], ['Excluir', 'Delete', 'Eliminar'],
   ['Continuar sem', 'Continue without', 'Continuar sin'], ['Continuar', 'Continue', 'Continuar'], ['Pular', 'Skip', 'Saltar'],
   // configuração
+  ['Alinhar à grade "opção mais leve"', 'Snap to grid "lighter option"', 'Alinear a la cuadrícula "opción más ligera"'],
+  ['Não alinhar à grade "opção mais lenta"', 'Free layout "slower option"', 'No alinear a la cuadrícula "opción más lenta"'],
+  ['Alinhar automaticamente', 'Auto-align', 'Alinear automáticamente'], ['Cards alinhados', 'Cards aligned', 'Tarjetas alineadas'],
+  ['Aumentar', 'Bigger', 'Agrandar'], ['Diminuir', 'Smaller', 'Reducir'], ['Formato da capa', 'Cover shape', 'Forma de la portada'],
   ['Configuração', 'Settings', 'Configuración'],
   ['Sobre e créditos', 'About & credits', 'Acerca de y créditos'],
   ['Consoles e emuladores', 'Consoles & emulators', 'Consolas y emuladores'],
