@@ -194,6 +194,7 @@ function fgLayout() {
   fg.pages = Math.max(1, used.length);
 }
 async function openFavGrid() {
+  if (!fgUndoing && screen !== 'favgrid') { fgLastSnap = null; fgUndo = []; }   // histórico vale enquanto está nos Favoritos
   sfx('ok'); globalMode = false; favMode = false;
   show('favgrid'); history.replaceState(null, '', '#favoritos');
   $('fgTrack').innerHTML = '<div class="empty">Carregando...</div>';
@@ -212,7 +213,7 @@ function renderFavGrid() {
   $('favgrid').classList.toggle('free', fgFree);
   $('favgrid').classList.remove('arrange');
   const { R, C } = fgDim();
-  if (!fg.items.length) { fgDetails(); $('fgTrack').innerHTML = '<div class="empty">Nenhum jogo favoritado ainda — use a ⭐ ao lado de um jogo.</div>'; $('fgDots').innerHTML = ''; return; }
+  if (!fg.items.length) { fgDetails(); fgHist(); $('fgTrack').innerHTML = '<div class="empty">Nenhum jogo favoritado ainda — use a ⭐ ao lado de um jogo.</div>'; $('fgDots').innerHTML = ''; return; }
   let html = '';
   for (let p = 0; p < fg.pages; p++) {
     html += `<div class="fgpage" style="grid-template-columns:repeat(${C},var(--cell));grid-template-rows:repeat(${R},var(--cell))">`;
@@ -233,6 +234,7 @@ function renderFavGrid() {
   fgPage(fg.place[fg.sel] ? fg.place[fg.sel].p : 0, true);
   $('fgTrack').querySelectorAll('.fgcard').forEach(el => { fgBind(el); fgArt(+el.dataset.i, el); });
   fgDetails();
+  fgHist();
 }
 // imagem do card: escolhida pelo usuário > (card largo) tela/fundo do jogo > capa
 async function fgArt(i, el) {
@@ -655,6 +657,7 @@ function fpClose(save) {
     api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, url: val }) }).catch(() => {});
     if (fp.kind === 'bg') { const l = [...$('fgBg').querySelectorAll('.bgl')].pop(); if (l) fgApplyBgOfs(l, fp.url, fp.g); toast('Posição do fundo salva'); }
     else { fgApplyOfs(fp.el, fp.g); toast('Posição da capa salva'); }
+    fgHist();
     sfx('ok');
   } else sfx('back');
 }
@@ -690,7 +693,7 @@ async function fgAltPan(e, el, i) {
     document.removeEventListener('pointermove', mv); document.removeEventListener('pointerup', up); el.classList.remove('alting');
     const key = 'fofs|' + coverKey(g), val = `${o.x.toFixed(1)},${o.y.toFixed(1)},${o.z.toFixed(3)}`;
     covers[key] = val; api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, url: val }) }).catch(() => {});
-    setTimeout(() => { el._dragged = false; }, 0);
+    fgHist(); setTimeout(() => { el._dragged = false; }, 0);
   };
   document.addEventListener('pointermove', mv); document.addEventListener('pointerup', up);
 }
@@ -858,3 +861,33 @@ $('favgrid').addEventListener('pointerdown', e => {
   };
   document.addEventListener('pointermove', mv); document.addEventListener('pointerup', up);
 });
+
+// ---------- Ctrl+Z nos Favoritos: desfaz a última mudança (posição, tamanho, imagem do card, fundo, desfavoritar) ----------
+const FG_KEYS = ['fpos|', 'fsz|', 'ffree|', 'fofs|', 'bofs|', 'fav|'];
+let fgUndo = [], fgLastSnap = null, fgUndoing = false;
+function fgSnap() { const o = {}; for (const k in covers) if (FG_KEYS.some(p => k.startsWith(p))) o[k] = covers[k]; return o; }
+const fgSame = (a, b) => { const ka = Object.keys(a), kb = Object.keys(b); return ka.length === kb.length && ka.every(k => a[k] === b[k]); };
+// chamado depois de cada mudança: se algo mudou desde a última vez, guarda o estado anterior
+function fgHist() {
+  const cur = fgSnap();
+  if (fgLastSnap && !fgUndoing && !fgSame(cur, fgLastSnap)) { fgUndo.push(fgLastSnap); if (fgUndo.length > 40) fgUndo.shift(); }
+  fgLastSnap = cur;
+}
+async function fgUndoLast() {
+  const snap = fgUndo.pop(); if (!snap) { toast('Nada para desfazer'); return; }
+  const cur = fgSnap(), favChanged = Object.keys({ ...cur, ...snap }).some(k => k.startsWith('fav|') && cur[k] !== snap[k]);
+  Object.keys({ ...cur, ...snap }).forEach(k => {
+    if (cur[k] === snap[k]) return;
+    if (snap[k] === undefined) delete covers[k]; else covers[k] = snap[k];
+    api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key: k, url: snap[k] === undefined ? '' : snap[k] }) }).catch(() => {});
+  });
+  fgUndoing = true;
+  try { if (favChanged) await openFavGrid(); else renderFavGrid(); } finally { fgUndoing = false; fgLastSnap = fgSnap(); }
+  if (typeof applyCustom === 'function' && favChanged) FAVSYS.count = favKeys().length;
+  sfx('back'); toast('Desfeito');
+}
+document.addEventListener('keydown', e => {
+  if (screen !== 'favgrid' || !(e.ctrlKey || e.metaKey) || (e.key !== 'z' && e.key !== 'Z') || e.shiftKey) return;
+  if (fp.open || fxOpen || modalOpen || oskOpen) return;
+  e.preventDefault(); e.stopPropagation(); fgUndoLast();
+}, true);
