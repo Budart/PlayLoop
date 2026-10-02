@@ -1,17 +1,22 @@
 // PlayLoop — covers.js
 /* ---------- escolher capa manualmente (estilo TICO) ---------- */
 let modalOpen = false, coverGame = null;
-let bgMode = false, cardMode = false, logoMode = false;   // logoMode: imagem do título na lombada da capa 3D   // cardMode: imagem do card dos Favoritos (capas + fundos)
+let bgMode = false, cardMode = false, logoMode = false, cardKind = 'cover';   // cardKind: no card dos Favoritos, buscar 'cover' (capas) ou 'bg' (fundos)   // logoMode: imagem do título na lombada da capa 3D   // cardMode: imagem do card dos Favoritos (capas + fundos)
 function openCover(isBg) {
   sfx('ok');
   const g = shown[gIdx]; if (!g) return;
   coverGame = g; modalOpen = true; cardMode = isBg === 'card'; logoMode = isBg === 'logo'; bgMode = !!isBg && !cardMode && !logoMode;
-  $('ctitle').textContent = logoMode ? '🏷 Imagem do título (lombada)' : cardMode ? '🖼 Imagem do card (capas e fundos)' : bgMode ? '🌄 Escolher imagem de fundo' : '🖼 Escolher capa';
+  $('ctitle').textContent = logoMode ? '🏷 Imagem do título (lombada)' : cardMode ? '🖼 Imagem do card' : bgMode ? '🌄 Escolher imagem de fundo' : '🖼 Escolher capa';
   $('creset').textContent = logoMode ? 'Voltar para o título automático' : cardMode ? 'Voltar para a imagem automática' : bgMode ? 'Voltar para o fundo automático' : 'Voltar para a capa automática';
   $('cgame').textContent = g.name; $('cq').value = cleanTitle(g.name); $('curl').value = '';
+  if (cardMode) { const el = $('fgTrack') && $('fgTrack').querySelector(`.fgcard[data-i="${fg.sel}"]`), r = el && el.getBoundingClientRect(); cardKind = r && r.width > r.height * 1.1 ? 'bg' : 'cover'; }   // card deitado: começa pelos fundos
+  ckindPaint();
   $('coverModal').classList.add('on'); $('coverModal').classList.toggle('logo', logoMode); $('cq').focus(); $('cq').select();
   searchCovers();
 }
+function ckindPaint() { const k = $('ckind'); k.style.display = cardMode ? '' : 'none'; k.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.k === cardKind)); }
+function setCardKind(k) { if (!cardMode || k === cardKind) return; cardKind = k; ckindPaint(); sfx('tick'); searchCovers(); }
+$('ckind').querySelectorAll('button').forEach(b => b.onclick = () => setCardKind(b.dataset.k));
 function closeCover() { sfx('back'); modalOpen = false; $('coverModal').classList.remove('on'); }
 async function setCover(url) {
   const g = coverGame; if (!g) return;
@@ -42,7 +47,7 @@ let sortT;
 function sortGrid() {
   clearTimeout(sortT); sortT = setTimeout(() => {
     const res = $('cres'), its = [...res.querySelectorAll('.it')];
-    its.sort((a, b) => (+b.dataset.ph - +a.dataset.ph) || (+b.dataset.ov - +a.dataset.ov) || (bgMode || cardMode || logoMode ? 0 : aspectOk(+b.dataset.ar) - aspectOk(+a.dataset.ar)) || ((+b.dataset.px || 0) - (+a.dataset.px || 0))).forEach(el => res.appendChild(el));   // nome exato > palavras em comum > resolução
+    its.sort((a, b) => (+b.dataset.ph - +a.dataset.ph) || (+b.dataset.ov - +a.dataset.ov) || (logoMode ? 0 : (bgMode || (cardMode && cardKind === 'bg')) ? (+b.dataset.ar > 1.2) - (+a.dataset.ar > 1.2) : aspectOk(+b.dataset.ar) - aspectOk(+a.dataset.ar)) || ((+b.dataset.px || 0) - (+a.dataset.px || 0))).forEach(el => res.appendChild(el));   // nome exato > palavras em comum > resolução
   }, 120);
 }
 async function searchCovers() {
@@ -50,15 +55,16 @@ async function searchCovers() {
   res.innerHTML = ''; if (!q) return;
   $('cmsg').textContent = 'Buscando...';
   const items = [];
-  const conv = u => !bgMode ? u : u.replace('/Named_Boxarts/', '/Named_Snaps/').replace(/library_600x900(_2x)?\.jpg$/, 'library_hero.jpg');
+  const bgLike = bgMode || (cardMode && cardKind === 'bg');
+  const conv = u => !bgLike ? u : u.replace('/Named_Boxarts/', '/Named_Snaps/').replace(/library_600x900(_2x)?\.jpg$/, 'library_hero.jpg');
   const toBg = u => u.replace('/Named_Boxarts/', '/Named_Snaps/').replace(/library_600x900(_2x)?\.jpg$/, 'library_hero.jpg');
-  const add = (url, label, src) => { for (const u of cardMode ? [url, toBg(url)] : [conv(url)]) if (!items.some(i => i.url === u)) items.push({ url: u, label, src: cardMode && u !== url ? src + ' · fundo' : src, ...relevance(q, label) }); };
+  const add = (url, label, src) => { for (const u of [conv(url)]) if (!items.some(i => i.url === u)) items.push({ url: u, label, src, ...relevance(q, label) }); };
   // SteamGridDB ligado: só capas (grids) ou fundos (heroes) de lá, ordenados como na escolha automática
   if (sgdbOn) {
     try {
       const games = (await sg('/api/v2/search/autocomplete/' + encodeURIComponent(q))).map(x => ({ x, ...relevance(q, x.name) })).sort((a, b) => (b.phrase - a.phrase) || (b.overlap - a.overlap)).slice(0, 3);
       for (const gm of games) {
-        const list = logoMode ? await sg(`/api/v2/logos/game/${gm.x.id}?${STATIC}`) : cardMode ? (await sgdbGrids(gm.x.id)).concat(await sg(`/api/v2/heroes/game/${gm.x.id}?${STATIC}`)) : bgMode ? await sg(`/api/v2/heroes/game/${gm.x.id}?${STATIC}`) : await sgdbGrids(gm.x.id);
+        const list = logoMode ? await sg(`/api/v2/logos/game/${gm.x.id}?${STATIC}`) : bgLike ? await sg(`/api/v2/heroes/game/${gm.x.id}?${STATIC}`) : await sgdbGrids(gm.x.id);
         list.slice(0, 30).forEach(x => { if (!items.some(i => i.url === x.url)) items.push({ url: x.url, label: gm.x.name, src: 'SteamGridDB · ★' + (x.score || 0), phrase: gm.phrase, overlap: gm.overlap }); });
       }
     } catch (e) { $('cmsg').textContent = 'SteamGridDB: ' + e.message; }

@@ -708,3 +708,9 @@ body.th-light .hview { background:rgba(255,255,255,.7); color:#2E2721; border-co
 #ctx2 { z-index:10000 !important; }
 .cathead .hctl { height:26px; width:110px; object-fit:contain; vertical-align:middle; margin:-4px 10px 0 0; padding:4px 10px; box-sizing:border-box; border-radius:8px; background:linear-gradient(135deg,#ffffff 0%,#e9e6ff 55%,#d6f3ff 100%); box-shadow:0 2px 10px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.7); }
 .fgfx.grow.zoomfit { transition:left .55s cubic-bezier(.2,.8,.2,1), top .55s cubic-bezier(.2,.8,.2,1), width .55s cubic-bezier(.2,.8,.2,1), height .55s cubic-bezier(.2,.8,.2,1), border-radius .55s, background-size .55s cubic-bezier(.2,.8,.2,1), opacity .5s, filter .5s; }
+.ckind { display:flex; gap:10px; align-items:center; margin:10px 0 4px; }
+.ckind button { display:flex; align-items:center; gap:8px; background:rgba(255,255,255,.06); border:1.5px solid #3a3a3a; color:#ddd; border-radius:10px; padding:7px 14px 7px 10px; cursor:pointer; font:inherit; font-size:13px; font-weight:600; }
+.ckind button i { font-style:normal; font-weight:400; font-size:11px; opacity:.55; }
+.ckind button svg { width:26px; height:26px; fill:none; stroke:currentColor; stroke-width:1.5; stroke-linejoin:round; }
+.ckind button.on { border-color:var(--c1); background:rgba(0,209,255,.12); color:#fff; }
+.ckind .ckh { font-size:11px; opacity:.4; margin-left:4px; }

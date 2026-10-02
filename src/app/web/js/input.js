@@ -123,7 +123,7 @@ function input(a) {
   if (ARTPICK.open) { apInput(a); return; }
   if (askOpen) { askPad(a); return; }
   if ($('ctx').classList.contains('on')) { if (a === 'down') ctxMove(1); else if (a === 'up') ctxMove(-1); else if (a === 'ok') ctxOk(); else if (a === 'right') ctxRight(); else if (a === 'left' || a === 'back') ctxLeft(); else if (a === 'menu') closeCtx(); return; }
-  if (modalOpen) { if (a === 'back') closeCover(); else if (['left','right','up','down'].includes(a)) coverNav(a); else if (a === 'ok') coverPick(); else if (a === 'menu') openOsk($('cq')); return; }
+  if (modalOpen) { if ((a === 'pgup' || a === 'pgdn') && cardMode) { setCardKind(a === 'pgup' ? 'cover' : 'bg'); return; } if (a === 'back') closeCover(); else if (['left','right','up','down'].includes(a)) coverNav(a); else if (a === 'ok') coverPick(); else if (a === 'menu') openOsk($('cq')); return; }
   if (fxOpen) { if (a === 'back') fgFxClose(); return; }
   if (fp.open) { fpInput(a); return; }
   if (fgInfoOpen) { if (a === 'back') fgInfo(false); else if (a === 'ok') { fgInfo(false); fgLaunch(); } return; }

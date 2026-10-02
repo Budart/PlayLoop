@@ -40,7 +40,7 @@ function padContext() {
   if (ctxOn) return ['ctx', [['dpad', 'escolher'], ['ok', 'selecionar'], ['back', 'fechar']]];
   if (typeof fxOpen !== 'undefined' && fxOpen) return ['fx', [['back', 'cancelar']]];
   if (typeof fp !== 'undefined' && fp.open) return ['fp', [['dpad', 'mover imagem'], ['lb', 'zoom'], ['ok', 'salvar'], ['back', 'cancelar']]];
-  if (modalOpen) return ['cover', [['dpad', 'escolher imagem'], ['ok', 'usar'], ['tri', 'digitar busca'], ['back', 'fechar']]];
+  if (modalOpen) return ['cover', [['dpad', 'escolher imagem'], ...(typeof cardMode !== 'undefined' && cardMode ? [['lb', 'capas / fundos']] : []), ['ok', 'usar'], ['tri', 'digitar busca'], ['back', 'fechar']]];
   if (typeof fgInfoOpen !== 'undefined' && fgInfoOpen) return ['info', [['ok', 'jogar'], ['rs', 'girar capa'], ['lt', 'zoom'], ['back', 'fechar']]];
   if (screen === 'config') { const c = document.querySelector('#cfBody .kbf'); if (typeof cfgIn !== 'undefined' && cfgIn) return ['configin', [['dpad', 'campos do card'], ['ok', 'selecionar'], ['back', 'sair do card'], ['start', 'sair']]]; if (c && c.classList.contains('ccard')) return ['configcard', [['dpad', 'navegar'], ['ok', 'editar card'], ['back', 'voltar'], ['start', 'sair']]]; return ['config', [['dpad', 'navegar'], ['ok', 'selecionar'], ['back', 'voltar'], ['start', 'sair']]]; }
   if (screen === 'favgrid') {
