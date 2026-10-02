@@ -147,7 +147,15 @@ document.addEventListener('keydown', e => {
   if (screen === 'favgrid' && !modalOpen && e.key.length === 1 && e.key !== ' ' && !e.ctrlKey && !e.altKey && !e.metaKey) { e.preventDefault(); openGlobal(e.key); return; }   // digitar = busca geral
   if (screen === 'favgrid' && !modalOpen && e.key === ' ') { e.preventDefault(); fgInput('fav'); return; }   // Espaço = □ (mover card)
   if (e.key === 'F2' && screen === 'games' && shown[gIdx]) { e.preventDefault(); startRename(gIdx); return; }
-  if (screen === 'config') { if (e.key === 'Escape') $('cfCancel').onclick(); return; }
+  if (screen === 'config') {   // teclado igual ao D-pad: setas navegam, Tab = próximo (Shift+Tab = anterior), Enter ativa, Esc volta
+    const ae = document.activeElement, typing = ae && (ae.tagName === 'TEXTAREA' || (ae.tagName === 'INPUT' && !/checkbox|radio/.test(ae.type)));
+    if (!document.querySelector('#cfBody .kbf') && ae && ae.closest && ae.closest('#cfBody')) cfgMark(ae.closest('.pick') || ae);   // começou com o mouse: segue dali
+    const m = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', Escape: 'back' }[e.key];
+    if (e.key === 'Tab') { e.preventDefault(); cfgPad(e.shiftKey ? 'up' : 'down'); return; }
+    if (m && !(typing && (m === 'left' || m === 'right'))) { e.preventDefault(); cfgPad(m); return; }
+    if (e.key === 'Enter' && !typing) { e.preventDefault(); cfgPad('ok'); return; }
+    return;
+  }
   if (modalOpen) {
     if (e.key === 'Escape') { e.preventDefault(); closeCover(); return; }
     const inInput = document.activeElement && document.activeElement.tagName === 'INPUT';

@@ -21,7 +21,10 @@ function faceIcon(i) {
     return `<svg class="pg" viewBox="0 0 24 24">${pos.map(([x, y], k) => `<circle cx="${x}" cy="${y}" r="3.6" fill="${k === i ? '#fff' : 'none'}" stroke="#fff" stroke-opacity="${k === i ? 1 : .45}" stroke-width="1.4"/>`).join('')}</svg>`;
   }
   const [t, c] = FACE[padType][i];
-  return `<span class="pb" style="background:${c}">${t}</span>`;
+  const sym = padType === 'ps'
+    ? [`<path d="M8 8l8 8M16 8l-8 8"/>`, `<circle cx="12" cy="12" r="4.6"/>`, `<rect x="7.6" y="7.6" width="8.8" height="8.8" rx=".6"/>`, `<path d="M12 7l5 8.6H7z"/>`][i]
+    : `<text x="12" y="16.2" text-anchor="middle" font-size="11" font-weight="700" fill="${c}" stroke="none" font-family="Poppins,Segoe UI,sans-serif">${t}</text>`;
+  return `<svg class="pg pf" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="#1e293b" stroke="${c}" stroke-opacity=".55" stroke-width="1"/><g fill="none" stroke="${c}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">${sym}</g></svg>`;
 }
 const DPAD = '<svg class="pg" viewBox="0 0 24 24"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z" fill="none" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>';
 const STICK = s => `<span class="pb st">${s}</span>`;
@@ -71,14 +74,14 @@ const KB = {
 };
 function updatePadHelp(pad) {
   const t = pad ? detectPad(pad.id) : null;
-  document.body.classList.toggle('pad', !!t);
-  if (!t) { padKey = ''; return; }
-  padType = t;
-  const [k, items] = padContext(), key = legendMode + '|' + t + '|' + k;
+  document.body.classList.add('pad');   // legenda sempre visível; sem controle, mostra os atalhos do teclado
+  padType = t || 'gen';
+  const mode = t ? legendMode : 'kb';
+  const [k, items] = padContext(), key = mode + '|' + padType + '|' + k;
   if (key === padKey) return;
   padKey = key;
-  $('padHelp').classList.toggle('kb', legendMode === 'kb');
-  $('padHelp').innerHTML = legendMode === 'kb'
+  $('padHelp').classList.toggle('kb', mode === 'kb');
+  $('padHelp').innerHTML = mode === 'kb'
     ? (KB[k] || []).map(([kk, txt]) => `<span class="pi"><b class="kk">${kk}</b><em>${txt}</em></span>`).join('')
     : items.map(([g, txt]) => `<span class="pi">${G[g]()}<em>${txt}</em></span>`).join('');
 }
