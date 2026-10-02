@@ -3,9 +3,10 @@
 let padType = null, padKey = '';
 function detectPad(id) {
   id = (id || '').toLowerCase();
-  if (/xbox|xinput|045e/.test(id)) return 'xbox';
-  if (/playstation|dualsense|dualshock|054c|wireless controller/.test(id)) return 'ps';
+  if (/playstation|dualsense|dualshock|054c|wireless controller|ps[345]\b/.test(id)) return 'ps';
   if (/nintendo|pro controller|joy-?con|057e|switch/.test(id)) return 'nin';
+  // XInput = layout Xbox (GameSir, 8BitDo em modo X, Logitech, PowerA, PDP, HORI, Razer, Turtle Beach, SN30 etc.)
+  if (/xbox|xinput|x-?input|045e|microsoft|gamesir|8bitdo|logitech|046d|powera|pdp|0e6f|hori|0f0d|razer|1532|turtle|nacon|easysmx|flydigi|standard gamepad/.test(id)) return 'xbox';
   return 'gen';
 }
 // botões pela posição no controle: 0 = baixo, 1 = direita, 2 = esquerda, 3 = cima (mapeamento padrão)

@@ -240,13 +240,30 @@ function pollPad() {
   requestAnimationFrame(pollPad);   // agenda antes: um erro em qualquer tela nunca mais "desliga" o controle
   try { pollPad1(); } catch (e) { console.error('controle:', e); }
 }
+// lê um controle e devolve os comandos pressionados (mapeamento padrão do navegador; controles sem ele usam o "hat" do D-pad)
+function padState(p) {
+  const b = i => !!(p.buttons[i] && (p.buttons[i].pressed || p.buttons[i].value > .5)), ax = p.axes[0] || 0, ay = p.axes[1] || 0;
+  let hu = false, hd = false, hl = false, hr = false;
+  if (p.mapping !== 'standard') {   // DirectInput: D-pad costuma vir como um eixo "hat" (−1 = cima, girando no sentido horário)
+    const h = p.axes.length > 9 ? p.axes[9] : null;
+    if (h !== null && h >= -1.05 && h <= 1.05 && Math.abs(h) > .01) {
+      const v = Math.round((h + 1) / (2 / 7));   // 0 cima, 1 cima-dir, 2 dir, 3 baixo-dir, 4 baixo, 5 baixo-esq, 6 esq, 7 cima-esq
+      if (v >= 0 && v <= 7) { hu = v === 0 || v === 1 || v === 7; hr = v >= 1 && v <= 3; hd = v >= 3 && v <= 5; hl = v >= 5 && v <= 7; }
+    }
+  }
+  return { up: b(12) || hu || ay < -.6, down: b(13) || hd || ay > .6, left: b(14) || hl || ax < -.6, right: b(15) || hr || ax > .6, ok: b(0), back: b(1), fav: b(2), menu: b(3), pgup: b(4), pgdn: b(5), select: b(8), start: b(9), search: b(10) || b(11) };
+}
+let padLast = null;   // controle usado por último (define os símbolos da legenda)
 function pollPad1() {
-  const p = [...(navigator.getGamepads ? navigator.getGamepads() : [])].find(g => g && g.connected !== false);
-  if (typeof updatePadHelp === 'function') updatePadHelp(p);
-  // Xbox / DualSense / genéricos (mapeamento padrão): A/✕ ok · B/○ voltar · X/□ favoritar · Y/△ menu · LB/RB pular · Start configuração · Select modo TV
-  if (p && (!renaming || oskOpen) && screen !== 'welcome') {
-    const ax = p.axes[0] || 0, ay = p.axes[1] || 0, b = i => p.buttons[i] && p.buttons[i].pressed;
-    const st = { up: b(12) || ay < -.6, down: b(13) || ay > .6, left: b(14) || ax < -.6, right: b(15) || ax > .6, ok: b(0), back: b(1), fav: b(2), menu: b(3), pgup: b(4), pgdn: b(5), select: b(8), start: b(9), search: b(10) || b(11) };
+  // todos os controles conectados funcionam ao mesmo tempo (os comandos são somados)
+  const pads = [...(navigator.getGamepads ? navigator.getGamepads() : [])].filter(g => g && g.connected !== false);
+  const states = pads.map(padState);
+  pads.forEach((p, k) => { if (Object.values(states[k]).some(Boolean) || p.buttons.some(x => x && x.pressed)) padLast = p.id; });
+  const legendPad = pads.find(p => p.id === padLast) || pads[0];
+  if (typeof updatePadHelp === 'function') updatePadHelp(legendPad);
+  // Xbox / PlayStation / Nintendo / genéricos: A/✕ ok · B/○ voltar · X/□ · Y/△ menu · LB/RB pular · Start configuração · Select modo TV
+  if (pads.length && (!renaming || oskOpen) && screen !== 'welcome') {
+    const st = {}; states.forEach(x => { for (const k in x) st[k] = st[k] || x[k]; });
     const now = performance.now();
     for (const k in st) {
       if (st[k] && !padPrev[k]) { lastInputPad = true; legendMode = 'pad'; input(k); padRepeat = now + 380; }
@@ -256,16 +273,17 @@ function pollPad1() {
     }
     padPrev = st;
     if (Object.values(st).some(Boolean)) legendMode = 'pad';
-    // R2 / L2: aumenta / diminui a capa 3D
-    const r2 = p.buttons[7] ? p.buttons[7].value || (p.buttons[7].pressed ? 1 : 0) : 0, l2 = p.buttons[6] ? p.buttons[6].value || (p.buttons[6].pressed ? 1 : 0) : 0;
+    // R2 / L2 e analógico direito: usa o controle que estiver mexendo mais
+    let r2 = 0, l2 = 0, rx = 0, ry = 0;
+    pads.forEach(p => {
+      const tv = i => p.buttons[i] ? p.buttons[i].value || (p.buttons[i].pressed ? 1 : 0) : 0;
+      r2 = Math.max(r2, tv(7)); l2 = Math.max(l2, tv(6));
+      const x = p.axes[2] || 0, y = p.axes[3] || 0; if (Math.abs(x) + Math.abs(y) > Math.abs(rx) + Math.abs(ry)) { rx = x; ry = y; }
+    });
     if ((r2 > .15 || l2 > .15) && $('art').querySelector('.rot')) { view3d.z = Math.max(.5, Math.min(2.6, view3d.z * (1 + (r2 - l2) * .03))); applyView(); }
-    // analógico direito: gira a capa 3D (em qualquer tela onde ela aparece)
-    const rx = p.axes[2] || 0, ry = p.axes[3] || 0;
-    if ((Math.abs(rx) > .18 || Math.abs(ry) > .18) && $('art').querySelector('.rot')) {
-      view3d.ry += rx * 4; view3d.rx = Math.max(-60, Math.min(60, view3d.rx - ry * 3)); applyView();
-    }
+    if ((Math.abs(rx) > .18 || Math.abs(ry) > .18) && $('art').querySelector('.rot')) { view3d.ry += rx * 4; view3d.rx = Math.max(-60, Math.min(60, view3d.rx - ry * 3)); applyView(); }
   }
 }
 requestAnimationFrame(pollPad);
-window.addEventListener('gamepadconnected', e => toast('🎮 Controle conectado: ' + (e.gamepad.id || '').replace(/\(.*\)/, '').trim()));
+window.addEventListener('gamepadconnected', e => { padLast = e.gamepad.id; toast('🎮 Controle conectado: ' + (e.gamepad.id || '').replace(/\(.*\)/, '').trim()); });
 ['q', 'sortBtn'].forEach(id => $(id) && $(id).addEventListener('blur', () => $(id).classList.remove('padsel')));
