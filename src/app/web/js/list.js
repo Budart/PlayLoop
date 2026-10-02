@@ -417,7 +417,7 @@ function filter() {
       if (s.enabled === false) return;
       const items = match.filter(g => g.sid === s.id); if (!items.length) return;
       const key = 'c:' + s.id, isCol = collapsed.has(key);
-      head(' folder', '', key, isCol, `${nSys > 1 ? `<img class="hctl" src="${ctrlImg(s)}" alt="">` : '📁 '}${esc(s.name)} · ${items.length}`);
+      head(' folder', '', key, isCol, `${nSys > 1 ? `<img class="hctl" src="${logoUrl(s)}" alt="">` : '📁 '}${esc(s.name)} · ${items.length}`);
       if (isCol) { nvis += items.length; return; }
       const vis = items.filter(g => !hidden.has(coverKey(g))).sort(sortCmp);   // só a pasta do console, sem subcategorias
       renderGroups({ groups: [{ cat: '', label: '', items: vis }], nvis: vis.length, grouped: false }, '', true);
