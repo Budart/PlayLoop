@@ -208,17 +208,27 @@ async function moveToCat(g, c) {
   refilterKeep();
 }
 let dragGame = null;
+const dragBatch = () => dragGame && multi.size > 1 && multi.has(dragGame);   // arrastando um jogo do lote: vale para todos
+function dropTo(g, c) {
+  if (!(multi.size > 1 && multi.has(g))) return moveToCat(g, c);
+  if (c === '__fav') return batchFav(true);
+  if (c === '__hidden') return batchHide(true);
+  return batchCat(c);
+}
 function showDropPanel(on) {
   const p = $('dropPanel');
   if (!on) { p.classList.remove('on'); return; }
-  p.innerHTML = '<div class="dt">Solte em uma categoria</div>' + ['__fav'].concat(catTargets(), ['__hidden']).map(c => `<div class="dz" data-cat="${esc(c)}">${c === '__hidden' ? '🙈 Ocultos' : c === '__fav' ? '⭐ Favoritos' : esc(catLabel(c))}</div>`).join('');
+  const n = dragBatch() ? multi.size : 0;
+  p.innerHTML = `<div class="dt">Solte em uma categoria${n ? ` · ${n} jogos` : ''}</div>` + ['__fav'].concat(catTargets(), ['__hidden']).map(c => `<div class="dz" data-cat="${esc(c)}">${c === '__hidden' ? '🙈 Ocultos' : c === '__fav' ? '⭐ Favoritos' : esc(catLabel(c))}</div>`).join('');
   p.querySelectorAll('[data-cat]').forEach(bindDrop);
+  const r = $('list').getBoundingClientRect();   // canto esquerdo, por cima da lista (perto do mouse)
+  Object.assign(p.style, { left: (r.left + 8) + 'px', top: (r.top + 8) + 'px', transform: 'none' });
   p.classList.add('on');
 }
 function bindDrop(el) {
   el.addEventListener('dragover', e => { if (!dragGame) return; e.preventDefault(); el.classList.add('over'); });
   el.addEventListener('dragleave', () => el.classList.remove('over'));
-  el.addEventListener('drop', e => { e.preventDefault(); el.classList.remove('over'); const g = dragGame; dragGame = null; showDropPanel(false); moveToCat(g, el.dataset.cat); });
+  el.addEventListener('drop', e => { e.preventDefault(); el.classList.remove('over'); const g = dragGame; dragGame = null; showDropPanel(false); dropTo(g, el.dataset.cat); });
 }
 let favMode = false;
 const isFavG = g => covers['fav|' + coverKey(g)] === '1';
@@ -305,7 +315,7 @@ function bindListOnce() {
   const headOf = e => { const h = e.target.closest && e.target.closest('.cathead'); return h && !h.classList.contains('folder') ? h : null; };
   L.addEventListener('dragover', e => { const h = headOf(e); if (!h || !dragGame) return; e.preventDefault(); h.classList.add('over'); });
   L.addEventListener('dragleave', e => { const h = headOf(e); if (h) h.classList.remove('over'); });
-  L.addEventListener('drop', e => { const h = headOf(e); if (!h) return; e.preventDefault(); h.classList.remove('over'); const g = dragGame; dragGame = null; showDropPanel(false); moveToCat(g, h.dataset.cat); });
+  L.addEventListener('drop', e => { const h = headOf(e); if (!h) return; e.preventDefault(); h.classList.remove('over'); const g = dragGame; dragGame = null; showDropPanel(false); dropTo(g, h.dataset.cat); });
 }
 function filter() {
   bindListOnce(); measureRows();
