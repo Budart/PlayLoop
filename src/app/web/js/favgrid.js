@@ -54,6 +54,15 @@ function fgLayoutFree() {
 }
 function fgPinFree() { fg.items.forEach((g, i) => { const q = fgFr(g), pl = fg.place[i]; if (pl && (!q || q.p !== pl.p || Math.abs(q.x - pl.x) > .005 || Math.abs(q.y - pl.y) > .005 || Math.abs(q.w - pl.w) > .005 || Math.abs(q.h - pl.h) > .005)) fgSetFr(g, pl); }); }
 const frStyle = pl => `grid-column:1 / -1;grid-row:1 / -1;position:absolute;left:calc(${pl.x} * (var(--cell) + 20px));top:calc(${pl.y} * (var(--cell) + 20px));width:calc(${pl.w} * (var(--cell) + 20px) - 20px);height:calc(${pl.h} * (var(--cell) + 20px) - 20px)`;
+// lote: todos os cards ficam com o mesmo tamanho (cada um no seu lugar); quem ficar por baixo vai para o próximo espaço livre
+function frResizeMany(list, w, h) {
+  const { R, C } = fgDim(), set = new Set(list), news = {};
+  list.forEach(k => { const o = fg.place[k]; news[k] = { p: o.p, x: o.x, y: o.y, w: Math.min(w, C - o.x), h: Math.min(h, R - o.y) }; fgSetFr(fg.items[k], news[k]); });
+  const kept = [];   // entre os redimensionados, quem bater em outro já mantido vai procurar lugar
+  list.forEach(k => { if (kept.some(j => news[j].p === news[k].p && frHit(news[j], news[k]))) fgSetFr(fg.items[k], { p: -1, x: 0, y: 0, w: news[k].w, h: news[k].h }); else kept.push(k); });
+  fg.items.forEach((o, k) => { const r = fg.place[k]; if (!set.has(k) && r && kept.some(j => news[j].p === r.p && frHit(news[j], r))) fgSetFr(o, { p: -1, x: 0, y: 0, w: r.w, h: r.h }); });
+  sfx('ok'); renderFavGrid();
+}
 // soltar/redimensionar o card i em q: quem ficar por baixo vai para o próximo lugar livre (mantendo o tamanho)
 function frCommit(i, q) {
   fgSetFr(fg.items[i], q);
@@ -260,6 +269,7 @@ function fgBind(el) {
     if (fgFree) {   // livre: qualquer tamanho/formato (limites: mín. 0,6 e máx. 4 células por lado)
       const { R, C } = fgDim(), pl = fg.place[i], G = fgGeom(el.parentNode), mode = h.dataset.rz, sx = e.clientX, sy = e.clientY;
       const q = { ...pl }; h.setPointerCapture(e.pointerId); el.classList.add('rz');
+      const batch = fgMulti.size > 1 && fgMulti.has(i) ? [...fgMulti].filter(k => k !== i) : null;   // seleção em lote: todos ficam com o tamanho deste
       h.onpointermove = ev => {
         if (ev.ctrlKey) {   // Ctrl: mantém a proporção, muda só o tamanho
           const fx = (pl.w + (ev.clientX - sx) / G.pitch) / pl.w, fy = (pl.h + (ev.clientY - sy) / G.pitch) / pl.h;
@@ -271,8 +281,9 @@ function fgBind(el) {
         if (mode.includes('b')) q.h = Math.max(FR_MIN, Math.min(FR_MAX, R - pl.y, pl.h + (ev.clientY - sy) / G.pitch));
         }
         el.style.cssText = frStyle(q);
+        if (batch) batch.forEach(k => { const o = fg.place[k], e2 = $('fgTrack').querySelector(`.fgcard[data-i="${k}"]`); if (e2) e2.style.cssText = frStyle({ x: o.x, y: o.y, w: Math.min(q.w, C - o.x), h: Math.min(q.h, R - o.y) }); });
       };
-      h.onpointerup = () => { h.onpointermove = h.onpointerup = null; el.classList.remove('rz'); frCommit(i, q); };
+      h.onpointerup = () => { h.onpointermove = h.onpointerup = null; el.classList.remove('rz'); if (batch) frResizeMany([i, ...batch], q.w, q.h); else frCommit(i, q); };
       return;
     }
     const { R, C } = fgDim(), pl = fg.place[i], G = fgGeom(el.parentNode);
@@ -284,7 +295,7 @@ function fgBind(el) {
       if (mode.includes('b')) hh = Math.max(1, Math.min(4, R - pl.y, Math.round(pl.h + (ev.clientY - sy) / ch)));
       el.style.gridColumn = `${pl.x + 1} / span ${w}`; el.style.gridRow = `${pl.y + 1} / span ${hh}`;
     };
-    h.onpointerup = () => { h.onpointermove = h.onpointerup = null; el.classList.remove('rz'); fgResize(fg.items[i], w, hh); };
+    h.onpointerup = () => { h.onpointermove = h.onpointerup = null; el.classList.remove('rz'); if (fgMulti.size > 1 && fgMulti.has(i)) { const sel = [...fgMulti].map(k => fg.items[k]); sel.forEach(g => { const key = 'fsz|' + coverKey(g), val = (w === 1 && hh === 1) ? '' : `${w},${hh}`; if (val) covers[key] = val; else delete covers[key]; api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, url: val }) }).catch(() => {}); fgSetPos(g, null); }); sfx('ok'); renderFavGrid(); return; } fgResize(fg.items[i], w, hh); };
   });
 }
 function fgResize(g, w, h) {
