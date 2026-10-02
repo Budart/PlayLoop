@@ -47,14 +47,15 @@ static class AutoConfig
     static readonly Regex NotEmu = R(@"unins|setup|install|updater|update|crash|report|tool|helper|server|room|test|config|nsp_installer|chdman|namdhc|reshade|vc_?redist|dxsetup|7z|winrar");
     static readonly Regex RomDirName = R(@"^(roms?|jogos?|games?|isos?|roms?\s.*|.*roms)$");
 
-    public static Dictionary<string, object> Build(string root, string pcDir)
+    public static Dictionary<string, object> Build(string root, List<string> pcDirs)
     {
         var consoles = new List<object>();
         var used = new HashSet<string>();
-        if (!string.IsNullOrEmpty(pcDir) && Directory.Exists(pcDir))
+        var pcOk = (pcDirs ?? new List<string>()).Where(Directory.Exists).ToArray();
+        if (pcOk.Length > 0)
             consoles.Add(new Dictionary<string, object> {
                 { "id", "pc" }, { "type", "pc" }, { "name", "Jogos de PC" }, { "art", "pc" }, { "thumbs", "" }, { "emulator", "" }, { "args", "" },
-                { "romDirs", new object[] { pcDir } }, { "extensions", new object[] { "lnk", "url", "exe" } } });
+                { "romDirs", pcOk.Cast<object>().ToArray() }, { "extensions", new object[] { "lnk", "url", "exe" } } });
         if (Directory.Exists(root))
             foreach (var dir in Directory.GetDirectories(root).OrderBy(d => d))
             {

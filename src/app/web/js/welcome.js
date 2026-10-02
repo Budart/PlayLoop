@@ -15,13 +15,15 @@ const WEL_TREE = `<span>Uma pasta para cada console. O PlayLoop configura o rest
 </div>`;
 function runWelcome() {
   return new Promise(async resolve => {
-    show('welcome'); let st = 0; const picks = { root: '', pc: '', sgdbKey: '' };
-    let suggest = ''; try { suggest = (await api('/api/setup')).suggest || ''; } catch (e) {}
+    show('welcome'); let st = 0; const picks = { root: '', pc: '', sgdbKey: '', pcDirs: [] };
+    let suggest = '', stores = []; try { const r = await api('/api/setup'); suggest = r.suggest || ''; stores = (r.stores || []).map(x => ({ ...x, on: !!x.exists })); } catch (e) {}
+    const syncPc = () => { picks.pcDirs = stores.filter(x => x.on && x.path.trim()).map(x => x.path.trim()); };
     const steps = [
       { k: 'root', n: 'Passo 1 de 3', t: 'Onde estão seus emuladores?', p: 'Escolha a pasta principal onde ficam os emuladores e as ROMs (uma subpasta por console). O PlayLoop encontra tudo sozinho.', skip: false },
-      { k: 'pc', n: 'Passo 2 de 3', t: 'E os seus jogos de PC?', p: 'Escolha a pasta onde você guarda os atalhos dos jogos instalados no computador. Se não quiser, é só pular.', skip: true },
+      { k: 'pc', n: 'Passo 2 de 3', t: 'E os seus jogos de PC?', p: 'Marque as lojas que você usa — já deixamos a pasta padrão de cada uma (dá para trocar). Se guardar atalhos em outra pasta, escolha abaixo. Se não quiser, é só pular.', skip: true },
       { k: 'sgdbKey', n: 'Passo 3 de 3 · opcional', t: 'Quer capas ainda mais bonitas?', key: true, skip: true },
     ];
+    const upd = () => { const s = steps[st]; if (!s.key) $('wNext').disabled = !picks[s.k] && !(s.k === 'pc' && picks.pcDirs.length) && !s.skip; };
     const render = () => {
       const s = steps[st];
       $('wStepN').textContent = s.n; $('wTitle').textContent = s.t;
@@ -30,10 +32,20 @@ function runWelcome() {
         bindLinks($('wText')); $('wKey').oninput = () => { picks.sgdbKey = $('wKey').value.trim(); $('wNext').disabled = !picks.sgdbKey; };
         $('wPath').style.display = 'none'; $('wPick').style.display = 'none';
       } else { if (s.k === 'root') $('wText').innerHTML = WEL_TREE; else $('wText').textContent = s.p; $('wPath').style.display = ''; $('wPick').style.display = ''; }
-      $('wPath').textContent = picks[s.k] || 'Nenhuma pasta escolhida'; $('wPath').classList.toggle('ok', !!picks[s.k]);
+      const ws = $('wStores'); ws.style.display = s.k === 'pc' && stores.length ? '' : 'none';
+      if (s.k === 'pc') {
+        ws.innerHTML = stores.map((x, j) => `<div class="wst${x.on ? ' on' : ''}" data-j="${j}"><label><input type="checkbox"${x.on ? ' checked' : ''}> ${esc(x.name)}${x.exists ? '' : ' <i>(pasta não encontrada neste PC)</i>'}</label><div class="wsrow"><input type="text" spellcheck="false" value="${esc(x.path)}"><button class="btn sec">...</button></div></div>`).join('');
+        ws.querySelectorAll('.wst').forEach(el => { const x = stores[+el.dataset.j], cb = el.querySelector('input[type=checkbox]'), tb = el.querySelector('input[type=text]');
+          cb.onchange = () => { x.on = cb.checked; el.classList.toggle('on', x.on); syncPc(); upd(); if (x.on) tb.focus(); };
+          tb.oninput = () => { x.path = tb.value; syncPc(); upd(); };
+          el.querySelector('button').onclick = async () => { try { const r = await api('/api/browse', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ type: 'folderabs', start: x.path }) }); if (r.path) { x.path = tb.value = r.path; syncPc(); upd(); sfx('ok'); } } catch (e) { toast(e.message, true); } };
+        });
+        syncPc(); $('wPick').textContent = 'Outra pasta...';
+      } else $('wPick').textContent = 'Escolher pasta...';
+      $('wPath').textContent = picks[s.k] || (s.k === 'pc' && stores.length ? 'Nenhuma outra pasta' : 'Nenhuma pasta escolhida'); $('wPath').classList.toggle('ok', !!picks[s.k]);
       $('wSkip').style.display = s.skip ? '' : 'none';
       $('wBack').style.display = st > 0 ? '' : 'none';
-      $('wNext').textContent = st === steps.length - 1 ? 'Concluir' : 'Continuar'; $('wNext').disabled = !picks[s.k] && !s.skip;
+      $('wNext').textContent = st === steps.length - 1 ? 'Concluir' : 'Continuar'; upd();
       $('wSkip').textContent = s.key ? 'Continuar sem' : 'Pular';
       if (s.key) { $('wNext').textContent = 'Salvar chave e prosseguir'; $('wNext').disabled = !picks.sgdbKey; }
     };
@@ -50,7 +62,7 @@ function runWelcome() {
     };
     $('wNext').onclick = next;
     $('wBack').onclick = () => { if (st > 0) { st--; sfx('back'); render(); } };
-    $('wSkip').onclick = () => { picks[steps[st].k] = ''; next(); };
+    $('wSkip').onclick = () => { picks[steps[st].k] = ''; if (steps[st].k === 'pc') { stores.forEach(x => x.on = false); picks.pcDirs = []; } next(); };
     render();
     setTimeout(() => $('wCard').classList.add('on'), 850);   // logo aparece e some em menos de 1 s
   });

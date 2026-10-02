@@ -678,3 +678,14 @@ body.th-light .hmute { background:rgba(255,255,255,.7); color:#2E2721; border-co
 #fgHeader #fgLogo { right:170px !important; }
 body.th-light .hview { background:rgba(255,255,255,.7); color:#2E2721; border-color:#D9CBB8; }
 #gViews { display:none; }
+
+#wStores { display:flex; flex-direction:column; gap:8px; margin:4px 0 12px; }
+#wStores .wst { background:#0e0b1a; border:1px solid #2e2650; border-radius:10px; padding:9px 12px; }
+#wStores .wst.on { border-color:#6b5bd6; }
+#wStores label { display:flex; align-items:center; gap:10px; cursor:pointer; font-weight:600; }
+#wStores label i { font-style:normal; font-weight:400; font-size:12px; opacity:.55; }
+#wStores input[type=checkbox] { width:17px; height:17px; accent-color:#7c6cf0; }
+#wStores .wsrow { display:none; gap:6px; margin-top:8px; }
+#wStores .wst.on .wsrow { display:flex; }
+#wStores .wsrow input { flex:1; min-width:0; background:#151027; border:1px solid #4a3f70; color:#fff; border-radius:7px; padding:7px 10px; font-size:13px; }
+#wStores .wsrow button { padding:6px 10px; }

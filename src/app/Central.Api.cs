@@ -273,13 +273,15 @@ static partial class Central
                 else Send(ctx, 200, "application/json; charset=utf-8", Utf8.GetBytes(File.Exists(f) ? File.ReadAllText(f, Encoding.UTF8) : "[]"));
             }
             else if (path == "/api/setup" && req.HttpMethod == "GET")
-                SendJson(ctx, new Dictionary<string, object> { { "needed", NeedsSetup }, { "suggest", "" } });
+                SendJson(ctx, new Dictionary<string, object> { { "needed", NeedsSetup }, { "suggest", "" }, { "stores", StoreDirs() } });
             else if (path == "/api/setup" && req.HttpMethod == "POST")
             {
                 // configuração automática a partir das pastas escolhidas no "boas-vindas"
                 string bodyText; using (var sr = new StreamReader(req.InputStream, Encoding.UTF8)) bodyText = sr.ReadToEnd();
                 var body = (Dictionary<string, object>)Json.DeserializeObject(bodyText);
-                var auto = AutoConfig.Build(S(body, "root"), S(body, "pc"));
+                var pcs = new List<string>(); if (S(body, "pc") != "") pcs.Add(S(body, "pc"));
+                if (body.ContainsKey("pcDirs") && body["pcDirs"] is object[]) foreach (var o in (object[])body["pcDirs"]) { var d = (o as string ?? "").Trim(); if (d != "" && !pcs.Contains(d, StringComparer.OrdinalIgnoreCase)) pcs.Add(d); }
+                var auto = AutoConfig.Build(S(body, "root"), pcs);
                 foreach (Dictionary<string, object> ac in (object[])auto["consoles"]) { ac["fullscreen"] = true; ac["fsArgs"] = FullscreenArg(Full(S(auto, "root"), S(ac, "emulator"))); }
                 if (S(body, "sgdbKey") != "") { auto["sgdbKey"] = S(body, "sgdbKey"); auto["useSgdb"] = true; }
                 bool runKey = false;
