@@ -754,3 +754,28 @@ window.addEventListener('resize', () => {
     g.addEventListener('pointermove', mv); g.addEventListener('pointerup', up);
   });
 })();
+// retângulo de seleção (como na Área de Trabalho do Windows): arrastar a partir de um espaço vazio seleciona os cards tocados; Ctrl soma à seleção
+$('favgrid').addEventListener('pointerdown', e => {
+  if (e.button !== 0 || screen !== 'favgrid' || e.target.closest('.fgcard, #fgHeader, #fgDots, .fgdet, button, .ctx')) return;
+  const x0 = e.clientX, y0 = e.clientY, base = e.ctrlKey ? new Set(fgMulti) : new Set();
+  let box = null, cards = null;
+  const mv = ev => {
+    if (!box) {
+      if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 6) return;
+      box = document.createElement('div'); box.className = 'fgmarq'; document.body.appendChild(box);
+      cards = [...$('fgTrack').children[fg.page].querySelectorAll('.fgcard')].map(el => ({ i: +el.dataset.i, r: el.getBoundingClientRect() }));   // mede uma vez só
+    }
+    const l = Math.min(x0, ev.clientX), t = Math.min(y0, ev.clientY), r = Math.max(x0, ev.clientX), b = Math.max(y0, ev.clientY);
+    Object.assign(box.style, { left: l + 'px', top: t + 'px', width: (r - l) + 'px', height: (b - t) + 'px' });
+    fgMulti.clear(); base.forEach(k => fgMulti.add(k));
+    cards.forEach(c => { if (c.r.left < r && c.r.right > l && c.r.top < b && c.r.bottom > t) fgMulti.add(c.i); });
+    fgMultiDom();
+  };
+  const up = () => {
+    document.removeEventListener('pointermove', mv); document.removeEventListener('pointerup', up);
+    if (!box) { if (!e.ctrlKey && fgMulti.size) fgClearMulti(); return; }   // clique simples no vazio: limpa a seleção
+    box.remove();
+    if (fgMulti.size) { const last = [...fgMulti].pop(); fgSelect(last, true); fgMultiDom(); sfx('tick'); }
+  };
+  document.addEventListener('pointermove', mv); document.addEventListener('pointerup', up);
+});

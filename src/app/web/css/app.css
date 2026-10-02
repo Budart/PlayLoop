@@ -644,3 +644,4 @@ body.th-light .hmute { background:rgba(255,255,255,.7); color:#2E2721; border-co
 #favgrid.free .fgpage { position:relative; }
 #favgrid.free .fgempty { display:none; }
 #favgrid.free .fgcard.rz { z-index:7; }
+.fgmarq { position:fixed; z-index:50; border:1px solid var(--c1); background:rgba(0,209,255,.12); pointer-events:none; border-radius:2px; }
