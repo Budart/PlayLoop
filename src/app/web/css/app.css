@@ -660,3 +660,6 @@ body.th-light .hmute { background:rgba(255,255,255,.7); color:#2E2721; border-co
 .search .padsel, #sortBtn.padsel { outline:3px solid var(--c1); outline-offset:2px; }
 
 .sys.lift { transform:translateY(-12px) scale(1.06); filter:drop-shadow(0 0 14px var(--c1)); z-index:5; }
+
+.oskk .okey { display:inline-flex; vertical-align:middle; margin-left:8px; }
+.oskk .okey .pg, .oskk .okey .pb { width:20px; height:20px; min-width:20px; font-size:10px; }

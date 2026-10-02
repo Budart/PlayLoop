@@ -5,11 +5,12 @@ const OSK_ROWS = [
   ['1','2','3','4','5','6','7','8','9','0','-'],
   ['q','w','e','r','t','y','u','i','o','p','\''],
   ['a','s','d','f','g','h','j','k','l','ç',':'],
-  ['⇧','z','x','c','v','b','n','m',',','.','/'],
+  ['z','x','c','v','b','n','m',',','.','/','@'],
   ['␣','⌫','✓'],
 ];
 function oskRender() {
-  $('osk').innerHTML = `<div class="oskval"></div>` + OSK_ROWS.map((r, y) => `<div class="oskrow">${r.map((k, x) => `<button class="oskk${k.length > 1 || k === '␣' || k === '⌫' || k === '✓' || k === '⇧' ? ' wide k' + ['␣','⌫','✓','⇧'].indexOf(k) : ''}${x === oskSel[1] && y === oskSel[0] ? ' sel' : ''}${k === '⇧' && oskShift ? ' on' : ''}" data-y="${y}" data-x="${x}">${k === '␣' ? 'espaço' : k === '⌫' ? '⌫ apagar' : k === '✓' ? '✓ OK' : oskShift && k.length === 1 ? k.toUpperCase() : k}</button>`).join('')}</div>`).join('');
+  const pi = g => (typeof G !== 'undefined' && typeof legendMode !== 'undefined' && legendMode === 'pad' && G[g]) ? `<i class="okey">${G[g]()}</i>` : '';   // botão do controle que faz o mesmo
+  $('osk').innerHTML = `<div class="oskval"></div>` + OSK_ROWS.map((r, y) => `<div class="oskrow">${r.map((k, x) => `<button class="oskk${k === '␣' || k === '⌫' || k === '✓' ? ' wide k' + ['␣','⌫','✓'].indexOf(k) : ''}${x === oskSel[1] && y === oskSel[0] ? ' sel' : ''}" data-y="${y}" data-x="${x}">${k === '␣' ? 'espaço' + pi('tri') : k === '⌫' ? '⌫ apagar' + pi('sq') : k === '✓' ? '✓ OK' + pi('start') : k}</button>`).join('')}</div>`).join('');
   $('osk').querySelectorAll('.oskk').forEach(b => b.onmousedown = e => { e.preventDefault(); oskSel = [+b.dataset.y, +b.dataset.x]; oskPress(); });
   oskShow();
 }
@@ -36,8 +37,7 @@ function oskType(s) {
 function oskPress() {
   const k = OSK_ROWS[oskSel[0]][oskSel[1]];
   if (k === '⌫') oskType(null); else if (k === '␣') oskType(' '); else if (k === '✓') closeOsk(true);
-  else if (k === '⇧') { oskShift = !oskShift; oskRender(); }
-  else { oskType(oskShift ? k.toUpperCase() : k); if (oskShift) { oskShift = false; oskRender(); } }
+  else oskType(k);
   sfx('tick');
 }
 function oskInput(a) {
@@ -48,7 +48,6 @@ function oskInput(a) {
   else if (a === 'fav') oskType(null);          // □ / X = apagar
   else if (a === 'menu') oskType(' ');          // △ / Y = espaço
   else if (a === 'start') closeOsk(true);       // Start = confirmar
-  else if (a === 'pgup' || a === 'pgdn') { oskShift = !oskShift; oskRender(); }
   else if (a === 'back') closeOsk(false);
 }
 // teclado/mouse físico: marca que a última ação não foi pelo controle

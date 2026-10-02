@@ -33,7 +33,7 @@ const SH = i => `<span class="pb sh">${SHOULDER[padType][i]}</span>`;
 const G = { l3: () => STICK('L'), ok: () => faceIcon(0), back: () => faceIcon(1), sq: () => faceIcon(2), tri: () => faceIcon(3), dpad: () => DPAD, lb: () => SH(0) + SH(1), lt: () => SH(2) + SH(3), sel: () => SH(4), start: () => SH(5), rs: () => STICK('R') };
 // comandos de cada tela/situação
 function padContext() {
-  if (oskOpen) return ['osk', [['dpad', 'escolher tecla'], ['ok', 'digitar'], ['sq', 'apagar'], ['tri', 'espaço'], ['lb', 'maiúsculas'], ['start', 'OK'], ['back', 'fechar']]];
+  if (oskOpen) return ['osk', [['dpad', 'escolher tecla'], ['ok', 'digitar'], ['sq', 'apagar'], ['tri', 'espaço'], ['start', 'OK'], ['back', 'fechar']]];
   const ctxOn = $('ctx').classList.contains('on');
   if (ARTPICK.open) return ['artpick', [['dpad', 'escolher'], ['ok', 'usar'], ['tri', 'buscar'], ['back', 'fechar']]];
   if (askOpen) return ['ask', [['dpad', 'escolher'], ['ok', 'confirmar'], ['back', 'cancelar']]];
