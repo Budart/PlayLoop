@@ -119,6 +119,17 @@ function input(a) {
     if (a === 'left') selectSystem(sysIdx - 1); else if (a === 'right') selectSystem(sysIdx + 1);
     else if (a === 'ok') openSystem();
   } else {
+    // topo da lista: busca e ordenação acessíveis pelo D-pad/setas (subir além do 1º jogo)
+    const ae = document.activeElement, qi = $('q'), sb = $('sortBtn');
+    if (ae === qi || ae === sb) {
+      if (a === 'down') { ae.blur(); ae.classList.remove('padsel'); selectGame(Math.max(0, gIdx)); return; }
+      if (a === 'right' && ae === qi && lastInputPad) { qi.classList.remove('padsel'); sb.focus(); sb.classList.add('padsel'); sfx('tick'); return; }
+      if (a === 'left' && ae === sb) { sb.classList.remove('padsel'); qi.focus(); qi.classList.add('padsel'); sfx('tick'); return; }
+      if (a === 'ok') { if (ae === sb) sb.click(); else if (lastInputPad) openOsk(qi); return; }
+      if (a === 'back') { ae.blur(); ae.classList.remove('padsel'); return; }
+      if (a === 'up') return;
+    }
+    if (a === 'up' && gIdx <= 0) { qi.focus(); qi.classList.add('padsel'); sfx('tick'); return; }
     if (a === 'up') selectGame(gIdx - 1); else if (a === 'down') selectGame(gIdx + 1);
     else if (a === 'pgup' || a === 'left') selectGame(gIdx - 10); else if (a === 'pgdn' || a === 'right') selectGame(gIdx + 10);
     else if (a === 'home') selectGame(0); else if (a === 'end') selectGame(shown.length - 1);
@@ -129,6 +140,11 @@ function input(a) {
 }
 document.addEventListener('keydown', e => {
   if (gameOn) { e.preventDefault(); return; }
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'f' || e.key === 'F')) {   // Ctrl+F: busca do app (no lugar da busca do navegador)
+    e.preventDefault(); e.stopPropagation();
+    if (screen === 'games') { $('q').focus(); $('q').select(); } else if (screen !== 'config' && screen !== 'welcome') openGlobal('');
+    return;
+  }
   if (ARTPICK.open && !oskOpen) { const d = { ArrowLeft:'left', ArrowRight:'right', ArrowUp:'up', ArrowDown:'down', Escape:'back' }[e.key]; const inQ = document.activeElement === $('apQ'); if (d && !(inQ && (d === 'left' || d === 'right'))) { e.preventDefault(); apInput(d); } else if (e.key === 'Enter' && !inQ) { e.preventDefault(); apInput('ok'); } return; }
   if (oskOpen) { if (e.key === 'Escape') { e.preventDefault(); closeOsk(false); } else if (e.key === 'Enter') { closeOsk(false); } else setTimeout(oskShow, 0); return; }
   if (askOpen) {
@@ -239,3 +255,4 @@ function pollPad1() {
 }
 requestAnimationFrame(pollPad);
 window.addEventListener('gamepadconnected', e => toast('🎮 Controle conectado: ' + (e.gamepad.id || '').replace(/\(.*\)/, '').trim()));
+['q', 'sortBtn'].forEach(id => $(id) && $(id).addEventListener('blur', () => $(id).classList.remove('padsel')));

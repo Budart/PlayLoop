@@ -348,7 +348,7 @@ function filter() {
 }
 let artTimer;
 function selectGame(i, force) {
-  if (!shown.length) { $('art').innerHTML = ''; $('details').innerHTML = ''; return; }
+  if (!shown.length) { $('art').innerHTML = ''; $('details').innerHTML = ''; lastArt = null; stopVideo(); if (typeof setVidLogo === 'function') setVidLogo(null, ''); if (typeof clearBg === 'function' && globalMode && !favMode) clearBg(); return; }   // nada na lista (ex.: busca vazia): nenhum resto do jogo anterior
   i = Math.max(0, Math.min(shown.length - 1, i));
   if (i === gIdx && !force) return;
   if (!force) sfx('tick');
