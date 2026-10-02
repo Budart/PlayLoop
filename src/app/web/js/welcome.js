@@ -3,7 +3,6 @@
 // passo 1: como organizar as pastas (ilustrado) — sem sugerir nenhum caminho
 const WF = '<svg viewBox="0 0 24 24"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4l2 2h9A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z" fill="#f5b942"/></svg>';
 const WE = '<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3" fill="#3b82f6"/><path d="M9 9l6 3-6 3z" fill="#fff"/></svg>';
-const WR = '<svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2" fill="#8b5cf6"/><rect x="8" y="6" width="8" height="5" rx="1" fill="#fff" opacity=".85"/></svg>';
 const wrow = (lvl, ico, name, note) => `<div class="wt" style="--l:${lvl}">${ico}<b>${name}</b>${note ? `<i>${note}</i>` : ''}</div>`;
 const WEL_TREE = `<span>Uma pasta para cada console. O PlayLoop configura o resto sozinho.</span>
 <div class="wtree">

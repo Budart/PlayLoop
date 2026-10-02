@@ -23,7 +23,6 @@ class Setup : Form
 
     static readonly Color Bg = Color.FromArgb(11, 16, 32), Panel2 = Color.FromArgb(30, 41, 59), Txt = Color.FromArgb(229, 231, 235), Muted = Color.FromArgb(148, 163, 184);
     static readonly Color Cyan = Color.FromArgb(0, 209, 255), Pink = Color.FromArgb(139, 92, 246);
-    const string EmuRoot = @"";
 
     SoundPlayer player; bool muted;
     TextBox pathBox; CheckBox cDesk, cStart, cAuto, cRun;
@@ -263,7 +262,7 @@ class Setup : Form
         try
         {
             string app = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CentralDeJogos", "config.json");
-            string f = File.Exists(app) ? app : Path.Combine(EmuRoot, "central-config.json");
+            string f = app;
             if (!File.Exists(f)) return;   // primeira instalação: o app pergunta as pastas na primeira abertura
             var js = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
             var cfg = (Dictionary<string, object>)js.DeserializeObject(File.ReadAllText(f));

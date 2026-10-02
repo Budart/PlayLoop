@@ -51,7 +51,6 @@ class Ctx { public Req Request; public Resp Response = new Resp(); }
 
 static class Central
 {
-    const string DefaultRoot = @"";
     const string ConfigName = "central-config.json";
     static readonly JavaScriptSerializer Json = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
     static readonly UTF8Encoding Utf8 = new UTF8Encoding(false);
@@ -66,11 +65,10 @@ static class Central
         using (var r = new StreamReader(s, Encoding.UTF8)) return r.ReadToEnd();
     }
 
-    // configuração: %LOCALAPPDATA%\CentralDeJogos\config.json (ou a antiga, na pasta dos emuladores, se existir)
+    // configuração: %LOCALAPPDATA%\CentralDeJogos\config.json
     static readonly string AppConfig = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CentralDeJogos", "config.json");
-    static string LegacyConfig { get { return Path.Combine(DefaultRoot, ConfigName); } }
-    static string ConfigFile { get { return File.Exists(AppConfig) ? AppConfig : File.Exists(LegacyConfig) ? LegacyConfig : AppConfig; } }
-    static bool NeedsSetup { get { return !File.Exists(AppConfig) && !File.Exists(LegacyConfig); } }
+    static string ConfigFile { get { return AppConfig; } }
+    static bool NeedsSetup { get { return !File.Exists(AppConfig); } }
 
     static Dictionary<string, object> LoadConfig()
     {
@@ -492,7 +490,7 @@ static class Central
                 else Send(ctx, 200, "application/json; charset=utf-8", Utf8.GetBytes(File.Exists(f) ? File.ReadAllText(f, Encoding.UTF8) : "[]"));
             }
             else if (path == "/api/setup" && req.HttpMethod == "GET")
-                SendJson(ctx, new Dictionary<string, object> { { "needed", NeedsSetup }, { "suggest", Directory.Exists(DefaultRoot) ? DefaultRoot : "" } });
+                SendJson(ctx, new Dictionary<string, object> { { "needed", NeedsSetup }, { "suggest", "" } });
             else if (path == "/api/setup" && req.HttpMethod == "POST")
             {
                 // configuração automática a partir das pastas escolhidas no "boas-vindas"
@@ -714,7 +712,6 @@ static class Central
         string extra = "";
         if (wipe)
         {
-            try { if (File.Exists(LegacyConfig)) File.Delete(LegacyConfig); } catch { }
             try { Directory.Delete(data, true); } catch { }
             // o que ficar preso (processos do WebView2 ainda fechando) é apagado logo depois que este programa sai
             if (Directory.Exists(data)) extra = " & rmdir /s /q \"" + data + "\"";

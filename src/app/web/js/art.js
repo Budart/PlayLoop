@@ -28,13 +28,6 @@ const EXTRA_REPOS = [
   { key:'pcgw', label:'PCGamingWiki', find: async g => (await mw('https://www.pcgamingwiki.com/w/api.php', cleanTitle(g.name))).map(p => ({ ...p, src:'PCGamingWiki' })) },
   { key:'strategywiki', label:'StrategyWiki', find: async g => (await mw('https://strategywiki.org/w/api.php', cleanTitle(g.name))).map(p => ({ ...p, src:'StrategyWiki' })) },
 ];
-async function extraImage(g, order) {
-  for (const k of order) {
-    const repo = EXTRA_REPOS.find(r => r.key === k);
-    for (const p of await repo.find(g)) if (await loadImg(p.img)) return { box: p.img, src: k };
-  }
-  return null;
-}
 let covers = {};
 const coverKey = g => g.sid + '|' + g.path;
 // 3º repositório: capas pelo código do jogo lido da ROM (GameTDB p/ Wii/DS/3DS, xlenore p/ PS1/PS2)
@@ -65,11 +58,6 @@ async function steamSearch(q) {
   if (!steamCache[q]) { try { steamCache[q] = ((await api('/api/steam?q=' + encodeURIComponent(q))).items || []).filter(i => i.type === 'app'); } catch (e) { steamCache[q] = []; } }
   return steamCache[q];
 }
-async function steamArt(g) {
-  const items = await steamSearch(cleanTitle(g.name)); if (!items.length) return null;
-  const box = await firstOk(steamUrls(items[0].id)); if (!box) return null;
-  return { box, snap: `${STEAM}${items[0].id}/library_hero.jpg` };
-}
 // cache de capas no computador (servidor guarda as imagens e o resultado da busca)
 let cacheOn = true, artDisk = {};
 const cp = u => (cacheOn && u && /^https?:/.test(u)) ? '/api/img?u=' + encodeURIComponent(u) : u;
@@ -91,7 +79,6 @@ async function resolveArt(g) {
 // mede a imagem (largura × altura); null se não carregar
 const imgSize = (url, ms) => new Promise(ok => { const i = new Image(); const t = setTimeout(() => ok(null), ms || 6000);
   i.onload = () => { clearTimeout(t); ok(i.naturalWidth > 1 ? { url, px: i.naturalWidth * i.naturalHeight, ar: i.naturalWidth / i.naturalHeight } : null); }; i.onerror = () => { clearTimeout(t); ok(null); }; i.src = url; });
-async function firstSized(urls) { for (const u of urls) { const r = await imgSize(u); if (r) return r; } return null; }
 // Wikipédia: só a imagem principal (infobox) de artigos de JOGO — nada de fotos secundárias
 async function wikiMain(title, n) {
   const out = [];
@@ -223,46 +210,6 @@ function spineLogo(url, my) {   // logo do SteamGridDB na lateral, só depois de
 }
 function loadRatio(url) { return new Promise(ok => { const i = new Image(); i.onload = () => { const r = i.naturalWidth > 1 ? i.naturalWidth / i.naturalHeight : null; if (r) ratioCache[url] = r; ok(r); }; i.onerror = () => ok(null); i.src = url; }); }
 let coverStyle2d = false;
-// ---- cor principal da capa: a cor mais presente (com peso para cores vivas) vira a cor de toda a caixa 3D ----
-const caseColor = {};
-function caseVars(url) {
-  return '';   // desativado: a caixa volta a ser preta (o cálculo da cor fica guardado caso volte)
-  if (!url) return '';
-  const c = caseColor[url];
-  if (c === undefined) { caseColor[url] = null; setTimeout(() => caseTint(url), 0); return ''; }
-  return c ? `--edge:${c.bg};--etxt:${c.fg};` : '';
-}
-function caseTint(url) {
-  const tryLoad = (src, cors) => new Promise(res => { const im = new Image(); if (cors) im.crossOrigin = 'anonymous'; im.onload = () => res(im); im.onerror = () => res(null); im.src = src; });
-  (async () => {
-    let im = /^https?:/.test(url) ? await tryLoad('/api/img?u=' + encodeURIComponent(url)) : await tryLoad(url);
-    let col = im && mainColor(im);
-    if (!col && /^https?:/.test(url)) { im = await tryLoad(url, true); col = im && mainColor(im); }
-    if (!col) return;
-    caseColor[url] = col;
-    document.querySelectorAll('.case3d').forEach(el => { if (el.dataset.u === url) { el.style.setProperty('--edge', col.bg); el.style.setProperty('--etxt', col.fg); } });
-  })();
-}
-function mainColor(im) {
-  try {
-    const N = 40, cv = document.createElement('canvas'); cv.width = N; cv.height = N;
-    const x = cv.getContext('2d', { willReadFrequently: true }); x.drawImage(im, 0, 0, N, N);
-    const d = x.getImageData(0, 0, N, N).data, B = {};
-    for (let i = 0; i < d.length; i += 4) {
-      if (d[i + 3] < 128) continue;
-      const r = d[i], g = d[i + 1], b = d[i + 2], mx = Math.max(r, g, b), mn = Math.min(r, g, b), sat = mx ? (mx - mn) / mx : 0;
-      const k = (r >> 4) + ',' + (g >> 4) + ',' + (b >> 4), w = 1 + sat * 2;   // cores vivas pesam mais que cinza/branco/preto
-      const o = B[k] || (B[k] = { n: 0, r: 0, g: 0, b: 0 }); o.n += w; o.r += r * w; o.g += g * w; o.b += b * w;
-    }
-    let best = null; for (const k in B) if (!best || B[k].n > best.n) best = B[k];
-    if (!best) return null;
-    let r = best.r / best.n, g = best.g / best.n, b = best.b / best.n;
-    const L = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
-    if (L > .82) { r *= .9; g *= .9; b *= .9; }   // branco puro fica levemente acinzentado (caixa não "some")
-    const hex = v => Math.round(v).toString(16).padStart(2, '0');
-    return { bg: '#' + hex(r) + hex(g) + hex(b), fg: L > .55 ? '#111' : '#fff' };
-  } catch (e) { return null; }   // imagem de outro site sem permissão de leitura
-}
 function buildCase(g, url, back, ratio) {
   const base = CASES[sys.type === 'pc' ? 'pc' : sys.id] || { r:.72, d:.1, spine:'#222', txt:'#ddd', rim:0 };
   const gen = base.txt;   // cor da capa genérica
@@ -303,7 +250,7 @@ function buildCase(g, url, back, ratio) {
       corners += face('corner', seg, D + O, `translate3d(${px(x)},${px(y)},0) rotateZ(${(th * 180 / Math.PI + 90).toFixed(2)}deg) rotateX(90deg)`, `background:${edge};backface-visibility:visible;`);
     }
   });
-  return `<div class="cw" style="transform:${scaleTf()}"><div class="rot" style="transform:${viewTf()};transform-style:preserve-3d"><div class="flip${back ? ' back' : ''}"><div class="case3d" data-u="${esc(url || '')}" style="width:${px(W)};height:${px(H)};${caseVars(url)}">` +
+  return `<div class="cw" style="transform:${scaleTf()}"><div class="rot" style="transform:${viewTf()};transform-style:preserve-3d"><div class="flip${back ? ' back' : ''}"><div class="case3d" style="width:${px(W)};height:${px(H)}">` +
     face('front', W, H, `translateZ(${px(D / 2)})`, rimStyle + `background-color:var(--edge, ${c.rimc});`, `<div style="position:absolute;inset:0;background-size:cover;background-position:center;${coverStyle}"></div>${inner}${tex}`) +
     face('back', W, H, `rotateY(180deg) translateZ(${px(D / 2)})`, `background:${edge};border-radius:${R}px;`) +
     face('spine', D + O, H - 2 * R + O, `rotateY(-90deg) translateZ(${px(W / 2)})`, `--sh:${px((H - 2 * R) * .85)};--sw:${px(D * .8)};background:${edge};`, spineHtml) +
