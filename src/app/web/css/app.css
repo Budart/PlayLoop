@@ -663,3 +663,9 @@ body.th-light .hmute { background:rgba(255,255,255,.7); color:#2E2721; border-co
 
 .oskk .okey { display:inline-flex; vertical-align:middle; margin-left:8px; }
 .oskk .okey .pg, .oskk .okey .pb { width:20px; height:20px; min-width:20px; font-size:10px; }
+
+.catbtn { margin-left:6px; min-width:30px; }
+.catbtn.padsel { outline:3px solid var(--c1); outline-offset:2px; }
+.catin { width:100%; margin-top:12px; background:#0e1424; border:1px solid #334155; color:#fff; border-radius:8px; padding:10px 12px; font:inherit; font-size:14px; outline:none; box-sizing:border-box; }
+.catin:focus, .catin.kbf { border-color:var(--c1); }
+.ctx { z-index:9999 !important; }

@@ -59,7 +59,7 @@ document.addEventListener('keydown', () => { legendMode = 'kb'; }, true);
 const KB = {
   sysmove: [['← →', 'mover console'], ['Espaço', 'soltar'], ['Esc', 'cancelar']],
   top: [['← →', 'escolher'], ['Enter', 'abrir'], ['↓ Esc', 'voltar']],
-  systems: [['← →', 'escolher console'], ['↑', 'topo'], ['Enter', 'entrar'], ['A-Z', 'buscar'], ['F1', 'configuração']],
+  systems: [['← →', 'escolher console'], ['↑', 'topo'], ['Ctrl+← →', 'mover console'], ['M', 'som'], ['Enter', 'entrar'], ['A-Z', 'buscar'], ['F1', 'configuração']],
   games: [['↑ ↓', 'navegar'], ['→', 'menu'], ['Enter', 'jogar'], ['PgUp PgDn', 'pular'], ['F2', 'renomear'], ['A-Z', 'buscar'], ['Esc', 'voltar']],
   favgrid: [['Setas', 'navegar'], ['Enter', 'jogar'], ['Espaço', 'mover'], ['I', 'info'], ['Esc', 'voltar'], ['Alt+arrastar', 'imagem do card'], ['Ctrl+redimensionar', 'proporção'], ['Arrastar no vazio', 'selecionar vários', ['Ctrl+Z', 'desfazer']]],
   fgmove: [['Setas', 'mover card'], ['Espaço', 'soltar'], ['Esc', 'cancelar']],

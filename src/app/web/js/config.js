@@ -39,6 +39,7 @@ function creditsHtml() {
 }
 // opções com desenho ilustrativo (o rádio fica escondido; o cartão inteiro é clicável)
 const langPv = t => `<svg viewBox="0 0 120 70"><rect width="120" height="70" rx="8" fill="#111a2e"/><text x="60" y="46" text-anchor="middle" font-size="28" font-weight="700" fill="#00D1FF" font-family="Poppins,sans-serif">${t}</text></svg>`;
+const freePv = () => `<svg viewBox="0 0 112 78"><rect width="112" height="78" rx="6" fill="#0b1020"/>${[[6,6,22,30],[31,6,40,22],[74,6,32,30],[31,31,18,24],[52,31,19,40],[6,39,22,33],[74,39,32,18]].map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="#1e293b" stroke="#00D1FF" stroke-opacity=".6"/>`).join('')}</svg>`;
 const pick = (name, val, on, svg, title, sub) => `<label class="pick"><input type="radio" name="${name}" value="${val}" ${on ? 'checked' : ''}><div class="pv">${svg}</div><b>${title}</b><small>${sub || ''}</small></label>`;
 const PV = {
   c3d: `<svg viewBox="0 0 120 90"><defs><linearGradient id="pf" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8B5CF6"/><stop offset="1" stop-color="#00D1FF"/></linearGradient></defs><path d="M38 14 L52 8 L52 82 L38 76 Z" fill="#0b0b0b"/><path d="M52 8 L96 16 L96 76 L52 82 Z" fill="url(#pf)" stroke="#0b0b0b" stroke-width="2"/><path d="M58 20 L90 25 M58 30 L84 34" stroke="#fff" stroke-opacity=".6" stroke-width="3" stroke-linecap="round"/><path d="M45 20 L45 70" stroke="#fff" stroke-opacity=".35" stroke-width="2"/></svg>`,
@@ -99,6 +100,9 @@ function renderConfig() {
       <label class="chk2"><input type="checkbox" id="cfSgOn" ${cfg.useSgdb && cfg.sgdbKey ? 'checked' : ''}> Usar o SteamGridDB para capas, fundos e logos</label>
     </div>`) +
     sec('favoritos', '⭐ Favoritos', `<div class="cfcache"><h3>Grade dos favoritos</h3>
+        <h3 style="margin-top:0">Organização dos cards</h3>
+        <div class="picks">${pick('fgm', 'free', fgFree, freePv(), 'Livre', 'tamanho e posição à vontade (mais lenta)')}${pick('fgm', 'grid', !fgFree, gridPv('4x12'), 'Grade fixa', 'cards encaixados na grade (mais leve)')}</div>
+        <h3 style="margin-top:16px">Tamanho da grade</h3>
         <div class="picks">${['4x10', '4x12', '6x14'].map(d => pick('fgd', d, ((cfg.favGrid === '6x12' ? '6x14' : cfg.favGrid) || '4x12') === d, gridPv(d), d.replace('x', ' × '), d === '4x12' ? 'padrão' : (d === '6x14' ? 'mais jogos por página' : 'cards maiores'))).join('')}</div>
         <h3 style="margin-top:16px">Fundo da tela</h3>
         <div class="picks">${pick('fbg', '1', cfg.favBgGame !== false, PV.video.replace('#ff2d2d', '#8B5CF6'), 'Fundo do jogo', 'muda ao selecionar um card')}${pick('fbg', '0', cfg.favBgGame === false, PV.image, 'Fundo fixo', 'uma imagem que você escolhe')}</div>
@@ -116,6 +120,7 @@ function renderConfig() {
   $('cfBody').querySelectorAll('input[name=fbg]').forEach(r => r.onchange = () => { cfg.favBgGame = r.value === '1'; favBgGame = cfg.favBgGame; $('wpBox').style.display = favBgGame ? 'none' : ''; });
   $('wpGo').onclick = () => wpSearch($('wpQ').value);
   $('wpQ').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); wpSearch($('wpQ').value); } });
+  $('cfBody').querySelectorAll('input[name=fgm]').forEach(r => r.onchange = async () => { const ok = await fgSetMode(r.value === 'free'); if (!ok) $('cfBody').querySelector(`input[name=fgm][value="${fgFree ? 'free' : 'grid'}"]`).checked = true; });
   $('cfBody').querySelectorAll('input[name=fgd]').forEach(r => r.onchange = () => { cfg.favGrid = r.value; favGridDim = r.value; });
   $('cfBody').querySelectorAll('[data-k]').forEach(el => el.oninput = () => setField(+el.dataset.i, el.dataset.k, el.value));
   $('cfBody').querySelectorAll('[data-browse]').forEach(el => el.onclick = () => browse(el));

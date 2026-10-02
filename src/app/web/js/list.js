@@ -87,7 +87,7 @@ function openBatchCtx(x, y) {
   m.querySelectorAll('.ci').forEach(el => el.onclick = e => { e.stopPropagation(); closeCtx(); ctxItems[+el.dataset.k][2](); });
   m.classList.add('on'); ctxSel = -1;
   const r = m.getBoundingClientRect();
-  m.style.left = Math.min(x, innerWidth - r.width - 8) + 'px'; m.style.top = Math.min(y, innerHeight - r.height - 8) + 'px';
+  ctxPlace(m, x, y);
 }
 // ---- menu do botão direito ----
 const ICO = {
@@ -114,7 +114,14 @@ function openCtx(g, x, y) {
   m.querySelectorAll('.ci').forEach(el => el.onclick = e => { e.stopPropagation(); closeCtx(); ctxItems[+el.dataset.k][2](); });
   m.classList.add('on'); ctxSel = -1;
   const r = m.getBoundingClientRect();
-  m.style.left = Math.min(x, innerWidth - r.width - 8) + 'px'; m.style.top = Math.min(y, innerHeight - r.height - 8) + 'px';
+  ctxPlace(m, x, y);
+}
+// posiciona o menu: abre para cima quando não cabe embaixo; nunca sai da tela
+function ctxPlace(m, x, y) {
+  m.style.maxHeight = (innerHeight - 16) + 'px'; m.style.overflowY = 'auto';
+  const r = m.getBoundingClientRect(), h = r.height, w = r.width;
+  m.style.left = Math.max(8, Math.min(x, innerWidth - w - 8)) + 'px';
+  m.style.top = (y + h > innerHeight - 8 ? Math.max(8, y - h) : y) + 'px';
 }
 function closeCtx() { $('ctx').classList.remove('on'); ctxSel = -1; }
 function ctxMove(d) { const els = [...$('ctx').querySelectorAll('.ci')]; ctxSel = (ctxSel + d + els.length) % els.length; els.forEach((e, k) => e.classList.toggle('kb', k === ctxSel)); }
@@ -133,6 +140,12 @@ function ask(title, text, yes, alt, html) {   // alt: 3º botão opcional (resol
   });
 }
 let askOpen = false, askDone = null;
+// pergunta com campo de texto (Enter confirma; pelo controle, ✕ no campo abre o teclado virtual)
+function askInput(title, text, yes, value, ph) {
+  const p = ask(title, `${esc(text)}<input id="catName" class="catin" maxlength="40" placeholder="${esc(ph || '')}" value="${esc(value || '')}">`, yes, null, true);
+  setTimeout(() => { const i = $('catName'); if (!i) return; i.focus(); i.select(); i.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); $('askYes').click(); } else if (e.key === 'Escape') { e.preventDefault(); $('askNo').click(); } }; }, 30);
+  return p;
+}
 async function askDelete(g) {
   const pc = sysOf(g).type === 'pc';
   const ok = await ask(pc ? 'Desinstalar este jogo?' : 'Excluir este jogo do seu PC?',
@@ -167,11 +180,51 @@ async function toggleHidden(g) {
   const keep = shown[gIdx]; filter(); const j = shown.indexOf(keep); selectGame(j >= 0 ? j : Math.min(gIdx, shown.length - 1), true);
 }
 // ---- categoria manual (arrastar), ordenação e categorias recolhíveis ----
-function ecat(g) { const o = covers['cat|' + coverKey(g)]; return o === undefined ? g.cat : (o === '__main' ? '' : o); }
-const catLabel = c => c || (sys && sys.type === 'pc' ? 'Jogos' : 'Oficiais');
+function ecat(g) { const o = covers['cat|' + coverKey(g)]; const c = o === undefined ? g.cat : (o === '__main' ? '' : o); return c && deadCats(g.sid).includes(c) ? '' : c; }
+// subcategorias por console: criadas pelo usuário ('ucat|console'), excluídas ('dcat|console') e nomes trocados ('lcat|console|cat')
+const catSid = () => (sys && !sys.virtual && sys.id) || '';
+const jsonOf = k => { try { return JSON.parse(covers[k] || '[]'); } catch (e) { return []; } };
+const userCats = sid => jsonOf('ucat|' + sid), deadCats = sid => jsonOf('dcat|' + sid);
+function saveKey(key, url) { if (url) covers[key] = url; else delete covers[key]; return api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, url: url || '' }) }).catch(() => {}); }
+const catLabel = c => { if (!c) return 'Jogos'; const o = covers['lcat|' + catSid() + '|' + c]; return o || c; };
 function catTargets() {
-  return (sys && sys.type === 'pc') ? ['', 'Ferramentas para jogos', 'Outros programas']
-    : ['Traduzidos', '', 'Hack / Mod', 'Homebrew / Port', 'Beta / Protótipo', 'Não licenciado'];
+  const base = (sys && sys.type === 'pc') ? ['', 'Ferramentas para jogos', 'Outros programas'] : ['Traduzidos', '', 'Hack / Mod', 'Homebrew / Port', 'Beta / Protótipo', 'Não licenciado'];
+  const sid = catSid(), dead = deadCats(sid);
+  return base.filter(c => !c || !dead.includes(c)).concat(userCats(sid).filter(c => !base.includes(c)));
+}
+// ✏ e + ao lado da ordenação: gerenciar subcategorias do console
+async function catAdd() {
+  const sid = catSid(); if (!sid) { toast('Abra um console para criar subcategorias', true); return; }
+  const ok = await askInput('Nova subcategoria', 'Ela fica vazia até você arrastar jogos para ela.', 'Criar', '', 'Nome da subcategoria');
+  const v = ok && (($('catName') && $('catName').value) || '').trim(); if (!v) return;
+  if (catTargets().some(c => catLabel(c).toLowerCase() === v.toLowerCase())) { toast('Já existe uma subcategoria com esse nome', true); return; }
+  const list = userCats(sid); list.push(v); await saveKey('ucat|' + sid, JSON.stringify(list));
+  saveKey('dcat|' + sid, JSON.stringify(deadCats(sid).filter(c => c !== v)));
+  toast(`Subcategoria "${v}" criada`); refilterKeep();
+}
+function catEditMenu(x, y) {
+  const sid = catSid(); if (!sid) { toast('Abra um console para editar subcategorias', true); return; }
+  const cs = catTargets().filter(Boolean);
+  ctxItems = cs.length ? cs.flatMap(c => [['pen', `Renomear "${catLabel(c)}"`, () => catRename(c)], ['del', `Excluir "${catLabel(c)}"`, () => catDelete(c), 'red']]) : [['pen', 'Nenhuma subcategoria', () => {}]];
+  const m = $('ctx');
+  m.innerHTML = ctxItems.map((it, k) => it ? `<div class="ci ${it[3] || ''}" data-k="${k}">${ICO[it[0]]}${esc(it[1])}</div>` : '<div class="sep"></div>').join('');
+  m.querySelectorAll('.ci').forEach(el => el.onclick = e => { e.stopPropagation(); closeCtx(); ctxItems[+el.dataset.k][2](); });
+  m.classList.add('on'); ctxSel = -1; ctxPlace(m, x, y); ctxMove(1);
+}
+async function catRename(c) {
+  const sid = catSid(), ok = await askInput('Renomear subcategoria', 'Só o nome muda; os jogos continuam nela.', 'Salvar', catLabel(c), 'Nome da subcategoria');
+  const v = ok && (($('catName') && $('catName').value) || '').trim(); if (!v) return;
+  await saveKey('lcat|' + sid + '|' + c, v === c ? '' : v); toast('Subcategoria renomeada'); refilterKeep();
+}
+async function catDelete(c) {
+  const sid = catSid();
+  if (!await ask('Excluir subcategoria?', `Os jogos de "${catLabel(c)}" vão para "Jogos". Nenhum arquivo é apagado.`, 'Excluir')) return;
+  (games || []).forEach(g => { const k = 'cat|' + coverKey(g); if (covers[k] === c) saveKey(k, '__main'); });
+  const uc = userCats(sid);
+  if (uc.includes(c)) await saveKey('ucat|' + sid, JSON.stringify(uc.filter(x => x !== c)));
+  else { const d = deadCats(sid); if (!d.includes(c)) d.push(c); await saveKey('dcat|' + sid, JSON.stringify(d)); }
+  saveKey('lcat|' + sid + '|' + c, '');
+  toast('Subcategoria excluída'); refilterKeep();
 }
 let collapsed = new Set(['Ocultos']); try { const c = JSON.parse(localStorage.getItem('collapsed') || 'null'); if (Array.isArray(c)) collapsed = new Set(c); } catch (e) {}
 const saveCollapsed = () => { try { localStorage.setItem('collapsed', JSON.stringify([...collapsed])); } catch (e) {} };
@@ -356,6 +409,7 @@ function filter() {
   for (const g of [...multi]) if (!shown.includes(g)) multi.delete(g);
   if (multi.size < 2) multi.clear(); $('list').classList.toggle('multi', multi.size > 1); multiInfo();
   $('list').classList.toggle('g', globalMode);
+  ['catEdit', 'catAdd'].forEach(id => { $(id).style.display = globalMode ? 'none' : ''; });   // subcategorias são de cada console
   vEmpty = `<div class="empty">${favMode ? 'Nenhum jogo favoritado ainda — use a ⭐ ao lado de um jogo.' : globalMode && !q ? 'Digite o nome de um jogo.' : 'Nenhum jogo encontrado.'}</div>`;
   $('list').scrollTop = 0; vRender();
   selectGame(0, true);
@@ -383,3 +437,6 @@ const loadImg = url => new Promise(ok => { const i = new Image(); i.onload = () 
 async function firstOk(urls) { for (const u of urls) { const r = await loadImg(u); if (r) return r; } return null; }
 const cleanTitle = n => n.replace(/\([^)]*\)|\[[^\]]*\]|\{[^}]*\}/g, ' ').replace(/www\.\S+|\b(BR|PTBR|PT-BR|Decrypted|USA|Europe|Rev ?\d*)\b/gi, ' ')
   .replace(/^(.*), The\b/, 'The $1').replace(/[_]+/g, ' ').replace(/\s+/g, ' ').trim();
+
+$('catEdit').onclick = e => { e.stopPropagation(); const r = $('catEdit').getBoundingClientRect(); catEditMenu(r.left, r.bottom + 4); };
+$('catAdd').onclick = e => { e.stopPropagation(); catAdd(); };

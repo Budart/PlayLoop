@@ -13,12 +13,12 @@ $('crtBtn').onclick = () => { setCrt(!crtOn); sfx('ok'); $('crtBtn').blur(); };
 setCrt(crtOn);
 
 /* ---------- janelas de confirmação com o controle: D-pad escolhe o botão/link, ✕ aperta o que está em foco, ○ cancela ---------- */
-function askItems() { return [...$('askModal').querySelectorAll('.emurec a, .mfoot button')].filter(e => e.offsetParent); }
+function askItems() { return [...$('askModal').querySelectorAll('.catin, .emurec a, .mfoot button')].filter(e => e.offsetParent); }
 function askPad(a) {
   const it = askItems(); if (!it.length) return;
   let k = it.indexOf(document.activeElement);
   if (a === 'back') { askDone(false); return; }
-  if (a === 'ok') { (k >= 0 ? it[k] : $('askNo')).click(); return; }
+  if (a === 'ok') { const t = k >= 0 ? it[k] : $('askNo'); if (t.tagName === 'INPUT') openOsk(t); else t.click(); return; }
   if (['left','right','up','down'].includes(a)) {
     k = k < 0 ? 0 : (k + ((a === 'left' || a === 'up') ? -1 : 1) + it.length) % it.length;
     it[k].focus(); sfx('tick');
@@ -121,14 +121,15 @@ function input(a) {
     else if (a === 'ok') openSystem();
   } else {
     // topo da lista: busca e ordenação acessíveis pelo D-pad/setas (subir além do 1º jogo)
-    const ae = document.activeElement, qi = $('q'), sb = $('sortBtn');
-    if (ae === qi || ae === sb) {
+    const ae = document.activeElement, qi = $('q'), tops = [qi, $('sortBtn'), $('catEdit'), $('catAdd')].filter(x => x && x.offsetParent), ti = tops.indexOf(ae);
+    if (ti >= 0) {
+      const go = el => { ae.classList.remove('padsel'); el.focus(); el.classList.add('padsel'); sfx('tick'); };
       if (a === 'down') { ae.blur(); ae.classList.remove('padsel'); selectGame(Math.max(0, gIdx)); return; }
-      if (a === 'right' && ae === qi && lastInputPad) { qi.classList.remove('padsel'); sb.focus(); sb.classList.add('padsel'); sfx('tick'); return; }
-      if (a === 'left' && ae === sb) { sb.classList.remove('padsel'); qi.focus(); qi.classList.add('padsel'); sfx('tick'); return; }
-      if (a === 'ok') { if (ae === sb) sb.click(); else if (lastInputPad) openOsk(qi); return; }
+      if (a === 'right' && ti < tops.length - 1 && (ae !== qi || lastInputPad)) { go(tops[ti + 1]); return; }
+      if (a === 'left' && ti > 0) { go(tops[ti - 1]); return; }
+      if (a === 'ok') { if (ae === qi) { if (lastInputPad) openOsk(qi); } else ae.click(); return; }
       if (a === 'back') { ae.blur(); ae.classList.remove('padsel'); return; }
-      if (a === 'up') return;
+      if (a === 'up' || a === 'right' || a === 'left') return;
     }
     if (a === 'up' && gIdx <= 0) { qi.focus(); qi.classList.add('padsel'); sfx('tick'); return; }
     if ((a === 'up' || a === 'down') && padPrev.fav && shown[gIdx]) {   // □ segurado: seleciona os jogos por onde passa
@@ -152,6 +153,11 @@ function input(a) {
 }
 document.addEventListener('keydown', e => {
   if (gameOn) { e.preventDefault(); return; }
+  { const ae = document.activeElement, typing = ae && (ae.tagName === 'TEXTAREA' || (ae.tagName === 'INPUT' && !/checkbox|radio|range/.test(ae.type)));
+    if ((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.altKey && !e.metaKey && !typing && !oskOpen && !renaming) { e.preventDefault(); setMute(!muted); return; } }   // M: liga/desliga o som em qualquer tela
+  if (screen === 'systems' && e.ctrlKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight') && topSel < 0) {   // Ctrl + ←/→: leva o console (soltar o Ctrl grava)
+    e.preventDefault(); if (!sysMoving) sysMoveInput('fav'); sysMoveInput(e.key === 'ArrowLeft' ? 'left' : 'right'); return;
+  }
   if ((e.ctrlKey || e.metaKey) && (e.key === 'f' || e.key === 'F')) {   // Ctrl+F: busca do app (no lugar da busca do navegador)
     e.preventDefault(); e.stopPropagation();
     if (screen === 'games') { $('q').focus(); $('q').select(); } else if (screen !== 'config' && screen !== 'welcome') openGlobal('');
@@ -213,6 +219,8 @@ document.addEventListener('keydown', e => {
   }
   const map = { ArrowLeft:'left', ArrowRight:'right', ArrowUp:'up', ArrowDown:'down', Enter:'ok', Escape:'back', PageUp:'pgup', PageDown:'pgdn', Home:'home', End:'end' };
   const inSearch = document.activeElement === $('q');
+  // → no fim do texto da busca: abre o menu do jogo em foco (ou do lote), mesmo depois de digitar
+  if (inSearch && screen === 'games' && e.key === 'ArrowRight' && !e.shiftKey && $('q').selectionStart === $('q').value.length && shown[gIdx]) { e.preventDefault(); $('q').blur(); input('right'); return; }
   if (map[e.key] && !(inSearch && ['left','right','home','end'].includes(map[e.key]))) {
     if (inSearch && e.key === 'Escape' && $('q').value) { $('q').value = ''; filter(); e.preventDefault(); return; }
     e.preventDefault(); if (inSearch && map[e.key] === 'back') $('q').blur(); input(map[e.key]); return;
@@ -286,4 +294,6 @@ function pollPad1() {
 }
 requestAnimationFrame(pollPad);
 window.addEventListener('gamepadconnected', e => { padLast = e.gamepad.id; toast('🎮 Controle conectado: ' + (e.gamepad.id || '').replace(/\(.*\)/, '').trim()); });
-['q', 'sortBtn'].forEach(id => $(id) && $(id).addEventListener('blur', () => $(id).classList.remove('padsel')));
+['q', 'sortBtn', 'catEdit', 'catAdd'].forEach(id => $(id) && $(id).addEventListener('blur', () => $(id).classList.remove('padsel')));
+
+document.addEventListener('keyup', e => { if (e.key === 'Control' && screen === 'systems' && sysMoving) sysMoveInput('fav'); });

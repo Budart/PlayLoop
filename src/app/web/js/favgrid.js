@@ -54,6 +54,21 @@ function fgLayoutFree() {
 }
 function fgPinFree() { fg.items.forEach((g, i) => { const q = fgFr(g), pl = fg.place[i]; if (pl && (!q || q.p !== pl.p || Math.abs(q.x - pl.x) > .005 || Math.abs(q.y - pl.y) > .005 || Math.abs(q.w - pl.w) > .005 || Math.abs(q.h - pl.h) > .005)) fgSetFr(g, pl); }); }
 const frStyle = pl => `grid-column:1 / -1;grid-row:1 / -1;position:absolute;left:calc(${pl.x} * (var(--cell) + 20px));top:calc(${pl.y} * (var(--cell) + 20px));width:calc(${pl.w} * (var(--cell) + 20px) - 20px);height:calc(${pl.h} * (var(--cell) + 20px) - 20px)`;
+// prévia ao redimensionar (1 card ou lote): mostra na hora onde cada card empurrado vai parar (nada é salvo até soltar)
+function frPreviewResize(list, w, h) {
+  const { R, C } = fgDim(), set = new Set(list), placed = [], res = {};
+  list.forEach(k => { const o = fg.place[k], q = { p: o.p, x: o.x, y: o.y, w: Math.min(w, C - o.x), h: Math.min(h, R - o.y) }; if (placed.some(r => r.p === q.p && frHit(r, q))) { res[k] = null; } else { placed.push(q); res[k] = q; } });
+  fg.place.forEach((r, k) => { if (!set.has(k)) { if (placed.some(q => q.p === r.p && frHit(q, r))) res[k] = null; else placed.push(r); } });
+  Object.keys(res).forEach(k => { if (res[k] === null) { const r = fg.place[k], s2 = set.has(+k) ? { w: Math.min(w, C), h: Math.min(h, R) } : r; res[k] = frFit(placed, s2.w, s2.h, r.p); placed.push(res[k]); } });
+  const tr = $('fgTrack');
+  fg.place.forEach((r, k) => {
+    const el = tr.querySelector(`.fgcard[data-i="${k}"]`); if (!el || k === list[0]) return;
+    const q = res[k] || r;
+    while (tr.children.length <= q.p) fgAddPage();
+    if (el.parentNode !== tr.children[q.p]) tr.children[q.p].appendChild(el);
+    el.classList.add('pv'); el.style.cssText = frStyle(q);
+  });
+}
 // lote: todos os cards ficam com o mesmo tamanho (cada um no seu lugar); quem ficar por baixo vai para o próximo espaço livre
 function frResizeMany(list, w, h) {
   const { R, C } = fgDim(), set = new Set(list), news = {};
@@ -108,9 +123,15 @@ function fgSortByName() {
   if (!fgFree) { fg.items.sort(nameCmp); shown = fg.items; }
   sfx('ok'); renderFavGrid(); toast('Ordenados por nome');
 }
-function fgSetMode(free) {
+// trocar entre grade fixa e livre: avisa que a organização atual se perde (posições e tamanhos do modo atual são apagados)
+async function fgSetMode(free) {
+  if (free === fgFree) return true;
+  if (!await ask('Trocar o modo da grade?', 'A organização atual dos cards (posições e tamanhos) será perdida e os Favoritos serão reorganizados.', 'Trocar')) return false;
+  const pre = fgFree ? ['ffree|'] : ['fpos|', 'fsz|'];
+  Object.keys(covers).filter(k => pre.some(p => k.startsWith(p))).forEach(k => { delete covers[k]; api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key: k, url: '' }) }).catch(() => {}); });
   fgFree = free; try { localStorage.setItem('fgfree', free ? '1' : '0'); } catch (e) {}
-  sfx('ok'); renderFavGrid();
+  sfx('ok'); if (screen === 'favgrid') renderFavGrid();
+  return true;
 }
 // menu do botão direito fora dos cards
 function fgViewCtx(x, y) {
@@ -125,7 +146,7 @@ function fgViewCtx(x, y) {
   m.querySelectorAll('.ci').forEach(el => el.onclick = e => { e.stopPropagation(); closeCtx(); ctxItems[+el.dataset.k][2](); });
   m.classList.add('on'); ctxSel = -1;
   const r = m.getBoundingClientRect();
-  m.style.left = Math.min(x, innerWidth - r.width - 8) + 'px'; m.style.top = Math.max(8, Math.min(y, innerHeight - r.height - 8)) + 'px';
+  ctxPlace(m, x, y);
   ctxMove(1);
 }
 $('favgrid').addEventListener('contextmenu', e => { if (e.target.closest('.fgcard, #fgHeader, #fgDots, .fgdet')) return; e.preventDefault(); if (screen === 'favgrid') fgViewCtx(e.clientX, e.clientY); });
@@ -295,7 +316,7 @@ function fgBind(el) {
     e.preventDefault(); e.stopPropagation(); fgSelect(i, true);
     if (fgFree) {   // livre: qualquer tamanho/formato (limites: mín. 0,6 e máx. 4 células por lado)
       const { R, C } = fgDim(), pl = fg.place[i], G = fgGeom(el.parentNode), mode = h.dataset.rz, sx = e.clientX, sy = e.clientY;
-      const q = { ...pl }; h.setPointerCapture(e.pointerId); el.classList.add('rz');
+      const q = { ...pl }; let rzRaf = 0; h.setPointerCapture(e.pointerId); el.classList.add('rz');
       const batch = fgMulti.size > 1 && fgMulti.has(i) ? [...fgMulti].filter(k => k !== i) : null;   // seleção em lote: todos ficam com o tamanho deste
       h.onpointermove = ev => {
         if (ev.ctrlKey) {   // Ctrl: mantém a proporção, muda só o tamanho
@@ -308,7 +329,7 @@ function fgBind(el) {
         if (mode.includes('b')) q.h = Math.max(FR_MIN, Math.min(FR_MAX, R - pl.y, pl.h + (ev.clientY - sy) / G.pitch));
         }
         el.style.cssText = frStyle(q);
-        if (batch) batch.forEach(k => { const o = fg.place[k], e2 = $('fgTrack').querySelector(`.fgcard[data-i="${k}"]`); if (e2) e2.style.cssText = frStyle({ x: o.x, y: o.y, w: Math.min(q.w, C - o.x), h: Math.min(q.h, R - o.y) }); });
+        if (!rzRaf) rzRaf = requestAnimationFrame(() => { rzRaf = 0; frPreviewResize([i, ...(batch || [])], q.w, q.h); });   // os outros cards já vão se empurrando
       };
       h.onpointerup = () => { h.onpointermove = h.onpointerup = null; el.classList.remove('rz'); if (batch) frResizeMany([i, ...batch], q.w, q.h); else frCommit(i, q); };
       return;
@@ -747,7 +768,7 @@ function fgCtx(x, y, sizes) {
   m.classList.add('on'); ctxSel = -1;
   m.style.maxHeight = (innerHeight - 20) + 'px'; m.style.overflowY = 'auto';
   const r = m.getBoundingClientRect();
-  m.style.left = Math.min(x, innerWidth - r.width - 8) + 'px'; m.style.top = Math.max(8, Math.min(y, innerHeight - r.height - 8)) + 'px';
+  ctxPlace(m, x, y);
   ctxMove(1);
 }
 // "Info": capa 3D, vídeo e dados do jogo num modal (reaproveita o painel da direita da lista)

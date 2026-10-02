@@ -23,7 +23,7 @@ function openOsk(el) {
 function closeOsk(confirm) {
   if (!oskOpen) return; oskOpen = false; $('osk').classList.remove('on');
   const el = oskTarget; oskTarget = null;
-  if (el && confirm && (el.id === 'cq' || el.id === 'wpQ' || el.classList.contains('rn'))) el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));   // busca de imagem / renomear: mesmo efeito do Enter
+  if (el && confirm && (el.id === 'cq' || el.id === 'wpQ' || el.id === 'catName' || el.classList.contains('rn'))) el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));   // busca de imagem / renomear: mesmo efeito do Enter
   if (el && !confirm && el.classList.contains('rn')) el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));   // desistiu de renomear: cancela
   if (el && document.activeElement === el) el.blur();   // tira o foco do texto p/ o controle voltar a navegar
   try { document.getElementById('view')?.focus?.(); } catch (e) {}
