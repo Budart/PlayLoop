@@ -261,8 +261,15 @@ function fgBind(el) {
       const { R, C } = fgDim(), pl = fg.place[i], G = fgGeom(el.parentNode), mode = h.dataset.rz, sx = e.clientX, sy = e.clientY;
       const q = { ...pl }; h.setPointerCapture(e.pointerId); el.classList.add('rz');
       h.onpointermove = ev => {
+        if (ev.ctrlKey) {   // Ctrl: mantém a proporção, muda só o tamanho
+          const fx = (pl.w + (ev.clientX - sx) / G.pitch) / pl.w, fy = (pl.h + (ev.clientY - sy) / G.pitch) / pl.h;
+          let f = mode === 'r' ? fx : mode === 'b' ? fy : Math.max(fx, fy);
+          f = Math.max(FR_MIN / Math.min(pl.w, pl.h), Math.min(f, FR_MAX / pl.w, FR_MAX / pl.h, (C - pl.x) / pl.w, (R - pl.y) / pl.h));
+          q.w = pl.w * f; q.h = pl.h * f;
+        } else {
         if (mode.includes('r')) q.w = Math.max(FR_MIN, Math.min(FR_MAX, C - pl.x, pl.w + (ev.clientX - sx) / G.pitch));
         if (mode.includes('b')) q.h = Math.max(FR_MIN, Math.min(FR_MAX, R - pl.y, pl.h + (ev.clientY - sy) / G.pitch));
+        }
         el.style.cssText = frStyle(q);
       };
       h.onpointerup = () => { h.onpointermove = h.onpointerup = null; el.classList.remove('rz'); frCommit(i, q); };

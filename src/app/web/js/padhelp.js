@@ -58,7 +58,7 @@ const KB = {
   top: [['← →', 'escolher'], ['Enter', 'abrir'], ['↓ Esc', 'voltar']],
   systems: [['← →', 'escolher console'], ['↑', 'topo'], ['Enter', 'entrar'], ['A-Z', 'buscar'], ['F1', 'configuração']],
   games: [['↑ ↓', 'navegar'], ['Enter', 'jogar'], ['PgUp PgDn', 'pular'], ['F2', 'renomear'], ['A-Z', 'buscar'], ['Esc', 'voltar']],
-  favgrid: [['Setas', 'navegar'], ['Enter', 'jogar'], ['Espaço', 'mover card'], ['I', 'info'], ['PgUp PgDn', 'página'], ['A-Z', 'buscar'], ['Esc', 'voltar']],
+  favgrid: [['Setas', 'navegar'], ['Enter', 'jogar'], ['Espaço', 'mover card'], ['I', 'info'], ['PgUp PgDn', 'página'], ['A-Z', 'buscar'], ['Esc', 'voltar'], ['Alt+arrastar', 'mover imagem do card'], ['Ctrl+redimensionar', 'manter proporção']],
   fgmove: [['Setas', 'mover card'], ['Espaço', 'soltar'], ['Esc', 'cancelar']],
   config: [['Clique', 'escolher'], ['F1', 'configuração'], ['Esc', 'voltar']],
   configcard: [['↑ ↓', 'cards'], ['Enter', 'editar card'], ['Esc', 'voltar']],
