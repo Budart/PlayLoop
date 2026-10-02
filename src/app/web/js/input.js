@@ -113,6 +113,7 @@ function input(a) {
   if (a === 'select') { setCrt(!crtOn); return; }
   if (a === 'search') { if (screen === 'games') { $('q').focus(); openOsk($('q')); } else if (screen === 'systems' || screen === 'favgrid') { openGlobal(''); setTimeout(() => openOsk($('q')), 50); } return; }
   if (screen === 'favgrid') { fgInput(a); return; }
+  if (screen === 'systems' && (sysMoving || a === 'fav') && sysMoveInput(a)) return;   // □: mover console no carrossel
   if (screen === 'systems' && topSel >= 0) { topInput(a); return; }
   if (screen === 'systems') {
     if (a === 'up') { topMark(0); return; }
@@ -205,6 +206,7 @@ document.addEventListener('keydown', e => {
     if (inSearch && e.key === 'Escape' && $('q').value) { $('q').value = ''; filter(); e.preventDefault(); return; }
     e.preventDefault(); if (inSearch && map[e.key] === 'back') $('q').blur(); input(map[e.key]); return;
   }
+  if (screen === 'systems' && e.key === ' ' && topSel < 0) { e.preventDefault(); input('fav'); return; }   // Espaço = □ (mover console)
   if (screen === 'systems' && e.key.length === 1 && e.key !== ' ' && !e.ctrlKey && !e.altKey && !e.metaKey) { e.preventDefault(); openGlobal(e.key); return; }
   if (e.key === 'Backspace' && screen === 'games' && !inSearch) { e.preventDefault(); back(); return; }
   if (screen === 'games' && !inSearch && e.key.length === 1 && !e.ctrlKey && !e.altKey) { $('q').focus(); }

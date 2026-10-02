@@ -23,14 +23,7 @@ function renderSystems() {
       if (!st) return; const s0 = st; st = null; clearInterval(s0.t);
       if (!s0.moved) { if (s0.i === sysIdx) openSystem(); else selectSystem(s0.i); return; }
       const to = Math.max(0, Math.min(systems.length - 1, s0.i + Math.round((e.clientX - s0.x) / sysW()) + s0.scroll));
-      if (to !== s0.i) {
-        const [m] = systems.splice(s0.i, 1); systems.splice(to, 0, m);
-        if (m === FAVSYS) try { localStorage.setItem('favPos', String(to)); } catch (e) {}   // só muda quando o próprio Favoritos é arrastado
-        const order = systems.filter(x => !x.virtual).map(x => x.id).concat(allSystems.filter(x => !systems.includes(x)).map(x => x.id));
-        allSystems.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
-        api('/api/order', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ids: order }) }).catch(e => toast(e.message, true));
-        sfx('ok');
-      }
+      if (to !== s0.i) { const [m] = systems.splice(s0.i, 1); systems.splice(to, 0, m); saveSysOrder(m); sfx('ok'); }
       sysIdx = to; renderSystems();
     };
   });
@@ -122,3 +115,24 @@ async function openGlobal(text, fav) {
   if (globalMode) filter();
 }
 function back() { stopVideo(); favMode = false; applyCustom(); sfx('back'); music.play('home'); globalMode = false; show('systems'); sys = null; selectSystem(sysIdx); }
+
+// grava a ordem atual dos consoles (e a posição do Favoritos, se foi ele que mudou)
+function saveSysOrder(m) {
+  if (m === FAVSYS) try { localStorage.setItem('favPos', String(systems.indexOf(FAVSYS))); } catch (e) {}
+  const order = systems.filter(x => !x.virtual).map(x => x.id).concat(allSystems.filter(x => !systems.includes(x)).map(x => x.id));
+  allSystems.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+  api('/api/order', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ids: order }) }).catch(e => toast(e.message, true));
+}
+// mover console com o controle: □ levanta, ←/→ leva, □ (ou ✕) solta, ○ desiste
+let sysMoving = null;
+function sysMoveInput(a) {
+  if (!sysMoving) { if (a !== 'fav' || !systems[sysIdx]) return false; sysMoving = { order: systems.slice(), idx: sysIdx }; sysLift(); sfx('ok'); return true; }
+  if (a === 'left' || a === 'right') {
+    const to = sysIdx + (a === 'left' ? -1 : 1); if (to < 0 || to >= systems.length) return true;
+    const [m] = systems.splice(sysIdx, 1); systems.splice(to, 0, m); sysIdx = to; renderSystems(); sysLift(); sfx('move'); return true;
+  }
+  if (a === 'fav' || a === 'ok') { const m = systems[sysIdx]; sysMoving = null; saveSysOrder(m); renderSystems(); sfx('ok'); return true; }
+  if (a === 'back') { systems = sysMoving.order; sysIdx = sysMoving.idx; sysMoving = null; renderSystems(); sfx('back'); return true; }
+  return true;
+}
+function sysLift() { const el = $('track').querySelector(`.sys[data-i="${sysIdx}"]`); if (el) el.classList.add('lift'); }

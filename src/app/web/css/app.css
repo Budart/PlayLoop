@@ -658,3 +658,5 @@ body.th-light .hmute { background:rgba(255,255,255,.7); color:#2E2721; border-co
 .fgslot2 { border-style:dashed; opacity:.75; }
 #favgrid.free .fgcard.pv { transition:left .25s ease, top .25s ease; }
 .search .padsel, #sortBtn.padsel { outline:3px solid var(--c1); outline-offset:2px; }
+
+.sys.lift { transform:translateY(-12px) scale(1.06); filter:drop-shadow(0 0 14px var(--c1)); z-index:5; }

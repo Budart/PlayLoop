@@ -47,14 +47,16 @@ function padContext() {
     return ['favgrid', [['dpad', 'navegar'], ['ok', 'jogar'], ['sq', 'mover card'], ['tri', 'menu'], ['lb', 'página'], ['back', 'voltar']]];
   }
   if (screen === 'games') return ['games', [['dpad', 'navegar'], ['ok', 'jogar'], ['sq', 'favoritar'], ['tri', 'menu'], ['lb', 'pular'], ['rs', 'girar capa'], ['lt', 'zoom'], ['l3', 'buscar'], ['back', 'voltar']]];
+  if (screen === 'systems' && typeof sysMoving !== 'undefined' && sysMoving) return ['sysmove', [['dpad', 'mover console'], ['sq', 'soltar'], ['back', 'cancelar']]];
   if (screen === 'systems' && typeof topSel !== 'undefined' && topSel >= 0) return ['top', [['dpad', 'escolher'], ['ok', 'abrir'], ['back', 'voltar']]];
-  if (screen === 'systems') return ['systems', [['dpad', 'console / ↑ topo'], ['ok', 'entrar'], ['start', 'configuração'], ['l3', 'buscar'], ['sel', 'modo TV']]];
+  if (screen === 'systems') return ['systems', [['dpad', 'console / ↑ topo'], ['ok', 'entrar'], ['sq', 'mover'], ['start', 'configuração'], ['l3', 'buscar'], ['sel', 'modo TV']]];
   return ['', []];
 }
 // mesma legenda para quem está no teclado: troca na hora conforme a última entrada (teclado ↔ controle)
 let legendMode = 'pad';
 document.addEventListener('keydown', () => { legendMode = 'kb'; }, true);
 const KB = {
+  sysmove: [['← →', 'mover console'], ['Espaço', 'soltar'], ['Esc', 'cancelar']],
   top: [['← →', 'escolher'], ['Enter', 'abrir'], ['↓ Esc', 'voltar']],
   systems: [['← →', 'escolher console'], ['↑', 'topo'], ['Enter', 'entrar'], ['A-Z', 'buscar'], ['F1', 'configuração']],
   games: [['↑ ↓', 'navegar'], ['Enter', 'jogar'], ['PgUp PgDn', 'pular'], ['F2', 'renomear'], ['A-Z', 'buscar'], ['Esc', 'voltar']],
