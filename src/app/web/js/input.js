@@ -167,7 +167,14 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && screen === 'games' && clearMulti()) { e.preventDefault(); return; }   // Esc limpa a seleção em lote
   // Shift + setas (ou PgUp/PgDn/Home/End): seleciona em lote os jogos por onde passa
   const sm = { ArrowUp: -1, ArrowDown: 1, PageUp: -10, PageDown: 10, Home: -1e9, End: 1e9 }[e.key];
-  if (screen === 'games' && e.shiftKey && sm && shown[gIdx] && !renaming && document.activeElement !== $('q')) {
+  if (screen === 'favgrid' && e.shiftKey && { ArrowUp: 1, ArrowDown: 1, ArrowLeft: 1, ArrowRight: 1 }[e.key] && fg.items.length && !fg.moving) {   // Favoritos: Shift + setas seleciona os cards por onde passa
+    e.preventDefault();
+    if (!fgMulti.size) fgMulti.add(fg.sel);
+    fgMove({ ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' }[e.key]);
+    fgMulti.add(fg.sel); fgMultiDom();
+    return;
+  }
+  if (screen === 'games' && e.shiftKey && sm && shown[gIdx] && !renaming && (document.activeElement !== $('q') || Math.abs(sm) === 1)) {   // também na busca (↑/↓ no campo de busca)
     e.preventDefault();
     if (anchor < 0 || !multi.size) anchor = gIdx;
     selectGame(Math.max(0, Math.min(shown.length - 1, gIdx + sm)));

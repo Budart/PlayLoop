@@ -63,6 +63,22 @@ function frResizeMany(list, w, h) {
   fg.items.forEach((o, k) => { const r = fg.place[k]; if (!set.has(k) && r && kept.some(j => news[j].p === r.p && frHit(news[j], r))) fgSetFr(o, { p: -1, x: 0, y: 0, w: r.w, h: r.h }); });
   sfx('ok'); renderFavGrid();
 }
+// mover vários cards de uma vez: todos andam o mesmo tanto que o card arrastado (presos às bordas); quem ficar por baixo vai para um espaço livre
+function fgMoveMany(i, t) {
+  const { R, C } = fgDim(), pl = fg.place[i], dp = t.p - pl.p, dx = t.x - pl.x, dy = t.y - pl.y, sel = [...fgMulti];
+  const moved = sel.map(k => { const o = fg.place[k]; return { k, q: { p: Math.max(0, o.p + dp), x: Math.max(0, Math.min(C - o.w, o.x + dx)), y: Math.max(0, Math.min(R - o.h, o.y + dy)), w: o.w, h: o.h } }; });
+  if (fgFree) {
+    moved.forEach(m => fgSetFr(fg.items[m.k], m.q));
+    fg.items.forEach((o, k) => { const r = fg.place[k]; if (!fgMulti.has(k) && r && moved.some(m => m.q.p === r.p && frHit(m.q, r))) fgSetFr(o, { p: -1, x: 0, y: 0, w: r.w, h: r.h }); });
+  } else {
+    const ints = moved.map(m => ({ k: m.k, q: { p: m.q.p, x: Math.round(m.q.x), y: Math.round(m.q.y), w: m.q.w, h: m.q.h } }));
+    ints.forEach(m => fgSetPos(fg.items[m.k], { p: m.q.p, x: m.q.x, y: m.q.y }));
+    fg.items.forEach((o, k) => { const r = fg.place[k]; if (!fgMulti.has(k) && r && ints.some(m => m.q.p === r.p && r.x < m.q.x + m.q.w && r.x + r.w > m.q.x && r.y < m.q.y + m.q.h && r.y + r.h > m.q.y)) fgSetPos(o, null); });
+  }
+  const keep = sel.map(k => fg.items[k]);
+  sfx('ok'); renderFavGrid();
+  keep.forEach(g => { const k = fg.items.indexOf(g); if (k >= 0) fgMulti.add(k); }); fgMultiDom();   // continua selecionado
+}
 // soltar/redimensionar o card i em q: quem ficar por baixo vai para o próximo lugar livre (mantendo o tamanho)
 function frCommit(i, q) {
   fgSetFr(fg.items[i], q);
@@ -358,6 +374,7 @@ function fgDragStart(e, el, i) {
     if (!ghost) return;
     ghost.remove(); const s = $('fgSlot'); if (s) s.remove(); el.classList.remove('dragsrc'); $('favgrid').classList.remove('arrange');
     if (!target) return;
+    if (fgMulti.size > 1 && fgMulti.has(i)) { fgMoveMany(i, target); return; }   // lote: todos andam juntos
     if (fgFree) { const { G, ...q } = target; frCommit(i, q); return; }
     fgDropInto(i, target); sfx('ok'); renderFavGrid();
   };
