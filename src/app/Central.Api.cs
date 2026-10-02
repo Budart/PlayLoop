@@ -1,0 +1,367 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Drawing;
+using System.IO;
+using System.Linq;
+using System.Management;
+using System.Net;
+using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading;
+using System.Web.Script.Serialization;
+using System.Windows.Forms;
+using Microsoft.Win32;
+
+// PlayLoop — rotas da API usada pela página (/api/...)
+static partial class Central
+{
+    static void Handle(Ctx ctx)
+    {
+        try
+        {
+            var req = ctx.Request;
+            string path = req.Url.AbsolutePath;
+            var cfg = LoadConfig();
+            string root = Root(cfg);
+
+            if (path == "/" || path == "/index.html" || path == "/config" || path == "/welcome")
+                Send(ctx, 200, "text/html; charset=utf-8", Utf8.GetBytes(Resource("web/index.html")));
+            else if ((path.StartsWith("/css/") || path.StartsWith("/js/")) && !path.Contains(".."))
+            {
+                using (var st = Assembly.GetExecutingAssembly().GetManifestResourceStream("web" + path))
+                {
+                    if (st == null) { Send(ctx, 404, "text/plain", new byte[0]); return; }
+                    var ms = new MemoryStream(); st.CopyTo(ms);
+                    Send(ctx, 200, path.EndsWith(".css") ? "text/css; charset=utf-8" : "text/javascript; charset=utf-8", ms.ToArray());
+                }
+            }
+            else if (path == "/sym.png")
+            {
+                using (var st = Assembly.GetExecutingAssembly().GetManifestResourceStream("sym.png")) { var ms = new MemoryStream(); st.CopyTo(ms); Send(ctx, 200, "image/png", ms.ToArray()); }
+            }
+            else if (path == "/logo.png")
+            {
+                using (var st = Assembly.GetExecutingAssembly().GetManifestResourceStream("logo.png")) { var ms = new MemoryStream(); st.CopyTo(ms); Send(ctx, 200, "image/png", ms.ToArray()); }
+            }
+            else if (path == "/api/consoles")
+            {
+                var outp = new List<object>();
+                foreach (var c in Consoles(cfg))
+                {
+                    string emu = Full(root, S(c, "emulator"));
+                    var gl = Games(root, c);
+                    outp.Add(new Dictionary<string, object> {
+                        { "id", S(c, "id") }, { "name", S(c, "name") }, { "art", S(c, "art") }, { "thumbs", S(c, "thumbs") },
+                        { "emulatorOk", IsPc(c) || (emu != "" && File.Exists(emu)) }, { "type", S(c, "type") }, { "logo", S(c, "logo") }, { "bg", S(c, "bg") }, { "enabled", !(c.ContainsKey("enabled") && c["enabled"] is bool && !(bool)c["enabled"]) }, { "count", gl.Count(g => !IsCustom(g)) }, { "customCount", gl.Count(g => IsCustom(g)) } });
+                }
+                SendJson(ctx, outp);
+            }
+            else if (path == "/api/games")
+            {
+                var c = Consoles(cfg).FirstOrDefault(x => S(x, "id") == req.QueryString["c"]);
+                if (c == null) SendJson(ctx, Err("Console não encontrado"), 404);
+                else SendJson(ctx, Games(root, c));
+            }
+            else if (path == "/api/config" && req.HttpMethod == "GET")
+            {
+                string text = File.Exists(ConfigFile) ? File.ReadAllText(ConfigFile, Encoding.UTF8) : Resource("config.json");
+                Send(ctx, 200, "application/json; charset=utf-8", Utf8.GetBytes(text));
+            }
+            else if (path == "/api/config" && req.HttpMethod == "POST")
+            {
+                string bodyText; using (var sr = new StreamReader(req.InputStream, Encoding.UTF8)) bodyText = sr.ReadToEnd();
+                var parsed = (Dictionary<string, object>)Json.DeserializeObject(bodyText);   // valida
+                if (!parsed.ContainsKey("consoles")) throw new Exception("Configuração inválida");
+                SaveConfigText(bodyText);
+                ApplyAutostart(parsed);
+                SendJson(ctx, new Dictionary<string, object> { { "ok", true } });
+            }
+            else if (path == "/api/browse" && req.HttpMethod == "POST")
+            {
+                string bodyText; using (var sr = new StreamReader(req.InputStream, Encoding.UTF8)) bodyText = sr.ReadToEnd();
+                var body = (Dictionary<string, object>)Json.DeserializeObject(bodyText);
+                string start = Full(root, S(body, "start"));
+                bool isImg = S(body, "type") == "image";
+                bool abs = S(body, "type") == "folderabs";
+                string picked = Browse(S(body, "type") == "folder" || abs, start, isImg);
+                if (isImg || abs) { SendJson(ctx, new Dictionary<string, object> { { "path", picked ?? "" } }); return; }
+                string rel = picked;
+                if (picked != null && picked.StartsWith(root.TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase))
+                    rel = picked.Substring(root.TrimEnd('\\').Length + 1).Replace('\\', '/');
+                SendJson(ctx, new Dictionary<string, object> { { "path", rel ?? "" }, { "exists", true } });
+            }
+            else if (path == "/api/exists")
+            {
+                string p = Full(root, req.QueryString["p"] ?? "");
+                SendJson(ctx, new Dictionary<string, object> { { "file", p != "" && File.Exists(p) }, { "dir", p != "" && Directory.Exists(p) } });
+            }
+            else if (path == "/api/gameid")
+            {
+                var c = Consoles(cfg).FirstOrDefault(x => S(x, "id") == req.QueryString["c"]);
+                string rom = Full(root, req.QueryString["p"] ?? "");
+                string id = "";
+                if (c != null && File.Exists(rom)) try { id = GameId(IsPc(c) ? "pc" : S(c, "id"), rom); } catch { }
+                SendJson(ctx, new Dictionary<string, object> { { "id", id } });
+            }
+            else if (path == "/api/steam")
+            {
+                // busca na loja da Steam (feita pelo servidor, porque a Steam não libera acesso direto do navegador)
+                ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072;
+                using (var wc = new WebClient { Encoding = Encoding.UTF8 })
+                {
+                    wc.Headers[HttpRequestHeader.UserAgent] = "Mozilla/5.0";
+                    string q = Uri.EscapeDataString(req.QueryString["q"] ?? "");
+                    string txt = wc.DownloadString("https://store.steampowered.com/api/storesearch/?term=" + q + "&l=english&cc=US");
+                    Send(ctx, 200, "application/json; charset=utf-8", Utf8.GetBytes(txt));
+                }
+            }
+            else if (path == "/api/order" && req.HttpMethod == "POST")
+            {
+                string bodyText; using (var sr = new StreamReader(req.InputStream, Encoding.UTF8)) bodyText = sr.ReadToEnd();
+                var ids = ((IEnumerable)((Dictionary<string, object>)Json.DeserializeObject(bodyText))["ids"]).Cast<object>().Select(x => x.ToString()).ToList();
+                var list = Consoles(cfg).ToList();
+                var ordered = list.OrderBy(c => { int i = ids.IndexOf(S(c, "id")); return i < 0 ? 9999 : i; }).ToList();
+                cfg["consoles"] = ordered.ToArray();
+                SaveConfigText(Json.Serialize(cfg));
+                SendJson(ctx, new Dictionary<string, object> { { "ok", true } });
+            }
+            else if (path == "/api/proxy")
+            {
+                // busca em wikis que não liberam acesso direto do navegador (Fandom, PCGamingWiki, StrategyWiki...)
+                string u = req.QueryString["u"] ?? "";
+                if (!Regex.IsMatch(u, @"^https://([a-z0-9-]+\.fandom\.com|www\.pcgamingwiki\.com|strategywiki\.org|wallhaven\.cc|[a-z]{2,3}\.wikipedia\.org)/", RegexOptions.IgnoreCase))
+                { Send(ctx, 400, "text/plain", new byte[0]); return; }
+                ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072;
+                using (var wc = new WebClient { Encoding = Encoding.UTF8 })
+                {
+                    wc.Headers[HttpRequestHeader.UserAgent] = "CentralDeJogos/1.0";
+                    try { Send(ctx, 200, "application/json; charset=utf-8", Utf8.GetBytes(wc.DownloadString(u))); }
+                    catch { Send(ctx, 404, "application/json", Utf8.GetBytes("{}")); }
+                }
+            }
+            else if (path == "/api/reveal" && req.HttpMethod == "POST")
+            {
+                string bodyText; using (var sr = new StreamReader(req.InputStream, Encoding.UTF8)) bodyText = sr.ReadToEnd();
+                string p = Full(root, S((Dictionary<string, object>)Json.DeserializeObject(bodyText), "path"));
+                if (File.Exists(p)) Process.Start("explorer.exe", "/select,\"" + p + "\"");
+                else if (Directory.Exists(p)) Process.Start("explorer.exe", "\"" + p + "\"");
+                else { SendJson(ctx, Err("Arquivo não encontrado"), 404); return; }
+                SendJson(ctx, new Dictionary<string, object> { { "ok", true } });
+            }
+            else if (path == "/api/ytsearch")
+            {
+                string q = (req.QueryString["q"] ?? "").Trim();
+                SendJson(ctx, YouTube(q));
+            }
+            else if (path == "/api/fsarg")
+                SendJson(ctx, new Dictionary<string, object> { { "arg", FullscreenArg(Full(root, req.QueryString["emu"] ?? "")) } });
+            else if (path == "/api/open" && req.HttpMethod == "POST")
+            {   // abre um link no navegador padrão (só https)
+                string bodyText; using (var sr = new StreamReader(req.InputStream, Encoding.UTF8)) bodyText = sr.ReadToEnd();
+                string u = S((Dictionary<string, object>)Json.DeserializeObject(bodyText), "url");
+                if (Regex.IsMatch(u, "^https?://")) Process.Start(new ProcessStartInfo(u) { UseShellExecute = true });
+                SendJson(ctx, new Dictionary<string, object> { { "ok", true } });
+            }
+            else if (path == "/api/sgdb")
+            {   // SteamGridDB (a chave fica só no servidor local)
+                string p = req.QueryString["p"] ?? "", key = S(cfg, "sgdbKey");
+                if (!p.StartsWith("/api/v2/") || key == "") { SendJson(ctx, Err("SteamGridDB não configurado"), 400); return; }
+                try
+                {
+                    using (var wc = Browser())
+                    {
+                        wc.Headers[HttpRequestHeader.Authorization] = "Bearer " + key;
+                        Send(ctx, 200, "application/json; charset=utf-8", Utf8.GetBytes(wc.DownloadString("https://www.steamgriddb.com" + p)));
+                    }
+                }
+                catch (WebException we) { var hr = we.Response as HttpWebResponse; SendJson(ctx, Err(hr != null && (int)hr.StatusCode == 401 ? "Chave da API inválida" : we.Message), hr != null ? (int)hr.StatusCode : 502); }
+            }
+            else if (path == "/api/delete" && req.HttpMethod == "POST")
+            {
+                string bodyText; using (var sr = new StreamReader(req.InputStream, Encoding.UTF8)) bodyText = sr.ReadToEnd();
+                var body = (Dictionary<string, object>)Json.DeserializeObject(bodyText);
+                var c = Consoles(cfg).FirstOrDefault(x => S(x, "id") == S(body, "console"));
+                string file = Full(root, S(body, "path"));
+                if (c == null || !File.Exists(file) || !L(c, "romDirs").Any(rd => file.StartsWith(Full(root, rd).TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase)))
+                { SendJson(ctx, Err("Arquivo não encontrado"), 404); return; }
+                SendJson(ctx, IsPc(c) ? UninstallPcGame(file) : DeleteRom(file));
+            }
+            else if (path == "/api/localimg")
+            {
+                string p = req.QueryString["p"] ?? "";
+                string ext = Path.GetExtension(p).ToLowerInvariant();
+                var types = new Dictionary<string, string> { { ".png", "image/png" }, { ".jpg", "image/jpeg" }, { ".jpeg", "image/jpeg" }, { ".webp", "image/webp" }, { ".gif", "image/gif" }, { ".bmp", "image/bmp" } };
+                if (!types.ContainsKey(ext) || !File.Exists(p)) { Send(ctx, 404, "text/plain", new byte[0]); return; }
+                Send(ctx, 200, types[ext], File.ReadAllBytes(p));
+            }
+            else if (path == "/api/img")
+            {
+                // cache de capas em disco: baixa uma vez, depois serve direto do computador
+                string u = req.QueryString["u"] ?? "";
+                if (!Regex.IsMatch(u, "^https?://")) { Send(ctx, 400, "text/plain", new byte[0]); return; }
+                string f = Path.Combine(CacheDir, Hash(u));
+                byte[] data = null;
+                if (File.Exists(f)) data = File.ReadAllBytes(f);
+                else
+                {
+                    try
+                    {
+                        ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072;
+                        using (var wc = new WebClient())
+                        {
+                            wc.Headers[HttpRequestHeader.UserAgent] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
+                            wc.Headers[HttpRequestHeader.Accept] = "image/avif,image/webp,image/png,image/jpeg,image/*;q=0.8,*/*;q=0.5";
+                            wc.Headers[HttpRequestHeader.AcceptLanguage] = "pt-BR,pt;q=0.9,en;q=0.8";
+                            if (u.Contains("wikia.nocookie.net")) wc.Headers[HttpRequestHeader.Referer] = "https://www.fandom.com/";
+                            data = wc.DownloadData(u);
+                        }
+                        object en; bool on = !(cfg.TryGetValue("coverCache", out en) && en is bool && !(bool)en);
+                        if (on && data.Length > 0) { Directory.CreateDirectory(CacheDir); File.WriteAllBytes(f, data); }
+                    }
+                    catch { Send(ctx, 404, "text/plain", new byte[0]); return; }
+                }
+                string type = data.Length > 3 && data[0] == 0x89 ? "image/png" : data.Length > 3 && data[0] == 0xFF ? "image/jpeg" : data.Length > 3 && data[0] == (byte)'<' ? "image/svg+xml" : data.Length > 3 && data[0] == (byte)'R' ? "image/webp" : "image/gif";
+                ctx.Response.Headers["Cache-Control"] = "max-age=31536000";
+                var r = ctx.Response; r.StatusCode = 200; r.ContentType = type; r.ContentLength64 = data.Length; r.OutputStream.Write(data, 0, data.Length); r.OutputStream.Close();
+            }
+            else if (path == "/api/artcache")
+            {
+                string f = Path.Combine(CacheDir, "resolved.json");
+                if (req.HttpMethod == "POST")
+                {
+                    string bodyText; using (var sr = new StreamReader(req.InputStream, Encoding.UTF8)) bodyText = sr.ReadToEnd();
+                    var body = (Dictionary<string, object>)Json.DeserializeObject(bodyText);
+                    lock (CoverLock)
+                    {
+                        Directory.CreateDirectory(CacheDir);
+                        var map = File.Exists(f) ? (Dictionary<string, object>)Json.DeserializeObject(File.ReadAllText(f, Encoding.UTF8)) : new Dictionary<string, object>();
+                        object v; body.TryGetValue("val", out v);
+                        if (v == null) map.Remove(S(body, "key")); else map[S(body, "key")] = v;
+                        File.WriteAllText(f, Json.Serialize(map), Utf8);
+                    }
+                    SendJson(ctx, new Dictionary<string, object> { { "ok", true } });
+                }
+                else Send(ctx, 200, "application/json; charset=utf-8", Utf8.GetBytes(File.Exists(f) ? File.ReadAllText(f, Encoding.UTF8) : "{}"));
+            }
+            else if (path == "/api/cache/info")
+            {
+                object bm; string bgMode = cfg.TryGetValue("bgMode", out bm) && bm is string ? (string)bm : "video";
+                long size = 0; int n = 0;
+                if (Directory.Exists(CacheDir)) foreach (var fi in new DirectoryInfo(CacheDir).GetFiles()) { size += fi.Length; n++; }
+                object en; bool on = !(cfg.TryGetValue("coverCache", out en) && en is bool && !(bool)en);
+                SendJson(ctx, new Dictionary<string, object> { { "enabled", on }, { "size", size }, { "files", n }, { "bgMode", bgMode }, { "coverStyle", S(cfg, "coverStyle") }, { "favGrid", S(cfg, "favGrid") }, { "theme", S(cfg, "theme") }, { "favBgGame", !(cfg.ContainsKey("favBgGame") && cfg["favBgGame"] is bool && !(bool)cfg["favBgGame"]) }, { "sgdb", S(cfg, "sgdbKey") != "" && cfg.ContainsKey("useSgdb") && cfg["useSgdb"] is bool && (bool)cfg["useSgdb"] }, { "fav", cfg.ContainsKey("fav") ? cfg["fav"] : null }, { "favConsole", !(cfg.ContainsKey("favConsole") && cfg["favConsole"] is bool && !(bool)cfg["favConsole"]) } });
+            }
+            else if (path == "/api/cache/clear" && req.HttpMethod == "POST")
+            {
+                lock (CoverLock) { if (Directory.Exists(CacheDir)) foreach (var fi in new DirectoryInfo(CacheDir).GetFiles()) try { fi.Delete(); } catch { } }
+                SendJson(ctx, new Dictionary<string, object> { { "ok", true } });
+            }
+            else if (path == "/api/hidden")
+            {
+                string f = Path.Combine(root, "central-hidden.json");
+                if (req.HttpMethod == "POST")
+                {
+                    string bodyText; using (var sr = new StreamReader(req.InputStream, Encoding.UTF8)) bodyText = sr.ReadToEnd();
+                    Json.DeserializeObject(bodyText);   // valida
+                    lock (CoverLock) File.WriteAllText(f, bodyText, Utf8);
+                    SendJson(ctx, new Dictionary<string, object> { { "ok", true } });
+                }
+                else Send(ctx, 200, "application/json; charset=utf-8", Utf8.GetBytes(File.Exists(f) ? File.ReadAllText(f, Encoding.UTF8) : "[]"));
+            }
+            else if (path == "/api/setup" && req.HttpMethod == "GET")
+                SendJson(ctx, new Dictionary<string, object> { { "needed", NeedsSetup }, { "suggest", "" } });
+            else if (path == "/api/setup" && req.HttpMethod == "POST")
+            {
+                // configuração automática a partir das pastas escolhidas no "boas-vindas"
+                string bodyText; using (var sr = new StreamReader(req.InputStream, Encoding.UTF8)) bodyText = sr.ReadToEnd();
+                var body = (Dictionary<string, object>)Json.DeserializeObject(bodyText);
+                var auto = AutoConfig.Build(S(body, "root"), S(body, "pc"));
+                foreach (Dictionary<string, object> ac in (object[])auto["consoles"]) { ac["fullscreen"] = true; ac["fsArgs"] = FullscreenArg(Full(S(auto, "root"), S(ac, "emulator"))); }
+                if (S(body, "sgdbKey") != "") { auto["sgdbKey"] = S(body, "sgdbKey"); auto["useSgdb"] = true; }
+                bool runKey = false;
+                try { using (var k = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run")) runKey = k.GetValue("PlayLoop") != null; } catch { }
+                auto["autostart"] = NeedsSetup ? runKey : !(cfg.ContainsKey("autostart") && cfg["autostart"] is bool && !(bool)cfg["autostart"]);
+                SaveConfigText(Json.Serialize(auto));
+                ApplyAutostart(auto);
+                SendJson(ctx, new Dictionary<string, object> { { "ok", true }, { "consoles", ((object[])auto["consoles"]).Length } });
+            }
+            else if (path == "/api/covers")
+            {
+                string f = Path.Combine(root, "central-covers.json");
+                Send(ctx, 200, "application/json; charset=utf-8", Utf8.GetBytes(File.Exists(f) ? File.ReadAllText(f, Encoding.UTF8) : "{}"));
+            }
+            else if (path == "/api/cover" && req.HttpMethod == "POST")
+            {
+                string bodyText; using (var sr = new StreamReader(req.InputStream, Encoding.UTF8)) bodyText = sr.ReadToEnd();
+                var body = (Dictionary<string, object>)Json.DeserializeObject(bodyText);
+                string f = Path.Combine(root, "central-covers.json");
+                lock (CoverLock)
+                {
+                    var map = File.Exists(f) ? (Dictionary<string, object>)Json.DeserializeObject(File.ReadAllText(f, Encoding.UTF8)) : new Dictionary<string, object>();
+                    string k = S(body, "key"), u = S(body, "url");
+                    if (u == "") map.Remove(k); else map[k] = u;
+                    File.WriteAllText(f, Json.Serialize(map), Utf8);
+                }
+                SendJson(ctx, new Dictionary<string, object> { { "ok", true } });
+            }
+            else if (path == "/api/setemu" && req.HttpMethod == "POST")
+            {
+                // jogo sem emulador: o usuário escolhe o .exe, já configuramos tudo (caminho, argumentos, tela cheia) e salvamos
+                string bodyText; using (var sr = new StreamReader(req.InputStream, Encoding.UTF8)) bodyText = sr.ReadToEnd();
+                var body = (Dictionary<string, object>)Json.DeserializeObject(bodyText);
+                var c = Consoles(cfg).FirstOrDefault(x => S(x, "id") == S(body, "console"));
+                if (c == null) { SendJson(ctx, Err("Console não encontrado"), 404); return; }
+                string picked = Browse(false, root);
+                if (picked == null) { SendJson(ctx, new Dictionary<string, object> { { "ok", false } }); return; }
+                string rel = picked.StartsWith(root.TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase) ? picked.Substring(root.TrimEnd('\\').Length + 1).Replace('\\', '/') : picked;
+                c["emulator"] = rel;
+                if (S(c, "args") == "") c["args"] = "\"{rom}\"";
+                c["fsArgs"] = FullscreenArg(picked);
+                if (!c.ContainsKey("fullscreen")) c["fullscreen"] = true;
+                SaveConfigText(Json.Serialize(cfg));
+                SendJson(ctx, new Dictionary<string, object> { { "ok", true }, { "emulator", rel } });
+            }
+            else if (path == "/api/launch" && req.HttpMethod == "POST")
+            {
+                string bodyText; using (var sr = new StreamReader(req.InputStream, Encoding.UTF8)) bodyText = sr.ReadToEnd();
+                var body = (Dictionary<string, object>)Json.DeserializeObject(bodyText);
+                var c = Consoles(cfg).FirstOrDefault(x => S(x, "id") == S(body, "console"));
+                if (c == null) { SendJson(ctx, Err("Console não encontrado"), 404); return; }
+                string emu = Full(root, S(c, "emulator"));
+                if (IsPc(c))
+                {
+                    string game = Full(root, S(body, "path"));
+                    bool ok = L(c, "romDirs").Any(rd => game.StartsWith(Full(root, rd).TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase));
+                    if (!ok || !File.Exists(game)) { SendJson(ctx, Err("Atalho inválido"), 400); return; }
+                    Process.Start(new ProcessStartInfo(game) { WorkingDirectory = Path.GetDirectoryName(game), UseShellExecute = true });
+                    WebHost.GameStarted(null);
+                    WebHost.FollowForeground();   // jogo de PC (Steam etc.): leva a janela nova para o monitor do PlayLoop
+                    SendJson(ctx, new Dictionary<string, object> { { "ok", true } });
+                    return;
+                }
+                if (emu == "" || !File.Exists(emu)) { SendJson(ctx, Err("Nenhum emulador configurado para " + S(c, "name") + "."), 400); return; }
+                string rom = Full(root, S(body, "path"));
+                bool inside = L(c, "romDirs").Any(rd => rom.StartsWith(Full(root, rd).TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase));
+                if (!inside || !File.Exists(rom)) { SendJson(ctx, Err("ROM inválida"), 400); return; }
+                string args = S(c, "args"); if (args == "") args = "\"{rom}\"";
+                // tela cheia (padrão: ligado) — argumento próprio de cada emulador, editável na configuração
+                object fsv; bool fs = !(c.TryGetValue("fullscreen", out fsv) && fsv is bool && !(bool)fsv);
+                string fsArgs = c.ContainsKey("fsArgs") ? S(c, "fsArgs") : FullscreenArg(emu);
+                if (fs && fsArgs != "") args = fsArgs + " " + args;
+                var proc = Process.Start(new ProcessStartInfo(emu, args.Replace("{rom}", rom)) { WorkingDirectory = Path.GetDirectoryName(emu), UseShellExecute = true });
+                WebHost.GameStarted(proc);
+                WebHost.FollowToAppScreen(proc);   // abre no mesmo monitor do PlayLoop
+                SendJson(ctx, new Dictionary<string, object> { { "ok", true } });
+            }
+            else Send(ctx, 404, "text/plain", Utf8.GetBytes("404"));
+        }
+        catch (Exception ex)
+        {
+            try { SendJson(ctx, Err(ex.Message), 500); } catch { }
+        }
+    }
+}
