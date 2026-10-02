@@ -346,12 +346,18 @@ function fgMove(dir) {
   const cur = fg.place[fg.sel]; if (!cur) return;
   const cx = cur.x + cur.w / 2, cy = cur.y + cur.h / 2;
   let best = -1, bd = 1e9;
+  // vizinho na direção: tolera pequenas sobreposições (posições livres em frações de célula) e mede pela borda mais próxima,
+  // dando preferência a quem está na mesma linha/coluna — assim nenhum card do caminho é pulado
+  const H = dir === 'left' || dir === 'right';
   fg.place.forEach((pl, i) => {
-    if (i === fg.sel || pl.p !== cur.p) return;
-    const x = pl.x + pl.w / 2, y = pl.y + pl.h / 2, dx = x - cx, dy = y - cy;
-    const ok = dir === 'left' ? pl.x + pl.w <= cur.x : dir === 'right' ? pl.x >= cur.x + cur.w : dir === 'up' ? pl.y + pl.h <= cur.y : pl.y >= cur.y + cur.h;
-    if (!ok) return;
-    const d = (dir === 'left' || dir === 'right') ? Math.abs(dx) + Math.abs(dy) * 2 : Math.abs(dy) + Math.abs(dx) * 2;
+    if (i === fg.sel || !pl || pl.p !== cur.p) return;
+    const x = pl.x + pl.w / 2, y = pl.y + pl.h / 2, dx = x - cx, dy = y - cy, tol = .3 * Math.min(H ? pl.w : pl.h, H ? cur.w : cur.h);
+    const gap = dir === 'left' ? cur.x - (pl.x + pl.w) : dir === 'right' ? pl.x - (cur.x + cur.w) : dir === 'up' ? cur.y - (pl.y + pl.h) : pl.y - (cur.y + cur.h);
+    const ahead = dir === 'left' ? dx < -.05 : dir === 'right' ? dx > .05 : dir === 'up' ? dy < -.05 : dy > .05;
+    if (!ahead || gap < -tol) return;
+    const ov = H ? Math.min(pl.y + pl.h, cur.y + cur.h) - Math.max(pl.y, cur.y) : Math.min(pl.x + pl.w, cur.x + cur.w) - Math.max(pl.x, cur.x);
+    const off = Math.abs(H ? dy : dx);
+    const d = Math.max(0, gap) + off * .5 + (ov > .05 ? 0 : 4 + off);
     if (d < bd) { bd = d; best = i; }
   });
   if (best < 0 && (dir === 'left' || dir === 'right')) {   // borda: vai para a página vizinha, no card mais perto da mesma altura
