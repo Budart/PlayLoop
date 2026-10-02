@@ -148,9 +148,13 @@ async function askDelete(g) {
     refilterKeep();
   }
 }
+// desfavoritou: esquece posição e tamanho do card — se favoritar de novo, entra como novo (primeiro espaço livre, no alto à esquerda)
+function clearFavLayout(g) {
+  ['fpos|', 'fsz|', 'ffree|'].forEach(p => { const k = p + coverKey(g); if (covers[k] === undefined) return; delete covers[k]; api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key: k, url: '' }) }).catch(() => {}); });
+}
 async function toggleFav(g) {
   const key = 'fav|' + coverKey(g), on = covers[key] !== '1';
-  if (on) covers[key] = '1'; else delete covers[key];
+  if (on) covers[key] = '1'; else { delete covers[key]; clearFavLayout(g); }
   sfx(on ? 'ok' : 'back');
   try { await api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, url: on ? '1' : '' }) }); } catch (e) { toast(e.message, true); }
   refilterKeep();

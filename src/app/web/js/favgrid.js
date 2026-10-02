@@ -693,7 +693,7 @@ function fgClearMulti() { fgMulti.clear(); fgMultiDom(); }
 async function fgBatchUnfav() {
   const list = [...fgMulti].map(k => fg.items[k]).filter(Boolean);
   if (!await ask(`Desfavoritar ${list.length} jogos?`, 'Eles saem da tela de Favoritos (os jogos continuam no seu PC).', 'Desfavoritar')) return;
-  for (const g of list) { delete covers['fav|' + coverKey(g)]; api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key: 'fav|' + coverKey(g), url: '' }) }).catch(() => {}); }
+  for (const g of list) { clearFavLayout(g); delete covers['fav|' + coverKey(g)]; api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key: 'fav|' + coverKey(g), url: '' }) }).catch(() => {}); }
   fgMulti.clear(); toast(`${list.length} jogos removidos dos favoritos`); sfx('back'); openFavGrid();
 }
 // menu de contexto do card (botão direito / △)
