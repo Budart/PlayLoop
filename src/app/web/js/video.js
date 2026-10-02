@@ -48,11 +48,11 @@ function playCandidate(g, list, k) {
   const v = list[k];
   diag(`tentando ${k + 1}/${list.length}: ${v.id} — ${v.title} (início em ${v.start} s) → https://youtu.be/${v.id}`);
   const f = document.createElement('iframe');
-  f.className = 'vid lite'; f.allow = 'autoplay; encrypted-media; fullscreen; picture-in-picture'; f.allowFullscreen = true; f.tabIndex = -1; f.dataset.start = v.start;
+  f.className = 'vid';   // tamanho real: o YouTube escolhe a melhor qualidade para o tamanho do player f.allow = 'autoplay; encrypted-media; fullscreen; picture-in-picture'; f.allowFullscreen = true; f.tabIndex = -1; f.dataset.start = v.start;
   f._next = reason => { if (f._dead) return; f._dead = true; diag(`${v.id} falhou: ${reason}`); playCandidate(g, list, k + 1); };
-  f.src = `https://www.youtube-nocookie.com/embed/${v.id}?autoplay=1&mute=${vidSoundOn() ? 0 : 1}&controls=0&disablekb=1&fs=0&start=${v.start}&rel=0&iv_load_policy=3&cc_load_policy=0&enablejsapi=1&origin=${encodeURIComponent(location.origin)}`;
+  f.src = `https://www.youtube-nocookie.com/embed/${v.id}?autoplay=1&mute=${vidSoundOn() ? 0 : 1}&controls=0&disablekb=1&fs=0&start=${v.start}&rel=0&iv_load_policy=3&cc_load_policy=0&enablejsapi=1&vq=hd1080&playsinline=1&origin=${encodeURIComponent(location.origin)}`;
   f.onload = () => {
-    [400, 1200, 2500, 4000].forEach(t => setTimeout(() => vidSetVol(f), t));   // volume do vídeo em 20%
+    [400, 1200, 2500, 4000].forEach(t => setTimeout(() => { vidSetVol(f); vidCmd(f, 'setPlaybackQuality', ['highres']); }, t));   // volume salvo e melhor qualidade
     setTimeout(() => { if (f.isConnected && !f._t0 && vidFor === g) f._next('não começou a tocar em 3 s (restrição de idade, bloqueio regional ou incorporação desativada)'); }, 3000);
     const t = setInterval(() => { if (!f.isConnected || f.classList.contains('on')) return clearInterval(t); try { f.contentWindow.postMessage(JSON.stringify({ event:'listening', id: 1 }), '*'); } catch (e) {} }, 250);
   };
@@ -195,10 +195,27 @@ function setVidLogo(g, url) {
 }
 
 // som do vídeo: ligado por padrão; desligado pelo botão de som do app ou em Configuração → Capas e vídeo
-function vidSoundOn() { let v = '1'; try { v = localStorage.getItem('vidsound') || '1'; } catch (e) {} return v !== '0' && !muted; }
-const VID_VOL = 20;
-function vidSetVol(f) { try { f.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [VID_VOL] }), '*'); } catch (e) {} }
+function vidSoundOn() { let v = '1'; try { v = localStorage.getItem('vidsound') || '1'; } catch (e) {} return v !== '0' && !(typeof muted !== 'undefined' && muted); }
+let VID_VOL = 20; try { VID_VOL = Math.max(0, Math.min(100, +(localStorage.getItem('vidvol') ?? 20))); } catch (e) {}
+function vidCmd(f, func, args) { try { f.contentWindow.postMessage(JSON.stringify({ event: 'command', func, args: args || [] }), '*'); } catch (e) {} }
+function vidSetVol(f) { vidCmd(f, 'setVolume', [VID_VOL]); }
+// controles próprios sobre o vídeo: volume e mudo (aparecem ao passar o mouse); clique no vídeo mostra/oculta a interface do YouTube
+(() => {
+  const box = $('vidBox'); if (!box) return;
+  const ui = document.createElement('div'); ui.className = 'vidvol';
+  ui.innerHTML = '<button class="vvm" title="Som do vídeo"></button><input class="vvr" type="range" min="0" max="100" step="1" title="Volume do vídeo">';
+  box.appendChild(ui);
+  const btn = ui.querySelector('.vvm'), rng = ui.querySelector('.vvr');
+  const paint = () => { const on = vidSoundOn(); btn.textContent = !on || VID_VOL === 0 ? '🔇' : VID_VOL < 50 ? '🔉' : '🔊'; rng.value = VID_VOL; rng.style.setProperty('--p', VID_VOL + '%'); };
+  rng.oninput = () => { VID_VOL = +rng.value; try { localStorage.setItem('vidvol', VID_VOL); } catch (e) {} if (VID_VOL > 0) { try { localStorage.setItem('vidsound', '1'); } catch (e) {} } box.querySelectorAll('.vid').forEach(vidSetVol); vidApplySound(); paint(); };
+  btn.onclick = e => { e.stopPropagation(); let v = '1'; try { v = localStorage.getItem('vidsound') || '1'; localStorage.setItem('vidsound', v === '0' ? '1' : '0'); } catch (er) {} vidApplySound(); paint(); };
+  ui.addEventListener('click', e => e.stopPropagation()); ui.addEventListener('pointerdown', e => e.stopPropagation());
+  box.addEventListener('click', () => box.classList.toggle('ui'));
+  box.addEventListener('mouseleave', () => box.classList.remove('ui'));
+  window.vidVolPaint = paint; setTimeout(paint, 0);
+})();
 function vidApplySound() {
+  if (window.vidVolPaint) window.vidVolPaint();
   const on = vidSoundOn();
   document.querySelectorAll('#vidBox .vid').forEach(f => { vidSetVol(f); try { f.contentWindow.postMessage(JSON.stringify({ event: 'command', func: on ? 'unMute' : 'mute', args: [] }), '*'); } catch (e) {} });
   if (document.querySelector('.right.vidplay')) { if (on) music.pause(); else if (!muted) music.resume(); }
