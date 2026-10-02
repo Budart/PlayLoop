@@ -68,11 +68,44 @@ static partial class Central
     }
     static readonly Regex NonBase = new Regex(@"\((Update|DLC|eShop)");
 
+    // pastas das lojas marcadas nas configurações (Jogos de PC): { "steam": "C:\\...", ... }
+    static Dictionary<string, string> StoreDirsOf(Dictionary<string, object> c)
+    {
+        var r = new Dictionary<string, string>(); object v;
+        if (c.TryGetValue("storeDirs", out v) && v is Dictionary<string, object>) foreach (var kv in (Dictionary<string, object>)v) if (kv.Value != null && kv.Value.ToString().Trim() != "") r[kv.Key] = kv.Value.ToString().Trim();
+        return r;
+    }
+    static List<string> AllDirs(Dictionary<string, object> c) { var l = L(c, "romDirs").Where(x => !string.IsNullOrWhiteSpace(x)).ToList(); l.AddRange(StoreDirsOf(c).Values); return l; }
+    static readonly Regex StoreLink = new Regex(@"steam://|com\.epicgames\.launcher://|goggalaxy://|uplay://|origin2?://|battlenet://", RegexOptions.IgnoreCase);
+    static readonly Regex StoreDir = new Regex(@"\\Start Menu\\Programs\\(Steam|GOG\.com|Epic Games)\\|\\XboxGames\\", RegexOptions.IgnoreCase);
+    // o mesmo jogo em pastas diferentes (mesmo destino ou mesmo nome) aparece uma vez só; vence o atalho "oficial" da loja
+    static List<Dictionary<string, object>> PcDedupe(string root, List<Dictionary<string, object>> games, List<string> storeRoots)
+    {
+        Func<string, string> norm = n => Regex.Replace(n.ToLowerInvariant(), @"[^\p{L}\p{N}]+", "");
+        var info = games.Select(g =>
+        {
+            string full = Full(root, (string)g["path"]), ext = Path.GetExtension(full).ToLowerInvariant(), target = "";
+            try { if (ext == ".url") { var m = Regex.Match(File.ReadAllText(full), @"^URL=(.+)$", RegexOptions.Multiline); target = m.Success ? m.Groups[1].Value.Trim() : ""; } else if (ext == ".lnk") target = LnkTarget(full); else target = full; } catch { }
+            int score = 0;
+            if (storeRoots.Any(r => r != "" && full.StartsWith(r.TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase))) score += 4;
+            if (StoreDir.IsMatch(full)) score += 2;
+            if (StoreLink.IsMatch(target)) score += 1;
+            return new { g, t = target.ToLowerInvariant(), n = norm((string)g["name"]), score };
+        }).OrderByDescending(x => x.score).ToList();
+        var seenT = new HashSet<string>(); var seenN = new HashSet<string>(); var res = new List<Dictionary<string, object>>();
+        foreach (var x in info)
+        {
+            if ((x.t != "" && seenT.Contains(x.t)) || (x.n != "" && seenN.Contains(x.n))) continue;
+            if (x.t != "") seenT.Add(x.t); if (x.n != "") seenN.Add(x.n); res.Add(x.g);
+        }
+        return res;
+    }
     static List<Dictionary<string, object>> Games(string root, Dictionary<string, object> c)
     {
         var exts = new HashSet<string>(L(c, "extensions").Select(e => "." + e.ToLowerInvariant()));
         var games = new List<Dictionary<string, object>>();
-        foreach (var rd in L(c, "romDirs"))
+        var sd = StoreDirsOf(c); var dirs = AllDirs(c);
+        foreach (var rd in dirs.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase))
         {
             string dir = Full(root, rd);
             if (!Directory.Exists(dir)) continue;
@@ -110,6 +143,7 @@ static partial class Central
                 }
             }
         }
+        if (IsPc(c)) games = PcDedupe(root, games, sd.Values.Select(x => Full(root, x)).ToList());
         return games.OrderBy(g => (string)g["name"], StringComparer.CurrentCultureIgnoreCase).ToList();
     }
 

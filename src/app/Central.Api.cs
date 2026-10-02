@@ -186,7 +186,7 @@ static partial class Central
                 var body = (Dictionary<string, object>)Json.DeserializeObject(bodyText);
                 var c = Consoles(cfg).FirstOrDefault(x => S(x, "id") == S(body, "console"));
                 string file = Full(root, S(body, "path"));
-                if (c == null || !File.Exists(file) || !L(c, "romDirs").Any(rd => file.StartsWith(Full(root, rd).TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase)))
+                if (c == null || !File.Exists(file) || !AllDirs(c).Any(rd => file.StartsWith(Full(root, rd).TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase)))
                 { SendJson(ctx, Err("Arquivo não encontrado"), 404); return; }
                 SendJson(ctx, IsPc(c) ? UninstallPcGame(file) : DeleteRom(file));
             }
@@ -337,7 +337,7 @@ static partial class Central
                 if (IsPc(c))
                 {
                     string game = Full(root, S(body, "path"));
-                    bool ok = L(c, "romDirs").Any(rd => game.StartsWith(Full(root, rd).TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase));
+                    bool ok = AllDirs(c).Any(rd => game.StartsWith(Full(root, rd).TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase));
                     if (!ok || !File.Exists(game)) { SendJson(ctx, Err("Atalho inválido"), 400); return; }
                     Process.Start(new ProcessStartInfo(game) { WorkingDirectory = Path.GetDirectoryName(game), UseShellExecute = true });
                     WebHost.GameStarted(null);
@@ -347,7 +347,7 @@ static partial class Central
                 }
                 if (emu == "" || !File.Exists(emu)) { SendJson(ctx, Err("Nenhum emulador configurado para " + S(c, "name") + "."), 400); return; }
                 string rom = Full(root, S(body, "path"));
-                bool inside = L(c, "romDirs").Any(rd => rom.StartsWith(Full(root, rd).TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase));
+                bool inside = AllDirs(c).Any(rd => rom.StartsWith(Full(root, rd).TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase));
                 if (!inside || !File.Exists(rom)) { SendJson(ctx, Err("ROM inválida"), 400); return; }
                 string args = S(c, "args"); if (args == "") args = "\"{rom}\"";
                 // tela cheia (padrão: ligado) — argumento próprio de cada emulador, editável na configuração

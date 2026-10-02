@@ -689,3 +689,10 @@ body.th-light .hview { background:rgba(255,255,255,.7); color:#2E2721; border-co
 #wStores .wst.on .wsrow { display:flex; }
 #wStores .wsrow input { flex:1; min-width:0; background:#151027; border:1px solid #4a3f70; color:#fff; border-radius:7px; padding:7px 10px; font-size:13px; }
 #wStores .wsrow button { padding:6px 10px; }
+
+.ccard .dline { margin-bottom:6px; }
+.ccard .dline input { flex:1; min-width:0; }
+.ccard .dline .dx { color:#f19a9a; }
+.ccard .stbox { margin:2px 0 6px; }
+.ccard .stbox .dline { margin:6px 0 0 26px; }
+.ccard i.dim { font-style:normal; opacity:.5; font-size:12px; }

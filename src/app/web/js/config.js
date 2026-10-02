@@ -75,7 +75,7 @@ function renderConfig() {
         <div class="top"><button class="icobtn" data-ico="${i}" title="Trocar ícone"><img src="${logoUrl(c)}" alt="" onerror="this.style.opacity=.2"><span>trocar ícone</span></button><button class="icobtn bgb" data-bgp="${i}" title="Trocar fundo do console" style="background-image:url('${bgUrlOf(c)}')"><span>trocar fundo</span></button><input data-i="${i}" data-k="name" value="${esc(c.name)}"><label class="chk2 en"><input type="checkbox" data-en="${i}" ${c.enabled === false ? '' : 'checked'}> Habilitar</label></div>
         <div class="icopick" id="ip${i}" style="display:none"></div>
         ${c.type === 'pc' ? `<div class="msg">🖥 Jogos de PC — escolha uma ou mais pastas com atalhos (.lnk / .url / .exe) dos jogos instalados. Eles abrem direto, sem emulador.</div>` : fieldHtml(i, 'emulator', 'Emulador (.exe)', c.emulator || '', 'file') + fieldHtml(i, 'args', 'Argumentos — {rom} é trocado pelo caminho do jogo', c.args || '"{rom}"') + `<div class="fld"><label class="chk2"><input type="checkbox" data-fs="${i}" ${c.fullscreen === false ? '' : 'checked'}> Abrir os jogos em tela cheia</label></div>` + fieldHtml(i, 'fsArgs', 'Argumento de tela cheia deste emulador (vai antes dos argumentos)', c.fsArgs == null ? '' : c.fsArgs)}
-        ${fieldHtml(i, 'romDirs', c.type === 'pc' ? 'Pastas com atalhos dos jogos (uma por linha)' : 'Pastas de jogos (uma por linha)', (c.romDirs || []).join('\n'), 'folder-add', true)}
+        ${dirsHtml(i, c)}
         ${fieldHtml(i, 'extensions', 'Extensões dos jogos (separadas por vírgula)', (c.extensions || []).join(', '))}
       </div>`).join('')}
     </div>`) +
@@ -124,6 +124,7 @@ function renderConfig() {
   $('cfBody').querySelectorAll('input[name=fgd]').forEach(r => r.onchange = () => { cfg.favGrid = r.value; favGridDim = r.value; });
   $('cfBody').querySelectorAll('[data-k]').forEach(el => el.oninput = () => setField(+el.dataset.i, el.dataset.k, el.value));
   $('cfBody').querySelectorAll('[data-browse]').forEach(el => el.onclick = () => browse(el));
+  dirsBind(); cfLoadStores();
   $('cfBody').querySelectorAll('[data-en]').forEach(el => el.onchange = () => {
     const i = +el.dataset.en;
     if (i === -2) favCfg().enabled = el.checked; else cfg.consoles[i].enabled = el.checked;
@@ -175,6 +176,33 @@ async function cacheInfo() { try { const r = await api('/api/cache/info'); $('cf
 // configurações do console "Favoritos" (cfg.fav = { enabled, logo, bg })
 function favCfg() { if (!cfg.fav) cfg.fav = { enabled: cfg.favConsole !== false }; if (cfg.fav.enabled == null) cfg.fav.enabled = true; return cfg.fav; }
 function confirmDel(i) { return window.confirm(`Remover "${cfg.consoles[i].name}" do PlayLoop? (os arquivos não são apagados)`); }
+// pastas de jogos/atalhos: uma caixa por pasta (adicionar / excluir); no PC, as lojas viram caixinhas com o caminho editável
+let cfStores = null;
+async function cfLoadStores() { if (cfStores) return; try { cfStores = (await api('/api/setup')).stores || []; } catch (e) { cfStores = []; } if (screen === 'config' && cfStores.length) { const y = $('cfMain').scrollTop; renderConfig(); $('cfMain').scrollTop = y; } }
+function pcStoreMigrate(c) {   // pasta padrão de loja que estava na lista comum vira caixinha marcada
+  if (c.type !== 'pc' || !cfStores) return; c.storeDirs = c.storeDirs || {};
+  cfStores.forEach(st => { const j = (c.romDirs || []).findIndex(d => d.trim().toLowerCase().replace(/\\$/, '') === st.path.toLowerCase().replace(/\\$/, '')); if (j >= 0 && c.storeDirs[st.id] == null) { c.storeDirs[st.id] = c.romDirs[j]; c.romDirs.splice(j, 1); } });
+}
+function dirsHtml(i, c) {
+  const pc = c.type === 'pc'; pcStoreMigrate(c);
+  if (!c.romDirs) c.romDirs = []; if (!c.romDirs.length && !(pc && c.storeDirs && Object.keys(c.storeDirs).length)) c.romDirs.push('');
+  const row = (attr, v, del) => `<div class="line dline"><input ${attr} value="${esc(v)}" spellcheck="false" placeholder="Caminho da pasta"><button class="btn sec sm" ${attr.replace('data-', 'data-b')}>...</button>${del ? `<button class="btn sec sm dx" ${attr.replace('data-', 'data-x')}>Excluir pasta</button>` : ''}</div>`;
+  const stores = pc && cfStores ? `<div class="fld"><label>Lojas</label>${cfStores.map(st => { const on = c.storeDirs && c.storeDirs[st.id] != null; return `<div class="stbox${on ? ' on' : ''}"><label class="chk2"><input type="checkbox" data-st="${i}|${st.id}"${on ? ' checked' : ''}> ${esc(st.name)}${st.exists ? '' : ' <i class="dim">(pasta padrão não encontrada)</i>'}</label>${on ? row(`data-sd="${i}|${st.id}"`, c.storeDirs[st.id], false) : ''}</div>`; }).join('')}</div>` : '';
+  return stores + `<div class="fld"><label>${pc ? 'Pastas com atalhos dos jogos (.lnk / .url / .exe)' : 'Pastas de jogos'}</label>${c.romDirs.map((d, j) => row(`data-rd="${i}|${j}"`, d, true)).join('')}<div class="line"><button class="btn sec sm" data-rda="${i}">+ Adicionar pasta</button></div></div>`;
+}
+function dirsBind() {
+  const B = $('cfBody'), rer = (focusSel) => { const y = $('cfMain').scrollTop; renderConfig(); $('cfMain').scrollTop = y; if (focusSel) { const el = $('cfBody').querySelector(focusSel); if (el) { el.focus(); if (typeof cfgMark === 'function' && document.querySelector('#cfBody .kbf')) cfgMark(el); } } };
+  const ij = el => { const [a, b] = Object.values(el.dataset)[0].split('|'); return [+a, b]; };
+  B.querySelectorAll('[data-rd]').forEach(el => el.oninput = () => { const [i, j] = ij(el); cfg.consoles[i].romDirs[+j] = el.value.trim(); });
+  B.querySelectorAll('[data-sd]').forEach(el => el.oninput = () => { const [i, id] = ij(el); cfg.consoles[i].storeDirs[id] = el.value.trim(); });
+  B.querySelectorAll('[data-xrd]').forEach(el => el.onclick = () => { const [i, j] = el.dataset.xrd.split('|'); cfg.consoles[+i].romDirs.splice(+j, 1); sfx('back'); rer(`[data-rda="${i}"]`); });
+  B.querySelectorAll('[data-rda]').forEach(el => el.onclick = () => { const i = +el.dataset.rda, c = cfg.consoles[i]; c.romDirs.push(''); sfx('ok'); rer(`[data-rd="${i}|${c.romDirs.length - 1}"]`); });
+  B.querySelectorAll('[data-st]').forEach(el => el.onchange = () => { const [i, id] = el.dataset.st.split('|'), c = cfg.consoles[+i]; c.storeDirs = c.storeDirs || {}; if (el.checked) c.storeDirs[id] = (cfStores.find(x => x.id === id) || {}).path || ''; else delete c.storeDirs[id]; sfx('tick'); rer(el.checked ? `[data-sd="${i}|${id}"]` : `[data-st="${i}|${id}"]`); });
+  B.querySelectorAll('[data-brd],[data-bsd]').forEach(el => el.onclick = async () => {
+    const rd = el.dataset.brd, [i, k] = (rd || el.dataset.bsd).split('|'), c = cfg.consoles[+i], cur = rd ? c.romDirs[+k] : c.storeDirs[k];
+    try { const r = await api('/api/browse', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ type: 'folder', start: cur || '' }) }); if (r.path) { if (rd) c.romDirs[+k] = r.path; else c.storeDirs[k] = r.path; sfx('ok'); rer(); } } catch (e) { toast(e.message, true); }
+  });
+}
 function setField(i, k, v) {
   if (i < 0) { cfg[k] = k === 'port' ? (parseInt(v) || 8765) : v; return; }
   const c = cfg.consoles[i];
