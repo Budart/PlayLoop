@@ -30,7 +30,7 @@ let cfgIn = null;
 function cfgFocusables() {
   const sec = document.querySelector('#cfBody .cfsec.on'); if (!sec) return [];
   if (cfgIn && !sec.contains(cfgIn)) cfgIn = null;
-  const all = [...(cfgIn || sec).querySelectorAll('.pick, input:not([type=radio]), textarea, button')].filter(e => e.offsetParent && !e.disabled && !e.closest('.pick') || e.classList.contains('pick'));
+  const all = [...(cfgIn || sec).querySelectorAll('.pick, .icopick .ico, input:not([type=radio]), textarea, button')].filter(e => e.offsetParent && !e.disabled && !e.closest('.pick') || e.classList.contains('pick'));
   if (cfgIn) return all;
   const out = []; all.forEach(e => { const c = e.closest('.ccard'); const it = c || e; if (!out.includes(it)) out.push(it); });
   return out;
@@ -53,6 +53,25 @@ function cfgPad(a) {
     return;
   }
   if (cfgIn && (a === 'back' || (a === 'left' && cur && cur.tagName !== 'INPUT' && cur.tagName !== 'TEXTAREA' && cfgFocusables().indexOf(cur) === 0))) { const c = cfgIn; cfgIn = null; cfgMark(c); sfx('back'); return; }
+  if (cur && cur.classList.contains('ico')) {   // grade de ícones / fundos: setas andam pela posição na tela
+    const box = cur.closest('.icopick'), trig = () => box.closest('.ccard').querySelector(box.dataset.kind === 'bg' ? '[data-bgp]' : '[data-ico]');
+    if (a === 'ok') { const t = trig(); cur.click(); sfx('ok'); setTimeout(() => { const nb = document.querySelector(`#cfBody [${t.hasAttribute('data-bgp') ? 'data-bgp' : 'data-ico'}="${t.dataset.bgp || t.dataset.ico}"]`); if (nb) cfgMark(nb); }, 30); return; }
+    if (a === 'back') { const t = trig(); box.style.display = 'none'; cfgMark(t); sfx('back'); return; }
+    const all = [...box.querySelectorAll('.ico')], r = cur.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2; let best = null, bd = 1e9;
+    all.forEach(e => { if (e === cur) return; const q = e.getBoundingClientRect(), dx = q.left + q.width / 2 - cx, dy = q.top + q.height / 2 - cy;
+      const ok = a === 'left' ? dx < -5 && Math.abs(dy) < r.height / 2 : a === 'right' ? dx > 5 && Math.abs(dy) < r.height / 2 : a === 'up' ? dy < -5 : dy > 5;
+      if (!ok) return; const d = Math.abs(dx) * (a === 'up' || a === 'down' ? 1 : 1) + Math.abs(dy) * 3; if (d < bd) { bd = d; best = e; } });
+    if (best) { cfgMark(best); sfx('tick'); return; }
+    if (a === 'up') { cfgMark(trig()); sfx('tick'); return; }
+    if (a === 'down') { const f = cfgFocusables(), j = f.indexOf(all[all.length - 1]); if (f[j + 1]) { cfgMark(f[j + 1]); sfx('tick'); } return; }
+    return;
+  }
+  if (a === 'ok' && cur && (cur.hasAttribute('data-ico') || cur.hasAttribute('data-bgp'))) {   // abriu a grade pelo controle: o foco já vai para as imagens
+    if (!cfgIn) cfgIn = cur.closest('.ccard');
+    cur.click(); sfx('ok');
+    const box = cur.closest('.ccard').querySelector('.icopick'); if (box && box.style.display !== 'none') { const s = box.querySelector('.ico.sel') || box.querySelector('.ico'); if (s) cfgMark(s); }
+    return;
+  }
   if (a === 'ok' && cur && cur.classList.contains('ccard')) { cfgIn = cur; const f0 = cfgFocusables(); if (f0.length) cfgMark(f0[0]); sfx('ok'); return; }
   const f = cfgFocusables(), k = f.indexOf(cur);
   if (cur && cur.classList.contains('ccard') && ['left','right','up','down'].includes(a)) {   // cards lado a lado: anda pela posição na tela
