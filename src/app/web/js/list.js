@@ -126,9 +126,15 @@ function ctxPlace(m, x, y) {
   m.style.left = Math.max(8, Math.min(x, innerWidth - w - 8)) + 'px';
   m.style.top = (y + h > innerHeight - 8 ? Math.max(8, y - h) : y) + 'px';
 }
-function closeCtx() { $('ctx').classList.remove('on'); ctxSel = -1; }
-function ctxMove(d) { const els = [...$('ctx').querySelectorAll('.ci')]; ctxSel = (ctxSel + d + els.length) % els.length; els.forEach((e, k) => e.classList.toggle('kb', k === ctxSel)); }
-function ctxOk() { const el = $('ctx').querySelectorAll('.ci')[ctxSel]; if (el) el.click(); }
+// menus com submenu ao lado (nível 0 = #ctx, nível 1 = #ctx2)
+let ctx2Items = [], ctx2Sel = -1, ctxLvl = 0, ctxSubFrom = null, ctxKbOpen = false, ctxHov = 0;
+const ctxEl = l => $(l ? 'ctx2' : 'ctx');
+function closeSub() { $('ctx2').classList.remove('on'); ctx2Sel = -1; ctxLvl = 0; $('ctx').querySelectorAll('.ci.open').forEach(e => e.classList.remove('open')); }
+function closeCtx() { closeSub(); $('ctx').classList.remove('on'); ctxSel = -1; }
+function ctxMove(d) { const els = [...ctxEl(ctxLvl).querySelectorAll('.ci')]; if (!els.length) return; let s = ctxLvl ? ctx2Sel : ctxSel; s = (s + d + els.length) % els.length; if (ctxLvl) ctx2Sel = s; else ctxSel = s; els.forEach((e, k) => e.classList.toggle('kb', k === s)); els[s].scrollIntoView({ block: 'nearest' }); }
+function ctxOk() { const el = ctxEl(ctxLvl).querySelectorAll('.ci')[ctxLvl ? ctx2Sel : ctxSel]; if (el) { ctxKbOpen = true; el.click(); setTimeout(() => ctxKbOpen = false, 50); } }
+function ctxRight() { const el = !ctxLvl && $('ctx').querySelectorAll('.ci')[ctxSel]; if (el && el.querySelector('.sub')) ctxOk(); }
+function ctxLeft() { if ($('ctx2').classList.contains('on')) closeSub(); else closeCtx(); }
 document.addEventListener('click', () => closeCtx());
 const sysOf = g => allSystems.find(s => s.id === g.sid) || sys;
 // confirmação (modal próprio, funciona também com controle)

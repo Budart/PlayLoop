@@ -170,13 +170,36 @@ Object.assign(ICO, {
   clear: SV('<rect x="3" y="3" width="18" height="18" rx="3" stroke-dasharray="3 3"/><path d="M9 9l6 6M15 9l-6 6"/>'),
   org: SV('<path d="M4 6h16M4 12h10M4 18h6"/><path d="M17 15l3 3-3 3"/>'),
 });
+function ctxHtml(items) { return items.map((it, k) => !it ? '<div class="sep"></div>' : typeof it === 'string' ? `<div class="ch">${it}</div>` : `<div class="ci ${it[3] || ''}" data-k="${k}">${ICO[it[0]] || ''}<span>${it[1]}</span>${it[4] === 1 ? '<b class="sub">›</b>' : ''}</div>`).join(''); }
+function ctxBind(m, lvl) {
+  m.querySelectorAll('.ci').forEach(el => {
+    el.onclick = e => { e.stopPropagation(); const it = (lvl ? ctx2Items : ctxItems)[+el.dataset.k];
+      if (it[4] === 1) { if (lvl) { it[2](); return; } if (el.classList.contains('open')) { if (ctxKbOpen) { ctxLvl = 1; ctx2Sel = -1; ctxMove(1); } return; } closeSub(); ctxSubFrom = el; it[2](); return; }
+      closeCtx(); it[2](); };
+    if (!lvl) el.onmouseenter = () => { clearTimeout(ctxHov); ctxHov = setTimeout(() => { const it = ctxItems[+el.dataset.k]; if (!$('ctx').classList.contains('on')) return; if (it && it[4] === 1) { if (!el.classList.contains('open')) el.click(); } else if ($('ctx2').classList.contains('on')) closeSub(); }, 220); };
+  });
+  if (!lvl) m.onmouseleave = () => clearTimeout(ctxHov);
+}
 function fgMenu(items, x, y) {
-  ctxItems = items; const m = $('ctx');
-  m.innerHTML = items.map((it, k) => !it ? '<div class="sep"></div>' : typeof it === 'string' ? `<div class="ch">${it}</div>` : `<div class="ci ${it[3] || ''}" data-k="${k}">${ICO[it[0]] || ''}<span>${it[1]}</span>${it[4] === 1 ? '<b class="sub">›</b>' : ''}</div>`).join('');
-  m.querySelectorAll('.ci').forEach(el => el.onclick = e => { e.stopPropagation(); const it = ctxItems[+el.dataset.k]; if (it[4]) { it[2](); return; } closeCtx(); it[2](); });
+  if (ctxSubFrom) { const a = ctxSubFrom; ctxSubFrom = null; if ($('ctx').classList.contains('on') && a.isConnected) return ctxOpenSub(a, items); }
+  closeSub(); ctxItems = items; const m = $('ctx');
+  m.innerHTML = ctxHtml(items); ctxBind(m, 0);
   m.classList.add('on'); ctxSel = -1;
   m.style.maxHeight = (innerHeight - 20) + 'px'; m.style.overflowY = 'auto';
   ctxPlace(m, x, y); ctxMove(1);
+}
+// submenu ao lado do item que o abriu; vira para a esquerda / sobe quando não cabe na tela
+function ctxOpenSub(anchor, items) {
+  items = items.filter(it => !(it && it[4] === 2)); while (items.length && !items[0]) items.shift();
+  ctx2Items = items; const m = $('ctx2');
+  m.innerHTML = ctxHtml(items); ctxBind(m, 1);
+  m.style.maxHeight = (innerHeight - 16) + 'px'; m.style.overflowY = 'auto'; m.style.left = '0px'; m.style.top = '0px';
+  m.classList.add('on'); anchor.classList.add('open');
+  const ar = anchor.getBoundingClientRect(), pr = $('ctx').getBoundingClientRect(), r = m.getBoundingClientRect();
+  let x = pr.right - 2; if (x + r.width > innerWidth - 8) x = pr.left - r.width + 2; if (x < 8) x = Math.max(8, innerWidth - r.width - 8);
+  let y = ar.top - 6; if (y + r.height > innerHeight - 8) y = Math.max(8, innerHeight - 8 - r.height);
+  m.style.left = x + 'px'; m.style.top = y + 'px';
+  ctx2Sel = -1; if (ctxKbOpen) { ctxLvl = 1; ctxMove(1); }
 }
 const fgModeItems = () => ['Organização', ['grid', `Grade fixa${fgFree ? '' : '  ✓'}`, () => fgSetMode(false)], ['free', `Livre${fgFree ? '  ✓' : ''}`, () => fgSetMode(true)]];
 const fgArrangeItems = () => [['az', 'Ordenar por nome', () => fgSortByName()], ...(fgFree ? [['auto', 'Alinhar automaticamente', () => fgAutoAlign()]] : [])];

@@ -103,7 +103,7 @@ function input(a) {
   if (oskOpen) { oskInput(a); return; }
   if (ARTPICK.open) { apInput(a); return; }
   if (askOpen) { askPad(a); return; }
-  if ($('ctx').classList.contains('on')) { if (a === 'down') ctxMove(1); else if (a === 'up') ctxMove(-1); else if (a === 'ok') ctxOk(); else if (a === 'back' || a === 'menu' || a === 'left') closeCtx(); return; }
+  if ($('ctx').classList.contains('on')) { if (a === 'down') ctxMove(1); else if (a === 'up') ctxMove(-1); else if (a === 'ok') ctxOk(); else if (a === 'right') ctxRight(); else if (a === 'left' || a === 'back') ctxLeft(); else if (a === 'menu') closeCtx(); return; }
   if (modalOpen) { if (a === 'back') closeCover(); else if (['left','right','up','down'].includes(a)) coverNav(a); else if (a === 'ok') coverPick(); else if (a === 'menu') openOsk($('cq')); return; }
   if (fxOpen) { if (a === 'back') fgFxClose(); return; }
   if (fp.open) { fpInput(a); return; }
@@ -170,7 +170,7 @@ document.addEventListener('keydown', e => {
     const d = { ArrowLeft:'left', ArrowRight:'right', ArrowUp:'up', ArrowDown:'down' }[e.key]; if (d) { e.preventDefault(); askPad(d); }
     return;   // Enter/Espaço apertam o botão em foco (comportamento nativo)
   }
-  if ($('ctx').classList.contains('on')) { e.preventDefault(); if (e.key === 'ArrowDown') ctxMove(1); else if (e.key === 'ArrowUp') ctxMove(-1); else if (e.key === 'Enter' || e.key === ' ') ctxOk(); else if (e.key === 'Escape' || e.key === 'ArrowLeft') closeCtx(); return; }
+  if ($('ctx').classList.contains('on')) { e.preventDefault(); if (e.key === 'ArrowDown') ctxMove(1); else if (e.key === 'ArrowUp') ctxMove(-1); else if (e.key === 'Enter' || e.key === ' ') ctxOk(); else if (e.key === 'ArrowRight') ctxRight(); else if (e.key === 'Escape' || e.key === 'ArrowLeft') ctxLeft(); return; }
   if (e.key === 'F1') { e.preventDefault(); if (screen !== 'config' && screen !== 'welcome') { if (modalOpen) closeCover(); openConfig(); } return; }
   if (screen === 'welcome' || renaming) return;
   if (fxOpen) { if (e.key === 'Escape' || e.key === 'Backspace') { e.preventDefault(); fgFxClose(); } return; }
