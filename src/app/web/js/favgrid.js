@@ -329,7 +329,8 @@ function fgResize(g, w, h) {
 // arrastar o card para qualquer lugar da grade (encostar na lateral da tela troca de página, inclusive para uma nova)
 function fgDragStart(e, el, i) {
   const sx = e.clientX, sy = e.clientY, r0 = el.getBoundingClientRect(), pl = fg.place[i];
-  let ghost = null, target = null, edgeT = 0, edgeDir = 0, last = e, prevKey = '', prevT = 0;
+  let ghost = null, target = null, edgeT = 0, edgeDir = 0, last = e, prevKey = '', prevT = 0, previewed = false, cancelled = false;
+  const group = fgMulti.size > 1 && fgMulti.has(i) ? [...fgMulti].filter(k => k !== i) : [];   // lote: os demais selecionados acompanham
   const edge = () => {
     const v = $('fgView').getBoundingClientRect(), dir = last.clientX > v.right - 50 ? 1 : last.clientX < v.left + 50 ? -1 : 0;
     if (dir !== edgeDir) { edgeDir = dir; edgeT = performance.now(); }
@@ -353,7 +354,8 @@ function fgDragStart(e, el, i) {
       if (Math.hypot(ev.clientX - sx, ev.clientY - sy) < 7) return;
       fgSelect(i, true); el._dragged = true; el.classList.add('dragsrc'); $('favgrid').classList.add('arrange');
       ghost = el.cloneNode(true); ghost.className = el.className.replace('dragsrc', '') + ' sel fgghost'; ghost.style.cssText = `width:${r0.width}px;height:${r0.height}px;`; document.body.appendChild(ghost);
-      $('fgView').insertAdjacentHTML('beforeend', '<div class="fgslot" id="fgSlot"></div>');
+      $('fgView').insertAdjacentHTML('beforeend', '<div class="fgslot" id="fgSlot"></div>' + group.map(k => `<div class="fgslot fgslot2" data-k="${k}"></div>`).join(''));
+      document.addEventListener('keydown', esc, true);
     }
     ghost.style.transform = `translate(${ev.clientX - (sx - r0.left)}px, ${ev.clientY - (sy - r0.top)}px)`;
     last = ev; edge(); aim();
@@ -364,21 +366,65 @@ function fgDragStart(e, el, i) {
     target = cellAt(last.clientX, last.clientY);
     const s = $('fgSlot');
     if (s && target) { const G = target.G; s.style.cssText = `left:${G.ox - v.left + target.x * G.pitch}px;top:${G.oy - v.top + target.y * G.pitch}px;width:${pl.w * G.pitch - G.gap}px;height:${pl.h * G.pitch - G.gap}px`; }
-    if (fgFree) return;   // livre: só a marcação de onde vai cair (sem prévia dos outros cards — mais leve)
+    // lote: marcação de onde cada um dos outros selecionados vai cair (mesmo deslocamento)
+    const mq = target ? fgGroupTargets(i, target) : null;
+    $('fgView').querySelectorAll('.fgslot2').forEach(sl => { const q = mq && mq[+sl.dataset.k]; if (!q || q.p !== fg.page) { sl.style.display = 'none'; return; } const G = target.G; sl.style.cssText = `left:${G.ox - v.left + q.x * G.pitch}px;top:${G.oy - v.top + q.y * G.pitch}px;width:${q.w * G.pitch - G.gap}px;height:${q.h * G.pitch - G.gap}px`; });
+    if (fgFree || group.length) {   // depois de um instante parado: mostra onde os cards empurrados vão parar (prévia, nada é salvo)
+      const key = target ? `${target.p},${target.x.toFixed(2)},${target.y.toFixed(2)}` : '';
+      if (key !== prevKey) { prevKey = key; clearTimeout(prevT); if (previewed) { fgPreviewUndo(); previewed = false; } if (target) { const t = target; prevT = setTimeout(() => { if (ghost) { fgPreviewMany(i, t); previewed = true; } }, 320); } }
+      return;
+    }
     // depois de um instante parado no mesmo lugar, mostra como os outros cards ficariam
     const key = target ? `${target.p},${target.x},${target.y}` : '';
     if (key !== prevKey) { prevKey = key; clearTimeout(prevT); if (target) { const t = target; prevT = setTimeout(() => { if (ghost) fgPreview(i, t); }, 260); } }
   }
-  const up = () => {
-    document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up); clearInterval(tick); clearTimeout(prevT);
+  // Esc durante o arraste: desiste — tudo volta para onde estava
+  function esc(ev) { if (ev.key !== 'Escape') return; ev.preventDefault(); ev.stopPropagation(); cancelled = true; up(); }
+  function up() {
+    document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up); document.removeEventListener('keydown', esc, true); clearInterval(tick); clearTimeout(prevT);
     if (!ghost) return;
-    ghost.remove(); const s = $('fgSlot'); if (s) s.remove(); el.classList.remove('dragsrc'); $('favgrid').classList.remove('arrange');
-    if (!target) return;
+    ghost.remove(); $('fgView').querySelectorAll('.fgslot').forEach(x => x.remove()); el.classList.remove('dragsrc'); $('favgrid').classList.remove('arrange');
+    if (previewed) fgPreviewUndo();
+    if (cancelled || !target) { const keep = [...fgMulti].map(k => fg.items[k]); renderFavGrid(); keep.forEach(g => fgMulti.add(fg.items.indexOf(g))); fgMultiDom(); sfx('back'); return; }
     if (fgMulti.size > 1 && fgMulti.has(i)) { fgMoveMany(i, target); return; }   // lote: todos andam juntos
     if (fgFree) { const { G, ...q } = target; frCommit(i, q); return; }
     fgDropInto(i, target); sfx('ok'); renderFavGrid();
-  };
+  }
   document.addEventListener('pointermove', move); document.addEventListener('pointerup', up);
+}
+// destino de cada card do lote (mesmo deslocamento do card arrastado, preso às bordas)
+function fgGroupTargets(i, t) {
+  const { R, C } = fgDim(), pl = fg.place[i], dp = t.p - pl.p, dx = t.x - pl.x, dy = t.y - pl.y, out = {};
+  fgMulti.forEach(k => { const o = fg.place[k]; let x = Math.max(0, Math.min(C - o.w, o.x + dx)), y = Math.max(0, Math.min(R - o.h, o.y + dy)); if (!fgFree) { x = Math.round(x); y = Math.round(y); } out[k] = { p: Math.max(0, o.p + dp), x, y, w: o.w, h: o.h }; });
+  out[i] = { p: t.p, x: t.x, y: t.y, w: pl.w, h: pl.h };
+  return out;
+}
+// prévia: move na tela os selecionados e os empurrados para onde ficariam (sem salvar); desfazer volta tudo
+function fgPreviewMany(i, t) {
+  const { R, C } = fgDim(), mq = fgGroupTargets(i, t), movedKeys = new Set(Object.keys(mq).map(Number));
+  const placed = Object.values(mq), result = {};
+  const hit = (a, b) => a.p === b.p && a.x < b.x + b.w - .001 && a.x + a.w > b.x + .001 && a.y < b.y + b.h - .001 && a.y + a.h > b.y + .001;
+  const pushed = [];
+  fg.place.forEach((r, k) => { if (movedKeys.has(k) || !r) return; if (placed.some(q => hit(q, r))) pushed.push(k); else placed.push(r); });
+  pushed.forEach(k => { const r = fg.place[k]; const c = fgFree ? frFit(placed, r.w, r.h, r.p) : (() => { for (let p = r.p; p < 60; p++) for (let y = 0; y + r.h <= R; y++) for (let x = 0; x + r.w <= C; x++) { const q = { p, x, y, w: r.w, h: r.h }; if (!placed.some(o => hit(q, o))) return q; } return r; })(); placed.push(c); result[k] = c; });
+  Object.entries(mq).forEach(([k, q]) => { if (+k !== i) result[k] = q; });
+  const tr = $('fgTrack');
+  Object.entries(result).forEach(([k, q]) => {
+    const el = tr.querySelector(`.fgcard[data-i="${k}"]`); if (!el) return;
+    while (tr.children.length <= q.p) fgAddPage();
+    if (el.parentNode !== tr.children[q.p]) tr.children[q.p].appendChild(el);
+    el.classList.add('pv');
+    if (fgFree) el.style.cssText = frStyle(q); else { el.style.gridColumn = `${q.x + 1} / span ${q.w}`; el.style.gridRow = `${q.y + 1} / span ${q.h}`; }
+  });
+}
+function fgPreviewUndo() {
+  const tr = $('fgTrack');
+  fg.place.forEach((q, k) => {
+    const el = tr.querySelector(`.fgcard[data-i="${k}"].pv`); if (!el) return;
+    el.classList.remove('pv');
+    if (el.parentNode !== tr.children[q.p]) tr.children[q.p].appendChild(el);
+    if (fgFree) el.style.cssText = frStyle(q); else { el.style.gridColumn = `${q.x + 1} / span ${q.w}`; el.style.gridRow = `${q.y + 1} / span ${q.h}`; }
+  });
 }
 function fgAddPage() { const { R, C } = fgDim(); $('fgTrack').insertAdjacentHTML('beforeend', `<div class="fgpage" style="grid-template-columns:repeat(${C},var(--cell));grid-template-rows:repeat(${R},var(--cell))"></div>`); }
 // painel flutuante com os detalhes do jogo selecionado (arraste pelo topo; gruda no canto/centro de baixo mais próximo)
