@@ -131,11 +131,18 @@ function input(a) {
       if (a === 'up') return;
     }
     if (a === 'up' && gIdx <= 0) { qi.focus(); qi.classList.add('padsel'); sfx('tick'); return; }
+    if ((a === 'up' || a === 'down') && padPrev.fav && shown[gIdx]) {   // □ segurado: seleciona os jogos por onde passa
+      multi.add(shown[gIdx]); selectGame(gIdx + (a === 'up' ? -1 : 1)); if (shown[gIdx]) multi.add(shown[gIdx]);
+      $('list').classList.toggle('multi', multi.size > 1); vRender(); multiInfo(); return;
+    }
     if (a === 'up') selectGame(gIdx - 1); else if (a === 'down') selectGame(gIdx + 1);
     else if (a === 'pgup' || a === 'left') selectGame(gIdx - 10); else if (a === 'pgdn') selectGame(gIdx + 10);
     else if (a === 'home') selectGame(0); else if (a === 'end') selectGame(shown.length - 1);
     else if (a === 'ok') listLaunch(); else if (a === 'back') back(); else if (a === 'cover') openCover();
-    else if (a === 'fav' && shown[gIdx]) toggleFav(shown[gIdx]);
+    else if (a === 'fav' && shown[gIdx]) {   // □: marca/desmarca o jogo em foco (segurando □ e andando, marca os percorridos)
+      const g = shown[gIdx]; if (multi.has(g)) multi.delete(g); else multi.add(g);
+      anchor = gIdx; $('list').classList.toggle('multi', multi.size > 1); vRender(); multiInfo(); sfx('tick');
+    }
     else if ((a === 'menu' || a === 'right') && shown[gIdx]) {   // → (ou △): menu de contexto; com lote selecionado, o menu do lote
       ensureVisible(gIdx); const el = $('list').querySelector('.row.cur'), r = el ? el.getBoundingClientRect() : $('list').getBoundingClientRect();
       if (multi.size > 1) openBatchCtx(r.left + 60, r.bottom); else openCtx(shown[gIdx], r.left + 60, r.bottom);

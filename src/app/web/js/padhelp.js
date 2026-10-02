@@ -46,7 +46,7 @@ function padContext() {
     if (fg.moving) return ['fgmove', [['dpad', 'mover card'], ['sq', 'soltar'], ['back', 'cancelar']]];
     return ['favgrid', [['dpad', 'navegar'], ['ok', 'jogar'], ['sq', 'mover card'], ['tri', 'menu'], ['lb', 'página'], ['back', 'voltar']]];
   }
-  if (screen === 'games') return ['games', [['dpad', 'navegar'], ['ok', 'jogar'], ['sq', 'favoritar'], ['tri', 'menu'], ['lb', 'pular'], ['rs', 'girar capa'], ['lt', 'zoom'], ['l3', 'buscar'], ['back', 'voltar']]];
+  if (screen === 'games') return ['games', [['dpad', 'navegar'], ['ok', 'jogar'], ['sq', 'selecionar'], ['tri', 'menu'], ['lb', 'pular'], ['rs', 'girar capa'], ['lt', 'zoom'], ['l3', 'buscar'], ['back', 'voltar']]];
   if (screen === 'systems' && typeof sysMoving !== 'undefined' && sysMoving) return ['sysmove', [['dpad', 'mover console'], ['sq', 'soltar'], ['back', 'cancelar']]];
   if (screen === 'systems' && typeof topSel !== 'undefined' && topSel >= 0) return ['top', [['dpad', 'escolher'], ['ok', 'abrir'], ['back', 'voltar']]];
   if (screen === 'systems') return ['systems', [['dpad', 'console / ↑ topo'], ['ok', 'entrar'], ['sq', 'mover'], ['start', 'configuração'], ['l3', 'buscar'], ['sel', 'modo TV']]];
