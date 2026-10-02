@@ -39,16 +39,21 @@ static partial class Central
     static bool AskUninstall(string dataDir, out bool wipe)
     {
         wipe = false;
+        Color bg = Color.FromArgb(11, 16, 32), card = Color.FromArgb(17, 26, 46), text = Color.FromArgb(229, 231, 235), muted = Color.FromArgb(148, 163, 184), red = Color.FromArgb(248, 113, 113);
         var f = new Form { Text = "Desinstalar PlayLoop", FormBorderStyle = FormBorderStyle.FixedDialog, MaximizeBox = false, MinimizeBox = false, StartPosition = FormStartPosition.CenterScreen,
-            ClientSize = new Size(470, 200), BackColor = Color.FromArgb(11, 16, 32), ForeColor = Color.FromArgb(229, 231, 235), Font = new Font("Segoe UI", 10f) };
+            AutoScaleDimensions = new SizeF(96f, 96f), AutoScaleMode = AutoScaleMode.Dpi, ClientSize = new Size(520, 300), BackColor = bg, ForeColor = text, Font = new Font("Segoe UI", 10f) };
         try { f.Icon = Icon.ExtractAssociatedIcon(ExePath); } catch { }
-        var lbl = new Label { Text = "Desinstalar o PlayLoop deste computador?\n\nSeus emuladores e jogos não serão apagados.", Location = new Point(20, 16), Size = new Size(430, 60) };
-        var chk = new CheckBox { Text = "Apagar também as configurações, o cache e as capas/vídeos salvos", Location = new Point(20, 82), Size = new Size(440, 24) };
-        var path = new Label { Text = dataDir, Location = new Point(38, 106), Size = new Size(420, 20), ForeColor = Color.FromArgb(148, 163, 184), Font = new Font("Segoe UI", 8.5f) };
-        var ok = new Button { Text = "Desinstalar", Location = new Point(250, 148), Size = new Size(100, 32), DialogResult = DialogResult.OK, FlatStyle = FlatStyle.Flat, BackColor = Color.FromArgb(59, 130, 246), ForeColor = Color.White };
-        var no = new Button { Text = "Cancelar", Location = new Point(360, 148), Size = new Size(90, 32), DialogResult = DialogResult.Cancel, FlatStyle = FlatStyle.Flat, BackColor = Color.FromArgb(30, 41, 59), ForeColor = Color.White };
-        ok.FlatAppearance.BorderSize = 0; no.FlatAppearance.BorderSize = 0;
-        f.Controls.AddRange(new Control[] { lbl, chk, path, ok, no });
+        var title = new Label { Text = "Desinstalar o PlayLoop?", Font = new Font("Segoe UI Semibold", 15f), AutoSize = false, Location = new Point(28, 22), Size = new Size(464, 34) };
+        var sub = new Label { Text = "Seus emuladores e jogos não serão apagados.", ForeColor = muted, Location = new Point(28, 58), Size = new Size(464, 22) };
+        var box = new Panel { BackColor = card, Location = new Point(28, 96), Size = new Size(464, 118) };
+        var chk = new CheckBox { Text = "Apagar também todos os meus dados", Font = new Font("Segoe UI Semibold", 10.5f), Location = new Point(16, 14), Size = new Size(430, 26), Cursor = Cursors.Hand };
+        var det = new Label { Text = "Configuração, favoritos, posição e tamanho dos cards, capas, fundos e títulos escolhidos, jogos ocultos e renomeados, cache de imagens e vídeos.", ForeColor = muted, Font = new Font("Segoe UI", 9f), Location = new Point(36, 44), Size = new Size(412, 58) };
+        box.Controls.AddRange(new Control[] { chk, det });
+        Func<string, Color, Button> mk = (t, c) => { var b = new Button { Text = t, Size = new Size(124, 38), FlatStyle = FlatStyle.Flat, BackColor = c, ForeColor = Color.White, Cursor = Cursors.Hand, Font = new Font("Segoe UI Semibold", 10f) }; b.FlatAppearance.BorderSize = 0; return b; };
+        var no = mk("Cancelar", Color.FromArgb(30, 41, 59)); no.Location = new Point(368, 240); no.DialogResult = DialogResult.Cancel;
+        var ok = mk("Desinstalar", Color.FromArgb(59, 130, 246)); ok.Location = new Point(234, 240); ok.DialogResult = DialogResult.OK;
+        chk.CheckedChanged += (s, e) => { ok.BackColor = chk.Checked ? Color.FromArgb(220, 38, 38) : Color.FromArgb(59, 130, 246); ok.Text = chk.Checked ? "Apagar tudo" : "Desinstalar"; det.ForeColor = chk.Checked ? red : muted; };
+        f.Controls.AddRange(new Control[] { title, sub, box, ok, no });
         f.AcceptButton = ok; f.CancelButton = no;
         bool r = f.ShowDialog() == DialogResult.OK;
         wipe = chk.Checked;
@@ -73,6 +78,14 @@ static partial class Central
         string extra = "";
         if (wipe)
         {
+            // favoritos, cards, capas escolhidas, ocultos e nomes ficam na pasta dos emuladores (central-*.json): apaga também
+            try
+            {
+                string root = Root(LoadConfig());
+                foreach (var n in new[] { "central-covers.json", "central-hidden.json", ConfigName })
+                    try { string p = Path.Combine(root, n); if (File.Exists(p)) File.Delete(p); } catch { }
+            }
+            catch { }
             try { Directory.Delete(data, true); } catch { }
             // o que ficar preso (processos do WebView2 ainda fechando) é apagado logo depois que este programa sai
             if (Directory.Exists(data)) extra = " & rmdir /s /q \"" + data + "\"";
