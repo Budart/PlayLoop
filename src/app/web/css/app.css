@@ -714,3 +714,8 @@ body.th-light .hview { background:rgba(255,255,255,.7); color:#2E2721; border-co
 .ckind button svg { width:26px; height:26px; fill:none; stroke:currentColor; stroke-width:1.5; stroke-linejoin:round; }
 .ckind button.on { border-color:var(--c1); background:rgba(0,209,255,.12); color:#fff; }
 .ckind .ckh { font-size:11px; opacity:.4; margin-left:4px; }
+.cgrid .it.more { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; border:2px dashed rgba(255,255,255,.3); background:rgba(255,255,255,.03); color:var(--text); min-height:120px; font-size:13px; font-weight:600; }
+.cgrid .it.more b { font-size:28px; line-height:1; font-weight:400; }
+.cgrid .it.more:hover, .cgrid .it.more.kb { border-color:var(--c1); }
+.cgrid .it.more.busy { opacity:.6; cursor:wait; }
+.wpimg.wpmore { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; border:2px dashed rgba(255,255,255,.3); background:rgba(255,255,255,.03); color:var(--text); font:inherit; font-weight:600; } .wpimg.wpmore b { font-size:26px; font-weight:400; } .wpimg.wpmore span { position:static; background:none; }

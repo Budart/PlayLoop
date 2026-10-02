@@ -261,12 +261,24 @@ async function wpSearch(q) {
   if (tok !== wpTok) return;
   res = res.filter(x => x.full && x.thumb && x.w >= 1920);
   if (!res.length) { box.innerHTML = '<div class="msg">Nada encontrado em alta resolução. Tente outras palavras (em inglês costuma render mais).</div>'; return; }
-  box.innerHTML = res.slice(0, 24).map((x, k) => `<button class="wpimg" data-k="${k}" style="background-image:url('${x.thumb.replace(/'/g, '%27')}')"><span>${x.w}×${x.h}</span></button>`).join('');
-  box.querySelectorAll('.wpimg').forEach(b => b.onclick = () => {
-    const x = res[+b.dataset.k]; favCfg().bg = x.full; FAVSYS.bg = x.full;
-    box.querySelectorAll('.wpimg').forEach(o => o.classList.toggle('on', o === b));
-    const bb = document.querySelector('#cfBody [data-bgp="-2"]'); if (bb) bb.style.backgroundImage = `url('${x.full.replace(/'/g, '%27')}')`;
-    sfx('ok'); toast('Fundo escolhido — salve a configuração para aplicar');
-  });
+  let n = 24, page = 1;
+  const draw = () => {
+    box.innerHTML = res.slice(0, n).map((x, k) => `<button class="wpimg" data-k="${k}" style="background-image:url('${x.thumb.replace(/'/g, '%27')}')"><span>${x.w}×${x.h}</span></button>`).join('') + '<button class="wpimg wpmore"><b>＋</b><span>Mais</span></button>';
+    box.querySelectorAll('.wpimg:not(.wpmore)').forEach(b => b.onclick = () => {
+      const x = res[+b.dataset.k]; favCfg().bg = x.full; FAVSYS.bg = x.full;
+      box.querySelectorAll('.wpimg').forEach(o => o.classList.toggle('on', o === b));
+      const bb = document.querySelector('#cfBody [data-bgp="-2"]'); if (bb) bb.style.backgroundImage = `url('${x.full.replace(/'/g, '%27')}')`;
+      sfx('ok'); toast('Fundo escolhido — salve a configuração para aplicar');
+    });
+    box.querySelector('.wpmore').onclick = async e => {   // "Mais": mostra as próximas; acabando, busca a próxima página
+      const b = e.currentTarget; if (b.disabled) return; b.disabled = true; b.querySelector('span').textContent = 'Buscando…';
+      if (n >= res.length) { try { page++; const r = await api('/api/proxy?u=' + encodeURIComponent('https://wallhaven.cc/api/v1/search?purity=100&categories=111&atleast=1920x1080&sorting=relevance&page=' + page + '&q=' + encodeURIComponent(q))); (r.data || []).forEach(x => { if (!res.some(o => o.full === x.path) && x.dimension_x >= 1920) res.push({ full: x.path, thumb: x.thumbs && (x.thumbs.large || x.thumbs.small), w: x.dimension_x, h: x.dimension_y }); }); } catch (er) {} }
+      if (tok !== wpTok) return;
+      if (n >= res.length) { b.querySelector('span').textContent = 'Sem mais imagens'; return; }
+      const k0 = n; n += 24; draw(); sfx('tick');
+      const nb = box.querySelectorAll('.wpimg')[k0]; if (nb) { nb.scrollIntoView({ block: 'nearest' }); if (document.querySelector('#cfBody .kbf') && typeof cfgMark === 'function') cfgMark(nb); }
+    };
+  };
+  draw();
   if (document.querySelector('#cfBody .kbf') && typeof cfgMark === 'function') cfgMark(box.querySelector('.wpimg'));
 }

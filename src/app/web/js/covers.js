@@ -45,15 +45,18 @@ async function setCover(url) {
 }
 let sortT;
 function sortGrid() {
-  clearTimeout(sortT); sortT = setTimeout(() => {
-    const res = $('cres'), its = [...res.querySelectorAll('.it')];
+  clearTimeout(sortT); if (coverLvl > 1) return; sortT = setTimeout(() => {
+    const res = $('cres'), its = [...res.querySelectorAll('.it:not(.more)')], mo = res.querySelector('.it.more');
     its.sort((a, b) => (+b.dataset.ph - +a.dataset.ph) || (+b.dataset.ov - +a.dataset.ov) || (logoMode ? 0 : (bgMode || (cardMode && cardKind === 'bg')) ? (+b.dataset.ar > 1.2) - (+a.dataset.ar > 1.2) : aspectOk(+b.dataset.ar) - aspectOk(+a.dataset.ar)) || ((+b.dataset.px || 0) - (+a.dataset.px || 0))).forEach(el => res.appendChild(el));   // nome exato > palavras em comum > resolução
+    if (mo) res.appendChild(mo);   // "Mais" sempre no fim
   }, 120);
 }
-async function searchCovers() {
-  const q = $('cq').value.trim(), res = $('cres'), s = sys;
-  res.innerHTML = ''; if (!q) return;
-  $('cmsg').textContent = 'Buscando...';
+let coverLvl = 1, coverLast = 0;   // "Mais +": cada clique busca mais fundo em cada fonte
+async function searchCovers(more) {
+  const q = $('cq').value.trim(), res = $('cres'), s = sys, L = more ? ++coverLvl : (coverLvl = 1), y = res.scrollTop;
+  if (!more) { res.innerHTML = ''; coverLast = 0; } else { const m = res.querySelector('.it.more'); if (m) { m.classList.add('busy'); m.querySelector('span').textContent = 'Buscando...'; } }
+  if (!q) return;
+  if (!more) $('cmsg').textContent = 'Buscando...';
   const items = [];
   const bgLike = bgMode || (cardMode && cardKind === 'bg');
   const conv = u => !bgLike ? u : u.replace('/Named_Boxarts/', '/Named_Snaps/').replace(/library_600x900(_2x)?\.jpg$/, 'library_hero.jpg');
@@ -62,45 +65,50 @@ async function searchCovers() {
   // SteamGridDB ligado: só capas (grids) ou fundos (heroes) de lá, ordenados como na escolha automática
   if (sgdbOn) {
     try {
-      const games = (await sg('/api/v2/search/autocomplete/' + encodeURIComponent(q))).map(x => ({ x, ...relevance(q, x.name) })).sort((a, b) => (b.phrase - a.phrase) || (b.overlap - a.overlap)).slice(0, 3);
+      const games = (await sg('/api/v2/search/autocomplete/' + encodeURIComponent(q))).map(x => ({ x, ...relevance(q, x.name) })).sort((a, b) => (b.phrase - a.phrase) || (b.overlap - a.overlap)).slice(0, 3 * L);
       for (const gm of games) {
         const list = logoMode ? await sg(`/api/v2/logos/game/${gm.x.id}?${STATIC}`) : bgLike ? await sg(`/api/v2/heroes/game/${gm.x.id}?${STATIC}`) : await sgdbGrids(gm.x.id);
-        list.slice(0, 30).forEach(x => { if (!items.some(i => i.url === x.url)) items.push({ url: x.url, label: gm.x.name, src: 'SteamGridDB · ★' + (x.score || 0), phrase: gm.phrase, overlap: gm.overlap }); });
+        list.slice(0, 30 * L).forEach(x => { if (!items.some(i => i.url === x.url)) items.push({ url: x.url, label: gm.x.name, src: 'SteamGridDB · ★' + (x.score || 0), phrase: gm.phrase, overlap: gm.overlap }); });
       }
     } catch (e) { $('cmsg').textContent = 'SteamGridDB: ' + e.message; }
   } else {
   if (logoMode) {   // títulos: logos do Steam e da libretro (Named_Logos)
-    for (const it of (await steamSearch(q)).slice(0, 12)) items.push({ url: `${STEAM}${it.id}/logo.png`, label: it.name, src: 'Steam', ...relevance(q, it.name) });
+    for (const it of (await steamSearch(q)).slice(0, 12 * L)) items.push({ url: `${STEAM}${it.id}/logo.png`, label: it.name, src: 'Steam', ...relevance(q, it.name) });
     await loadThumbIndex(s); const ix = s.thumbs && thumbIndex[s.thumbs];
-    if (ix && ix.names) { const ws = q.toLowerCase().split(/\s+/).filter(Boolean); ix.names.filter(n => ws.every(w => n.toLowerCase().includes(w))).slice(0, 20).forEach(n => items.push({ url: `${THUMBS}${s.thumbs}/master/Named_Logos/${encodeURIComponent(n)}`, label: n.replace(/\.png$/i, ''), src: 'libretro', ...relevance(q, n) })); }
+    if (ix && ix.names) { const ws = q.toLowerCase().split(/\s+/).filter(Boolean); ix.names.filter(n => ws.every(w => n.toLowerCase().includes(w))).slice(0, 20 * L).forEach(n => items.push({ url: `${THUMBS}${s.thumbs}/master/Named_Logos/${encodeURIComponent(n)}`, label: n.replace(/\.png$/i, ''), src: 'libretro', ...relevance(q, n) })); }
   } else {
   // 1) acervo libretro (busca por palavras no índice do console)
   await loadThumbIndex(s);
   const idx = s.thumbs && thumbIndex[s.thumbs];
   if (idx && idx.names) {
     const words = q.toLowerCase().split(/\s+/).filter(Boolean);
-    idx.names.filter(n => words.every(w => n.toLowerCase().includes(w))).slice(0, 40)
+    idx.names.filter(n => words.every(w => n.toLowerCase().includes(w))).slice(0, 40 * L)
       .forEach(n => add(`${THUMBS}${s.thumbs}/master/Named_Boxarts/${encodeURIComponent(n)}`, n.replace(/\.png$/i, ''), 'libretro'));
   }
   // 1b) repositório pelo código do jogo (GameTDB / xlenore)
   for (const u of await idCovers(coverGame)) if (await loadImg(u)) { add(u, 'Código do jogo', /gametdb/.test(u) ? 'GameTDB' : /steam/.test(u) ? 'Steam' : 'xlenore'); break; }
   // 1c) Steam
-  for (const it of (await steamSearch(q)).slice(0, 12)) add(`${STEAM}${it.id}/library_600x900_2x.jpg`, it.name, 'Steam');
+  for (const it of (await steamSearch(q)).slice(0, 12 * L)) add(`${STEAM}${it.id}/library_600x900_2x.jpg`, it.name, 'Steam');
   // 1e) Wikipédia — só a imagem principal dos artigos de jogos
-  for (const p of await wikiMain(q, 3)) add(p.img, p.title, p.src);
+  for (const p of await wikiMain(q, 3 * L)) add(p.img, p.title, p.src);
   // 1d) Fandom, PCGamingWiki e StrategyWiki
   const fake = { name: q };
-  for (const p of await fandomImage(fake, 6)) add(p.img, p.title, p.src);
-  for (const p of await mw('https://www.pcgamingwiki.com/w/api.php', q, 4)) add(p.img, p.title, 'PCGamingWiki');
-  for (const p of await mw('https://strategywiki.org/w/api.php', q, 4)) add(p.img, p.title, 'StrategyWiki');
+  for (const p of await fandomImage(fake, 6 * L)) add(p.img, p.title, p.src);
+  for (const p of await mw('https://www.pcgamingwiki.com/w/api.php', q, 4 * L)) add(p.img, p.title, 'PCGamingWiki');
+  for (const p of await mw('https://strategywiki.org/w/api.php', q, 4 * L)) add(p.img, p.title, 'StrategyWiki');
   }
   }
   if (modalOpen === false) return;
   $('cmsg').textContent = items.length ? `${items.length} imagens encontradas — clique para usar ${logoMode ? 'como título' : 'como capa'}.` : 'Nada encontrado. Tente outro nome, ou cole o link de uma imagem.';
-  res.innerHTML = items.map((it, i) => `<div class="it" data-i="${i}" data-ph="${it.phrase}" data-ov="${it.overlap.toFixed(3)}"><img src="${esc(it.url)}" alt="" onload="this.nextElementSibling.textContent=this.naturalWidth+'×'+this.naturalHeight;this.parentNode.dataset.px=this.naturalWidth*this.naturalHeight;this.parentNode.dataset.ar=this.naturalWidth/this.naturalHeight;sortGrid()" onerror="this.parentNode.remove()"><div class="dim">…</div><div>${esc(it.label)}</div><div class="src">${esc(it.src)}</div></div>`).join('');
-  res.querySelectorAll('.it').forEach(el => el.onclick = () => setCover(items[+el.dataset.i].url));
+  const from = more ? coverLast : 0, html = items.slice(from).map((it, i0) => { const i = i0 + from; return `<div class="it" data-i="${i}" data-ph="${it.phrase}" data-ov="${it.overlap.toFixed(3)}"><img src="${esc(it.url)}" alt="" onload="this.nextElementSibling.textContent=this.naturalWidth+'×'+this.naturalHeight;this.parentNode.dataset.px=this.naturalWidth*this.naturalHeight;this.parentNode.dataset.ar=this.naturalWidth/this.naturalHeight;sortGrid()" onerror="this.parentNode.remove()"><div class="dim">…</div><div>${esc(it.label)}</div><div class="src">${esc(it.src)}</div></div>`; }).join('');
+  if (more) { const m = res.querySelector('.it.more'); if (m) m.remove(); res.insertAdjacentHTML('beforeend', html); } else res.innerHTML = html;
+  res.querySelectorAll('.it:not(.more)').forEach(el => el.onclick = () => setCover(items[+el.dataset.i].url));
+  const grew = items.length > coverLast; coverLast = items.length;
+  if (items.length && (grew || !more)) { const m = document.createElement('div'); m.className = 'it more'; m.innerHTML = '<b>＋</b><span>Mais</span>'; m.onclick = e => { e.stopPropagation(); if (!m.classList.contains('busy')) searchCovers(true); }; res.appendChild(m); }
+  else if (more) $('cmsg').textContent = `${items.length} imagens — não há mais resultados para essa busca.`;
+  if (more) res.scrollTop = y;
 }
-$('cgo').onclick = searchCovers;
+$('cgo').onclick = () => searchCovers();
 $('cq').onkeydown = e => { if (e.key === 'Enter') searchCovers(); };
 $('cuse').onclick = () => { const u = $('curl').value.trim(); if (/^https?:\/\//i.test(u)) setCover(u); else toast('Cole um link começando com http', true); };
 $('curl').onkeydown = e => { if (e.key === 'Enter') $('cuse').onclick(); };
