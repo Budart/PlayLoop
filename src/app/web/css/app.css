@@ -696,3 +696,7 @@ body.th-light .hview { background:rgba(255,255,255,.7); color:#2E2721; border-co
 .ccard .stbox { margin:2px 0 6px; }
 .ccard .stbox .dline { margin:6px 0 0 26px; }
 .ccard i.dim { font-style:normal; opacity:.5; font-size:12px; }
+
+#ctx .ch { padding:8px 12px 4px; color:inherit; font-size:11px; letter-spacing:.08em; text-transform:uppercase; opacity:.5; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:280px; }
+#ctx .ci span { flex:1; }
+#ctx .ci .sub { margin-left:14px; opacity:.55; font-weight:400; }

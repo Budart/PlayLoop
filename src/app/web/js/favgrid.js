@@ -149,21 +149,44 @@ async function fgSetMode(free) {
   sfx('ok'); if (screen === 'favgrid') renderFavGrid();
   return true;
 }
-// menu do botão direito fora dos cards
-function fgViewCtx(x, y) {
-  ctxItems = [
-    ['bg', `Alinhar à grade "opção mais leve"${fgFree ? '' : '  ✓'}`, () => fgSetMode(false)],
-    ['bg', `Não alinhar à grade "opção mais lenta"${fgFree ? '  ✓' : ''}`, () => fgSetMode(true)],
-  ];
-  ctxItems.push(null, ['cover', 'Ordenar por nome', () => fgSortByName()]);
-  if (fgFree) ctxItems.push(['cover', 'Alinhar automaticamente', () => fgAutoAlign()]);
-  const m = $('ctx');
-  m.innerHTML = ctxItems.map((it, k) => it ? `<div class="ci ${it[3] || ''}" data-k="${k}">${ICO[it[0]]}${it[1]}</div>` : '<div class="sep"></div>').join('');
-  m.querySelectorAll('.ci').forEach(el => el.onclick = e => { e.stopPropagation(); closeCtx(); ctxItems[+el.dataset.k][2](); });
+// menus de contexto dos Favoritos: ícones próprios, seções com título e submenus
+const SV = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+Object.assign(ICO, {
+  info: SV('<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>'),
+  img: SV('<rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="10" cy="9" r="1.6"/><path d="M5 17l4-4 3 3 2-2 5 5"/>'),
+  wall: SV('<rect x="2.5" y="4.5" width="19" height="15" rx="2"/><path d="M2.5 15l5-5 4 4 3-3 7 7"/><circle cx="16.5" cy="8.5" r="1.4"/>'),
+  move: SV('<path d="M12 3v18M3 12h18M12 3l-2.5 2.5M12 3l2.5 2.5M12 21l-2.5-2.5M12 21l2.5-2.5M3 12l2.5-2.5M3 12l2.5 2.5M21 12l-2.5-2.5M21 12l-2.5 2.5"/>'),
+  resize: SV('<path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/>'),
+  grow: SV('<circle cx="11" cy="11" r="7"/><path d="M21 21l-5-5M11 8v6M8 11h6"/>'),
+  shrink: SV('<circle cx="11" cy="11" r="7"/><path d="M21 21l-5-5M8 11h6"/>'),
+  shape: SV('<rect x="3" y="6" width="8" height="12" rx="1.5"/><rect x="13" y="9" width="8" height="6" rx="1.5"/>'),
+  unfav: SV('<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/><path d="M4 4l16 16"/>'),
+  snap: SV('<path d="M4 4h16v16H4zM4 12h16M12 4v16"/>'),
+  auto: SV('<rect x="3" y="4" width="7" height="7" rx="1"/><rect x="12" y="4" width="9" height="7" rx="1"/><rect x="3" y="13" width="11" height="7" rx="1"/><rect x="16" y="13" width="5" height="7" rx="1"/>'),
+  az: SV('<path d="M4 18l3.5-10L11 18M5.2 14.5h4.6M14 8h6l-6 10h6"/>'),
+  free: SV('<rect x="3" y="3" width="8" height="10" rx="1.5"/><rect x="13" y="6" width="8" height="6" rx="1.5"/><rect x="7" y="15" width="11" height="6" rx="1.5"/>'),
+  grid: SV('<rect x="3" y="3" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1"/>'),
+  back: SV('<path d="M15 5l-7 7 7 7"/>'),
+  clear: SV('<rect x="3" y="3" width="18" height="18" rx="3" stroke-dasharray="3 3"/><path d="M9 9l6 6M15 9l-6 6"/>'),
+  org: SV('<path d="M4 6h16M4 12h10M4 18h6"/><path d="M17 15l3 3-3 3"/>'),
+});
+function fgMenu(items, x, y) {
+  ctxItems = items; const m = $('ctx');
+  m.innerHTML = items.map((it, k) => !it ? '<div class="sep"></div>' : typeof it === 'string' ? `<div class="ch">${it}</div>` : `<div class="ci ${it[3] || ''}" data-k="${k}">${ICO[it[0]] || ''}<span>${it[1]}</span>${it[4] === 1 ? '<b class="sub">›</b>' : ''}</div>`).join('');
+  m.querySelectorAll('.ci').forEach(el => el.onclick = e => { e.stopPropagation(); const it = ctxItems[+el.dataset.k]; if (it[4]) { it[2](); return; } closeCtx(); it[2](); });
   m.classList.add('on'); ctxSel = -1;
-  const r = m.getBoundingClientRect();
-  ctxPlace(m, x, y);
-  ctxMove(1);
+  m.style.maxHeight = (innerHeight - 20) + 'px'; m.style.overflowY = 'auto';
+  ctxPlace(m, x, y); ctxMove(1);
+}
+const fgModeItems = () => ['Organização', ['grid', `Grade fixa${fgFree ? '' : '  ✓'}`, () => fgSetMode(false)], ['free', `Livre${fgFree ? '  ✓' : ''}`, () => fgSetMode(true)]];
+const fgArrangeItems = () => [['az', 'Ordenar por nome', () => fgSortByName()], ...(fgFree ? [['auto', 'Alinhar automaticamente', () => fgAutoAlign()]] : [])];
+// menu do botão direito fora dos cards: fundo do jogo em foco + organização da tela
+function fgViewCtx(x, y) {
+  const g = fg.items[fg.sel];
+  fgMenu([
+    ...(g ? [`Fundo · ${esc(dn(g))}`, ['wall', 'Alterar fundo', () => { coverGame = g; openCover(true); }], ['move', 'Reposicionar fundo', () => fgBgPosOpen()], null] : []),
+    ...fgArrangeItems(), null, ...fgModeItems(),
+  ], x, y);
 }
 $('favgrid').addEventListener('contextmenu', e => { if (e.target.closest('.fgcard, #fgHeader, #fgDots, .fgdet')) return; e.preventDefault(); if (screen === 'favgrid') fgViewCtx(e.clientX, e.clientY); });
 let fgJournal = null;   // durante a prévia, guarda os valores antigos para desfazer
@@ -802,16 +825,24 @@ async function fgBatchShape() {
 function fgCtx(x, y, sizes) {
   const g = fg.items[fg.sel]; if (!g) return;
   if (!x) { const r = $('fgTrack').querySelector('.fgcard.sel').getBoundingClientRect(); x = r.left + 20; y = r.top + 20; }
-  const { R, C } = fgDim(), cur = fgSize(g);
-  if (fgMulti.size > 1 && fgMulti.has(fg.sel) && !sizes) {
-    ctxItems = [['star', `Desfavoritar ${fgMulti.size} jogos`, () => fgBatchUnfav(), 'red'], ['bg', 'Redimensionar ▸', () => setTimeout(() => fgCtx(x, y, 'many'), 0)], null,
-      ...(fgFree ? [['bg', 'Alinhar à grade', () => fgBatchGrid()]] : []), ['cover', 'Alinhar automaticamente', () => fgBatchAuto()], null, ['pen', 'Limpar seleção', () => fgClearMulti()]];
-  } else if (sizes === 'many') {
-    ctxItems = [['pen', '← Voltar', () => fgCtx(x, y)], null, ['cover', 'Aumentar', () => fgBatchScale(1.25)], ['cover', 'Diminuir', () => fgBatchScale(.8)], ['cover', 'Formato da capa', () => fgBatchShape()]];
-  } else if (sizes && fgFree) {
-    const i = fg.sel, pl = fg.place[i], { R, C } = fgDim();
+  const { R, C } = fgDim(), cur = fgSize(g), sub = (k) => () => setTimeout(() => fgCtx(x, y, k), 0), back = ['back', 'Voltar', sub(false), '', 2];
+  const many = fgMulti.size > 1 && fgMulti.has(fg.sel);
+  let items;
+  if (many && !sizes) items = [
+    `${fgMulti.size} jogos selecionados`,
+    ['resize', 'Redimensionar', sub('many'), '', 1],
+    ...(fgFree ? [['snap', 'Alinhar à grade', () => fgBatchGrid()]] : []),
+    ['auto', 'Alinhar automaticamente', () => fgBatchAuto()],
+    null,
+    ['clear', 'Limpar seleção', () => fgClearMulti()],
+    ['unfav', `Desfavoritar ${fgMulti.size} jogos`, () => fgBatchUnfav(), 'red'],
+  ];
+  else if (sizes === 'many') items = [back, null, 'Redimensionar lote', ['grow', 'Aumentar', () => fgBatchScale(1.25)], ['shrink', 'Diminuir', () => fgBatchScale(.8)], ['shape', 'Formato da capa', () => fgBatchShape()]];
+  else if (sizes === 'org') items = [back, null, ...fgArrangeItems(), null, ...fgModeItems()];
+  else if (sizes && fgFree) {
+    const i = fg.sel, pl = fg.place[i];
     const rs = f => frCommit(i, { ...pl, w: Math.max(FR_MIN, Math.min(FR_MAX, C - pl.x, pl.w * f)), h: Math.max(FR_MIN, Math.min(FR_MAX, R - pl.y, pl.h * f)) });
-    ctxItems = [['pen', '← Voltar', () => fgCtx(x, y)], null, ['cover', 'Aumentar', () => rs(1.25)], ['cover', 'Diminuir', () => rs(.8)], ['cover', 'Formato da capa', async () => {   // usa a imagem que está no card agora (inclusive uma capa recém-trocada)
+    items = [back, null, 'Redimensionar', ['grow', 'Aumentar', () => rs(1.25)], ['shrink', 'Diminuir', () => rs(.8)], ['shape', 'Formato da capa', async () => {   // usa a imagem que está no card agora (inclusive uma capa recém-trocada)
       const g = fg.items[i], el = $('fgTrack').querySelector(`.fgcard[data-i="${i}"]`), u = covers[coverKey(g)] || (el && el._url);
       const d = u ? await loadDims(u) : null, r = d ? Math.max(.4, Math.min(2.4, d.w / d.h)) : null;
       const area = pl.w * pl.h, s2 = r ? { h: Math.sqrt(area / r), w: Math.sqrt(area * r) } : fgFrSize(g);   // mantém o tamanho, muda só o formato
@@ -819,29 +850,23 @@ function fgCtx(x, y, sizes) {
       frCommit(i, { ...pl, w: Math.min(s2.w, C - pl.x), h: Math.min(s2.h, R - pl.y) });
     }]];
   } else if (sizes) {
-    ctxItems = [['pen', '← Voltar', () => fgCtx(x, y)], null];
-    for (let h = 1; h <= Math.min(4, R); h++) for (let w = 1; w <= Math.min(4, C); w++) ctxItems.push(['cover', `${w} × ${h}${w === cur.w && h === cur.h ? '  ✓' : ''}`, () => fgResize(g, w, h)]);
-  } else ctxItems = [
-    ['star', 'Desfavoritar', async () => { if (!await ask('Desfavoritar este jogo?', `"${dn(g)}" sai da tela de Favoritos (o jogo continua no seu PC).`, 'Desfavoritar')) return; await toggleFav(g); openFavGrid(); }],
-    ['cover', 'Alterar imagem', () => openCover('card')],
-    ['bg', 'Alterar fundo', () => openCover(true)],
-    ['bg', 'Reposicionar capa', () => fgPosOpen()],
-    ['bg', 'Reposicionar fundo', () => fgBgPosOpen()],
-    ['bg', 'Redimensionar ▸', () => setTimeout(() => fgCtx(x, y, true), 0)],
-    ['eye', 'Info', () => fgInfo(true)],
+    items = [back, null, 'Tamanho (colunas × linhas)'];
+    for (let h = 1; h <= Math.min(4, R); h++) for (let w = 1; w <= Math.min(4, C); w++) items.push(['resize', `${w} × ${h}${w === cur.w && h === cur.h ? '  ✓' : ''}`, () => fgResize(g, w, h)]);
+  } else items = [
+    esc(dn(g)),
+    ['info', 'Info', () => fgInfo(true)],
+    null, 'Card',
+    ['img', 'Alterar imagem', () => openCover('card')],
+    ['move', 'Reposicionar imagem', () => fgPosOpen()],
+    ['resize', 'Redimensionar', sub(true), '', 1],
+    null, 'Fundo',
+    ['wall', 'Alterar fundo', () => openCover(true)],
+    ['move', 'Reposicionar fundo', () => fgBgPosOpen()],
     null,
-    ['bg', fgFree ? 'Alinhar à grade "opção mais leve"' : 'Não alinhar à grade "opção mais lenta"', () => fgSetMode(!fgFree)],
-    ['cover', 'Ordenar por nome', () => fgSortByName()],
-    ...(fgFree ? [['cover', 'Alinhar automaticamente', () => fgAutoAlign()]] : []),
+    ['org', 'Organizar Favoritos', sub('org'), '', 1],
+    ['unfav', 'Desfavoritar', async () => { if (!await ask('Desfavoritar este jogo?', `"${dn(g)}" sai da tela de Favoritos (o jogo continua no seu PC).`, 'Desfavoritar')) return; await toggleFav(g); openFavGrid(); }, 'red'],
   ];
-  const m = $('ctx');
-  m.innerHTML = ctxItems.map((it, k) => it ? `<div class="ci ${it[3] || ''}" data-k="${k}">${ICO[it[0]]}${it[1]}</div>` : '<div class="sep"></div>').join('');
-  m.querySelectorAll('.ci').forEach(el => el.onclick = e => { e.stopPropagation(); closeCtx(); ctxItems[+el.dataset.k][2](); });
-  m.classList.add('on'); ctxSel = -1;
-  m.style.maxHeight = (innerHeight - 20) + 'px'; m.style.overflowY = 'auto';
-  const r = m.getBoundingClientRect();
-  ctxPlace(m, x, y);
-  ctxMove(1);
+  fgMenu(items, x, y);
 }
 // "Info": capa 3D, vídeo e dados do jogo num modal (reaproveita o painel da direita da lista)
 function fgInfo(on) {
