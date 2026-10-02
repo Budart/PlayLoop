@@ -219,7 +219,7 @@ const I18N_RAW = [
   ['escolher', 'choose', 'elegir'], ['entrar', 'enter', 'entrar'], ['buscar', 'search', 'buscar'], ['Buscar', 'Search', 'Buscar'],
   ['navegar', 'navigate', 'navegar'], ['jogar', 'play', 'jugar'], ['pular', 'skip', 'saltar'], ['página', 'page', 'página'],
   ['voltar', 'back', 'volver'], ['Voltar', 'Back', 'Volver'], ['fechar', 'close', 'cerrar'], ['cancelar', 'cancel', 'cancelar'],
-  ['confirmar', 'confirm', 'confirmar'], ['lista', 'list', 'lista'], ['grade', 'grid', 'cuadrícula'], ['grade / lista', 'grid / list', 'cuadrícula / lista'], ['selecionar', 'select', 'seleccionar'], ['soltar', 'drop', 'soltar'],
+  ['confirmar', 'confirm', 'confirmar'], ['Alinhar à grade', 'Snap to grid', 'Alinear a la cuadrícula'], ['lista', 'list', 'lista'], ['grade', 'grid', 'cuadrícula'], ['grade / lista', 'grid / list', 'cuadrícula / lista'], ['selecionar', 'select', 'seleccionar'], ['soltar', 'drop', 'soltar'],
   ['salvar', 'save', 'guardar'], ['Salvar', 'Save', 'Guardar'], ['abrir', 'open', 'abrir'], ['usar', 'use', 'usar'], ['sair', 'exit', 'salir'],
   ['favoritar', 'favorite', 'favorito'], ['renomear', 'rename', 'renombrar'], ['digitar', 'type', 'escribir'], ['apagar', 'delete', 'borrar'],
   ['espaço', 'space', 'espacio'], ['Espaço', 'Space', 'Espacio'], ['Setas', 'Arrows', 'Flechas'], ['Clique', 'Click', 'Clic'],

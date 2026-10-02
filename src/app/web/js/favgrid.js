@@ -746,12 +746,68 @@ async function fgBatchUnfav() {
   fgMulti.clear(); toast(`${list.length} jogos removidos dos favoritos`); sfx('back'); openFavGrid();
 }
 // menu de contexto do card (botão direito / △)
+/* ---------- lote: alinhar / redimensionar todos os selecionados ---------- */
+const fgSelList = () => { const l = [...fgMulti].filter(k => fg.place[k]); const a = l.indexOf(fg.sel); if (a > 0) { l.splice(a, 1); l.unshift(fg.sel); } return l; };
+const fgOrd = (a, b) => { const p = fg.place[a], q = fg.place[b]; return (p.p - q.p) || (Math.round(p.y * 4) - Math.round(q.y * 4)) || (p.x - q.x); };
+// grava as novas posições do lote; quem (do lote ou não) ficar por baixo vai para o próximo espaço livre
+function fgApplyMany(news) {
+  const list = Object.keys(news).map(Number).sort(fgOrd), set = new Set(list), kept = [];
+  list.forEach(k => { if (kept.some(j => news[j].p === news[k].p && frHit(news[j], news[k]))) fgSetFr(fg.items[k], { p: -1, x: 0, y: 0, w: news[k].w, h: news[k].h }); else { fgSetFr(fg.items[k], news[k]); kept.push(k); } });
+  fg.items.forEach((o, k) => { const r = fg.place[k]; if (!set.has(k) && r && kept.some(j => news[j].p === r.p && frHit(news[j], r))) fgSetFr(o, { p: -1, x: 0, y: 0, w: r.w, h: r.h }); });
+  const keep = list.map(k => fg.items[k]); sfx('ok'); renderFavGrid();
+  keep.forEach(g => { const k = fg.items.indexOf(g); if (k >= 0) fgMulti.add(k); }); fgMultiDom();
+}
+const fgKeepSel = fn => { const keep = [...fgMulti].map(k => fg.items[k]); fn(); keep.forEach(g => { const k = fg.items.indexOf(g); if (k >= 0) fgMulti.add(k); }); fgMultiDom(); };
+// alinhar à grade: posição e tamanho de cada card vão para a célula inteira mais próxima
+function fgBatchGrid() {
+  const { R, C } = fgDim(), news = {};
+  fgSelList().forEach(k => { const o = fg.place[k], w = Math.max(1, Math.min(C, Math.round(o.w))), h = Math.max(1, Math.min(R, Math.round(o.h))); news[k] = { p: o.p, x: Math.max(0, Math.min(C - w, Math.round(o.x))), y: Math.max(0, Math.min(R - h, Math.round(o.y))), w, h }; });
+  fgApplyMany(news);
+}
+// alinhar automaticamente: o lote se encosta (na ordem atual) a partir do canto do primeiro card
+function fgBatchAuto() {
+  const l = fgSelList().sort(fgOrd);
+  if (!fgFree) { fgKeepSel(() => { l.forEach(k => fgSetPos(fg.items[k], null)); sfx('ok'); renderFavGrid(); }); return; }
+  const { R, C } = fgDim(), f = fg.place[l[0]], x0 = Math.min(...l.filter(k => fg.place[k].p === f.p).map(k => fg.place[k].x)), news = {};
+  let x = x0, y = f.y, p = f.p, rh = 0;
+  l.forEach(k => { const o = fg.place[k], w = Math.min(o.w, C), h = Math.min(o.h, R);
+    if (x + w > C + .001 && x > x0) { x = x0; y += rh; rh = 0; } if (x + w > C + .001) x = Math.max(0, C - w);
+    if (y + h > R + .001) { p++; y = 0; x = x0; rh = 0; }
+    news[k] = { p, x, y, w, h }; x += w; rh = Math.max(rh, h); });
+  fgApplyMany(news);
+}
+// aumentar / diminuir: todos crescem juntos a partir do card escolhido, sem se afastar uns dos outros
+function fgBatchScale(f) {
+  const l = fgSelList(), { R, C } = fgDim();
+  if (!fgFree) { fgKeepSel(() => { l.forEach(k => { const o = fg.place[k], w = Math.max(1, Math.min(4, C, o.w + (f > 1 ? 1 : -1))), h = Math.max(1, Math.min(4, R, o.h + (f > 1 ? 1 : -1))); fgResize(fg.items[k], w, h); }); }); return; }
+  const a = fg.place[l[0]], news = {};
+  l.forEach(k => { const o = fg.place[k], w = Math.max(FR_MIN, Math.min(FR_MAX, C, o.w * f)), h = Math.max(FR_MIN, Math.min(FR_MAX, R, o.h * f));
+    news[k] = o.p !== a.p ? { ...o, w: Math.min(w, C - o.x), h: Math.min(h, R - o.y) } : { p: o.p, x: Math.max(0, Math.min(C - w, a.x + (o.x - a.x) * f)), y: Math.max(0, Math.min(R - h, a.y + (o.y - a.y) * f)), w, h }; });
+  fgApplyMany(news);
+}
+// formato da capa: cada card assume o formato da sua imagem atual (mantendo o tamanho)
+async function fgBatchShape() {
+  const l = fgSelList(), { R, C } = fgDim(), news = {};
+  for (const k of l) {
+    const g = fg.items[k], o = fg.place[k], el = $('fgTrack').querySelector(`.fgcard[data-i="${k}"]`), u = covers[coverKey(g)] || (el && el._url);
+    const d = u ? await loadDims(u) : null, r = d ? Math.max(.4, Math.min(2.4, d.w / d.h)) : null;
+    if (!fgFree) { if (r) { const w = r > 1.3 ? 2 : 1, h = r < .75 ? 2 : 1; news[k] = [w, h]; } continue; }
+    const area = o.w * o.h, s2 = r ? { h: Math.sqrt(area / r), w: Math.sqrt(area * r) } : fgFrSize(g);
+    const w = Math.max(FR_MIN, Math.min(FR_MAX, C, s2.w)), h = Math.max(FR_MIN, Math.min(FR_MAX, R, s2.h));
+    news[k] = { p: o.p, x: Math.min(o.x, C - w), y: Math.min(o.y, R - h), w, h };
+  }
+  if (!fgFree) { fgKeepSel(() => Object.keys(news).forEach(k => fgResize(fg.items[k], ...news[k]))); sfx('ok'); return; }
+  fgApplyMany(news);
+}
 function fgCtx(x, y, sizes) {
   const g = fg.items[fg.sel]; if (!g) return;
   if (!x) { const r = $('fgTrack').querySelector('.fgcard.sel').getBoundingClientRect(); x = r.left + 20; y = r.top + 20; }
   const { R, C } = fgDim(), cur = fgSize(g);
   if (fgMulti.size > 1 && fgMulti.has(fg.sel) && !sizes) {
-    ctxItems = [['star', `Desfavoritar ${fgMulti.size} jogos`, () => fgBatchUnfav(), 'red'], ['pen', 'Limpar seleção', () => fgClearMulti()]];
+    ctxItems = [['star', `Desfavoritar ${fgMulti.size} jogos`, () => fgBatchUnfav(), 'red'], ['bg', 'Redimensionar ▸', () => setTimeout(() => fgCtx(x, y, 'many'), 0)], null,
+      ...(fgFree ? [['bg', 'Alinhar à grade', () => fgBatchGrid()]] : []), ['cover', 'Alinhar automaticamente', () => fgBatchAuto()], null, ['pen', 'Limpar seleção', () => fgClearMulti()]];
+  } else if (sizes === 'many') {
+    ctxItems = [['pen', '← Voltar', () => fgCtx(x, y)], null, ['cover', 'Aumentar', () => fgBatchScale(1.25)], ['cover', 'Diminuir', () => fgBatchScale(.8)], ['cover', 'Formato da capa', () => fgBatchShape()]];
   } else if (sizes && fgFree) {
     const i = fg.sel, pl = fg.place[i], { R, C } = fgDim();
     const rs = f => frCommit(i, { ...pl, w: Math.max(FR_MIN, Math.min(FR_MAX, C - pl.x, pl.w * f)), h: Math.max(FR_MIN, Math.min(FR_MAX, R - pl.y, pl.h * f)) });
