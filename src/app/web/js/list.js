@@ -21,7 +21,7 @@ function startRename(i) {
     if (finished) return; finished = true; renaming = false;
     const v = inp.value.trim(), key = 'name|' + coverKey(g);
     if (save) {
-      const val = (!v || v === g.name) ? '' : v;
+      const val = (!v || v === tidyName(g.name)) ? '' : v;   // igual ao nome automático: não precisa guardar (o nome completo do arquivo pode ser guardado de propósito)
       if (val) covers[key] = val; else delete covers[key];
       try { await api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, url: val }) }); } catch (e) { toast(e.message, true); }
       toast(val ? `Renomeado para "${val}"` : 'Nome original restaurado'); sfx('ok');
@@ -173,7 +173,15 @@ let collapsed = new Set(['Ocultos']); try { const c = JSON.parse(localStorage.ge
 const saveCollapsed = () => { try { localStorage.setItem('collapsed', JSON.stringify([...collapsed])); } catch (e) {} };
 const SORTS = [['az', 'Nome A→Z'], ['za', 'Nome Z→A'], ['size', 'Tamanho'], ['recent', 'Mais recentes']];
 let sortMode = 'az'; try { sortMode = localStorage.getItem('sort') || 'az'; } catch (e) {}
-function dn(g) { return covers['name|' + coverKey(g)] || g.name; }   // nome de exibição (renomeado só no app)
+// nome de exibição (só no app; o arquivo não muda): o que o usuário renomeou, ou o nome sem as marcações entre () e [] — ex.: "(J) [C][T+Eng]"
+const tidyCache = new Map();
+function tidyName(n) {
+  let t = tidyCache.get(n); if (t !== undefined) return t;
+  t = n.replace(/\s*(\([^)]*\)|\[[^\]]*\])/g, ' ').replace(/\s{2,}/g, ' ').replace(/[\s\-–_,.]+$/, '').trim();
+  if (!t) t = n;
+  tidyCache.set(n, t); return t;
+}
+function dn(g) { return covers['name|' + coverKey(g)] || tidyName(g.name); }
 function nameCmp(a, b) { return dn(a).localeCompare(dn(b), 'pt', { sensitivity:'base' }); }
 function sortCmp(a, b) {
   if (sortMode === 'za') return -nameCmp(a, b);
