@@ -96,6 +96,7 @@ const I18N_RAW = [
   ['Jogar', 'Play', 'Jugar'], ['Fechar', 'Close', 'Cerrar'], ['Cancelar', 'Cancel', 'Cancelar'], ['Excluir', 'Delete', 'Eliminar'],
   ['Continuar sem', 'Continue without', 'Continuar sin'], ['Continuar', 'Continue', 'Continuar'], ['Pular', 'Skip', 'Saltar'],
   // configuração
+  ['Ordenar por nome', 'Sort by name', 'Ordenar por nombre'], ['Ordenados por nome', 'Sorted by name', 'Ordenados por nombre'],
   ['imagem do card', 'card image', 'imagen de la tarjeta'], ['proporção', 'proportions', 'proporción'], ['Arrastar no vazio', 'Drag on empty space', 'Arrastrar en vacío'], ['selecionar vários', 'select many', 'seleccionar varios'], ['mover', 'move', 'mover'],
   ['Alt+arrastar', 'Alt+drag', 'Alt+arrastrar'], ['mover imagem do card', 'move card image', 'mover imagen de la tarjeta'], ['Ctrl+redimensionar', 'Ctrl+resize', 'Ctrl+redimensionar'], ['manter proporção', 'keep proportions', 'mantener proporción'],
   ['Alinhar à grade "opção mais leve"', 'Snap to grid "lighter option"', 'Alinear a la cuadrícula "opción más ligera"'],

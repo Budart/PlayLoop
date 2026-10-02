@@ -100,6 +100,14 @@ function fgAutoAlign() {
   order.forEach(i => { const pl = fg.place[i], c = frFit(placed, pl.w, pl.h, placed.length ? placed[placed.length - 1].p : 0); placed.push(c); fgSetFr(fg.items[i], c); });
   sfx('ok'); renderFavGrid(); toast('Cards alinhados');
 }
+// "Ordenar por nome": encosta todos os cards em ordem alfabética (esquerda → direita, de cima para baixo), mantendo os tamanhos
+function fgSortByName() {
+  const order = fg.items.map((g, i) => i).sort((a, b) => nameCmp(fg.items[a], fg.items[b]));
+  if (fgFree) { const placed = []; order.forEach(i => { const pl = fg.place[i], c = frFit(placed, pl.w, pl.h, placed.length ? placed[placed.length - 1].p : 0); placed.push(c); fgSetFr(fg.items[i], c); }); }
+  else order.forEach(i => fgSetPos(fg.items[i], null));   // grade: sem posições fixas, a grade se monta na ordem alfabética
+  if (!fgFree) { fg.items.sort(nameCmp); shown = fg.items; }
+  sfx('ok'); renderFavGrid(); toast('Ordenados por nome');
+}
 function fgSetMode(free) {
   fgFree = free; try { localStorage.setItem('fgfree', free ? '1' : '0'); } catch (e) {}
   sfx('ok'); renderFavGrid();
@@ -110,7 +118,8 @@ function fgViewCtx(x, y) {
     ['bg', `Alinhar à grade "opção mais leve"${fgFree ? '' : '  ✓'}`, () => fgSetMode(false)],
     ['bg', `Não alinhar à grade "opção mais lenta"${fgFree ? '  ✓' : ''}`, () => fgSetMode(true)],
   ];
-  if (fgFree) ctxItems.push(null, ['cover', 'Alinhar automaticamente', () => fgAutoAlign()]);
+  ctxItems.push(null, ['cover', 'Ordenar por nome', () => fgSortByName()]);
+  if (fgFree) ctxItems.push(['cover', 'Alinhar automaticamente', () => fgAutoAlign()]);
   const m = $('ctx');
   m.innerHTML = ctxItems.map((it, k) => it ? `<div class="ci ${it[3] || ''}" data-k="${k}">${ICO[it[0]]}${it[1]}</div>` : '<div class="sep"></div>').join('');
   m.querySelectorAll('.ci').forEach(el => el.onclick = e => { e.stopPropagation(); closeCtx(); ctxItems[+el.dataset.k][2](); });
@@ -726,6 +735,7 @@ function fgCtx(x, y, sizes) {
     ['eye', 'Info', () => fgInfo(true)],
     null,
     ['bg', fgFree ? 'Alinhar à grade "opção mais leve"' : 'Não alinhar à grade "opção mais lenta"', () => fgSetMode(!fgFree)],
+    ['cover', 'Ordenar por nome', () => fgSortByName()],
     ...(fgFree ? [['cover', 'Alinhar automaticamente', () => fgAutoAlign()]] : []),
   ];
   const m = $('ctx');
