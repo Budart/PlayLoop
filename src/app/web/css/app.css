@@ -636,7 +636,7 @@ body.th-light .wpsearch .wpbar input::placeholder { color:#9A8B7A; }
 /* botão de som nas telas de console e Favoritos */
 .hmute { position:absolute; top:14px; right:16px; z-index:12; width:40px; height:40px; border-radius:50%; background:rgba(0,0,0,.4); border:1px solid rgba(255,255,255,.18); color:#fff; font-size:17px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
 .hmute:hover { border-color:rgba(255,255,255,.5); }
-#games { position:relative; } #fgHeader #fgLogo { right:72px; }
+#fgHeader #fgLogo { right:72px; }
 body.th-light .hmute { background:rgba(255,255,255,.7); color:#2E2721; border-color:#D9CBB8; }
 #games > .hmute { top:35px; right:24px; } #fgHeader .hmute { top:calc((var(--fgh, 150px) - 40px) / 2); right:24px; } #fgHeader #fgLogo { right:80px; }
 
