@@ -54,10 +54,25 @@ function fgLayoutFree() {
 }
 function fgPinFree() { fg.items.forEach((g, i) => { const q = fgFr(g), pl = fg.place[i]; if (pl && (!q || q.p !== pl.p || Math.abs(q.x - pl.x) > .005 || Math.abs(q.y - pl.y) > .005 || Math.abs(q.w - pl.w) > .005 || Math.abs(q.h - pl.h) > .005)) fgSetFr(g, pl); }); }
 const frStyle = pl => `grid-column:1 / -1;grid-row:1 / -1;position:absolute;left:calc(${pl.x} * (var(--cell) + 20px));top:calc(${pl.y} * (var(--cell) + 20px));width:calc(${pl.w} * (var(--cell) + 20px) - 20px);height:calc(${pl.h} * (var(--cell) + 20px) - 20px)`;
+// lote: os cards mantêm a arrumação relativa (linhas/colunas) e ficam encostados no card que está sendo puxado
+function frBatchLayout(list, w, h) {
+  const { R, C } = fgDim(), anc = fg.place[list[0]], out = {};
+  const items = list.map(k => ({ k, q: fg.place[k] })).filter(o => o.q && o.q.p === anc.p);
+  const rows = []; items.slice().sort((a, b) => a.q.y - b.q.y).forEach(o => { const r = rows.find(r => Math.abs(r.y - o.q.y) < .5); if (r) r.m.push(o); else rows.push({ y: o.q.y, m: [o] }); });
+  rows.forEach(r => r.m.sort((a, b) => a.q.x - b.q.x));
+  const ra = rows.findIndex(r => r.m.some(o => o.k === list[0])), ca = rows[ra].m.findIndex(o => o.k === list[0]);
+  rows.forEach((r, ri) => r.m.forEach((o, ci) => {
+    const ww = Math.min(w, C), hh = Math.min(h, R);
+    out[o.k] = { p: anc.p, x: Math.max(0, Math.min(C - ww, anc.x + (ci - ca) * w)), y: Math.max(0, Math.min(R - hh, anc.y + (ri - ra) * h)), w: ww, h: hh };
+  }));
+  list.forEach(k => { if (!out[k]) { const o = fg.place[k]; out[k] = { p: o.p, x: o.x, y: o.y, w: Math.min(w, C - o.x), h: Math.min(h, R - o.y) }; } });   // de outra página: fica onde está
+  return out;
+}
 // prévia ao redimensionar (1 card ou lote): mostra na hora onde cada card empurrado vai parar (nada é salvo até soltar)
 function frPreviewResize(list, w, h) {
   const { R, C } = fgDim(), set = new Set(list), placed = [], res = {};
-  list.forEach(k => { const o = fg.place[k], q = { p: o.p, x: o.x, y: o.y, w: Math.min(w, C - o.x), h: Math.min(h, R - o.y) }; if (placed.some(r => r.p === q.p && frHit(r, q))) { res[k] = null; } else { placed.push(q); res[k] = q; } });
+  const bl = frBatchLayout(list, w, h);
+  list.forEach(k => { const q = bl[k]; if (placed.some(r => r.p === q.p && frHit(r, q))) { res[k] = null; } else { placed.push(q); res[k] = q; } });
   fg.place.forEach((r, k) => { if (!set.has(k)) { if (placed.some(q => q.p === r.p && frHit(q, r))) res[k] = null; else placed.push(r); } });
   Object.keys(res).forEach(k => { if (res[k] === null) { const r = fg.place[k], s2 = set.has(+k) ? { w: Math.min(w, C), h: Math.min(h, R) } : r; res[k] = frFit(placed, s2.w, s2.h, r.p); placed.push(res[k]); } });
   const tr = $('fgTrack');
@@ -72,7 +87,8 @@ function frPreviewResize(list, w, h) {
 // lote: todos os cards ficam com o mesmo tamanho (cada um no seu lugar); quem ficar por baixo vai para o próximo espaço livre
 function frResizeMany(list, w, h) {
   const { R, C } = fgDim(), set = new Set(list), news = {};
-  list.forEach(k => { const o = fg.place[k]; news[k] = { p: o.p, x: o.x, y: o.y, w: Math.min(w, C - o.x), h: Math.min(h, R - o.y) }; fgSetFr(fg.items[k], news[k]); });
+  const bl = frBatchLayout(list, w, h);
+  list.forEach(k => { news[k] = bl[k]; fgSetFr(fg.items[k], news[k]); });
   const kept = [];   // entre os redimensionados, quem bater em outro já mantido vai procurar lugar
   list.forEach(k => { if (kept.some(j => news[j].p === news[k].p && frHit(news[j], news[k]))) fgSetFr(fg.items[k], { p: -1, x: 0, y: 0, w: news[k].w, h: news[k].h }); else kept.push(k); });
   fg.items.forEach((o, k) => { const r = fg.place[k]; if (!set.has(k) && r && kept.some(j => news[j].p === r.p && frHit(news[j], r))) fgSetFr(o, { p: -1, x: 0, y: 0, w: r.w, h: r.h }); });
@@ -836,11 +852,22 @@ $('favgrid').addEventListener('wheel', e => { if (e.target.closest && e.target.c
 // janela "em pé" (mais alta que larga): os Favoritos viram a lista comum (como nos consoles); voltando a ficar larga, volta a grade
 const isPortrait = () => innerWidth < innerHeight;
 let favAsList = false;
-function openFavorites() { if (isPortrait()) { favAsList = true; openGlobal('', true); } else { favAsList = false; openFavGrid(); } }
+// Favoritos em grade (padrão) ou em lista (igual às telas de console); a escolha fica salva
+let favView = 'grid'; try { favView = localStorage.getItem('favview') || 'grid'; } catch (e) {}
+function openFavorites() { if (isPortrait() || favView === 'list') { favAsList = true; openGlobal('', true); } else { favAsList = false; openFavGrid(); } favViewsPaint(); }
+function setFavView(v) {
+  if (favView === v) return; favView = v; try { localStorage.setItem('favview', v); } catch (e) {}
+  sfx('ok'); stopVideo(); if (v === 'list') { favAsList = true; openGlobal('', true); } else { favAsList = false; openFavGrid(); } favViewsPaint();
+}
+function favViewsPaint() {
+  ['gv', 'fv'].forEach(p => ['Grid', 'List'].forEach(k => { const b = $(p + k); if (b) b.classList.toggle('on', (k === 'Grid') === (favView !== 'list')); }));
+  const gv = $('gViews'); if (gv) gv.style.display = favMode ? 'flex' : 'none';
+}
+document.querySelectorAll('.hview').forEach(b => b.onclick = e => { e.stopPropagation(); b.blur(); setFavView(b.dataset.v); });
 window.addEventListener('resize', () => {
   if (fgInfoOpen || fp.open || fxOpen) return;
   if (screen === 'favgrid' && isPortrait()) { favAsList = true; openGlobal('', true); }
-  else if (screen === 'games' && favMode && favAsList && !isPortrait()) { favAsList = false; stopVideo(); openFavGrid(); }
+  else if (screen === 'games' && favMode && favAsList && !isPortrait() && favView !== 'list') { favAsList = false; stopVideo(); openFavGrid(); }
 });
 // cabeçalho redimensionável: arrastar a borda de baixo (90–320 px), lembrado entre sessões
 (() => {

@@ -110,7 +110,7 @@ function input(a) {
   if (fgInfoOpen) { if (a === 'back') fgInfo(false); else if (a === 'ok') { fgInfo(false); fgLaunch(); } return; }
   if (screen === 'config') { cfgPad(a); return; }
   if (a === 'start') { openConfig(); return; }
-  if (a === 'select') { setCrt(!crtOn); return; }
+  if (a === 'select') { if (screen === 'favgrid' || (screen === 'games' && favMode && !isPortrait())) setFavView(favView === 'list' ? 'grid' : 'list'); else setCrt(!crtOn); return; }
   if (a === 'search') { if (screen === 'games') { $('q').focus(); openOsk($('q')); } else if (screen === 'systems' || screen === 'favgrid') { openGlobal(''); setTimeout(() => openOsk($('q')), 50); } return; }
   if (screen === 'favgrid') { fgInput(a); return; }
   if (screen === 'systems' && (sysMoving || a === 'fav') && sysMoveInput(a)) return;   // □: mover console no carrossel
@@ -180,6 +180,7 @@ document.addEventListener('keydown', e => {
   if (screen === 'favgrid' && !modalOpen && (e.key === 'i' || e.key === 'I') && !e.ctrlKey && !e.altKey && fg.items[fg.sel]) { e.preventDefault(); fgInfo(true); return; }   // I = Info do card
   if (screen === 'favgrid' && !modalOpen && e.key.length === 1 && e.key !== ' ' && !e.ctrlKey && !e.altKey && !e.metaKey) { e.preventDefault(); openGlobal(e.key); return; }   // digitar = busca geral
   if (screen === 'favgrid' && !modalOpen && e.key === ' ') { e.preventDefault(); fgInput('fav'); return; }   // Espaço = □ (mover card)
+  if (e.key === 'F3' && (screen === 'favgrid' || (screen === 'games' && favMode))) { e.preventDefault(); setFavView(favView === 'list' ? 'grid' : 'list'); return; }
   if (e.key === 'F2' && screen === 'games' && shown[gIdx]) { e.preventDefault(); startRename(gIdx); return; }
   if (screen === 'config') {   // teclado igual ao D-pad: setas navegam, Tab = próximo (Shift+Tab = anterior), Enter ativa, Esc volta
     const ae = document.activeElement, typing = ae && (ae.tagName === 'TEXTAREA' || (ae.tagName === 'INPUT' && !/checkbox|radio/.test(ae.type)));

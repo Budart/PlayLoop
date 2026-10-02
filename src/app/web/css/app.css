@@ -669,3 +669,12 @@ body.th-light .hmute { background:rgba(255,255,255,.7); color:#2E2721; border-co
 .catin { width:100%; margin-top:12px; background:#0e1424; border:1px solid #334155; color:#fff; border-radius:8px; padding:10px 12px; font:inherit; font-size:14px; outline:none; box-sizing:border-box; }
 .catin:focus, .catin.kbf { border-color:var(--c1); }
 .ctx { z-index:9999 !important; }
+
+/* grade / lista nos Favoritos (ao lado do som) */
+.hviews { position:absolute; z-index:12; display:flex; gap:6px; right:72px; }
+#games > .hviews { top:35px; } #fgHeader .hviews { top:calc((var(--fgh, 150px) - 40px) / 2); }
+.hview { width:40px; height:40px; border-radius:50%; background:rgba(0,0,0,.4); border:1px solid rgba(255,255,255,.18); color:#cbd5e1; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; }
+.hview svg { width:18px; height:18px; } .hview.on { color:#fff; border-color:var(--c1); background:rgba(0,209,255,.18); } .hview:hover { border-color:rgba(255,255,255,.5); }
+#fgHeader #fgLogo { right:170px !important; }
+body.th-light .hview { background:rgba(255,255,255,.7); color:#2E2721; border-color:#D9CBB8; }
+#gViews { display:none; }

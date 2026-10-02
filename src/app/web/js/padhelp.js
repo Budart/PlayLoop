@@ -45,9 +45,9 @@ function padContext() {
   if (screen === 'config') { const c = document.querySelector('#cfBody .kbf'); if (typeof cfgIn !== 'undefined' && cfgIn) return ['configin', [['dpad', 'campos do card'], ['ok', 'selecionar'], ['back', 'sair do card'], ['start', 'sair']]]; if (c && c.classList.contains('ccard')) return ['configcard', [['dpad', 'navegar'], ['ok', 'editar card'], ['back', 'voltar'], ['start', 'sair']]]; return ['config', [['dpad', 'navegar'], ['ok', 'selecionar'], ['back', 'voltar'], ['start', 'sair']]]; }
   if (screen === 'favgrid') {
     if (fg.moving) return ['fgmove', [['dpad', 'mover card'], ['sq', 'soltar'], ['back', 'cancelar']]];
-    return ['favgrid', [['dpad', 'navegar'], ['ok', 'jogar'], ['sq', 'mover card'], ['tri', 'menu'], ['lb', 'página'], ['back', 'voltar']]];
+    return ['favgrid', [['dpad', 'navegar'], ['ok', 'jogar'], ['sq', 'mover card'], ['tri', 'menu'], ['lb', 'página'], ['sel', 'lista'], ['back', 'voltar']]];
   }
-  if (screen === 'games') return ['games', [['dpad', 'navegar'], ['ok', 'jogar'], ['sq', 'selecionar'], ['tri', 'menu'], ['lb', 'pular'], ['rs', 'girar capa'], ['lt', 'zoom'], ['l3', 'buscar'], ['back', 'voltar']]];
+  if (screen === 'games') return ['games', [['dpad', 'navegar'], ['ok', 'jogar'], ['sq', 'selecionar'], ['tri', 'menu'], ['lb', 'pular'], ['rs', 'girar capa'], ['lt', 'zoom'], ['l3', 'buscar'], ...(favMode ? [['sel', 'grade']] : []), ['back', 'voltar']]];
   if (screen === 'systems' && typeof sysMoving !== 'undefined' && sysMoving) return ['sysmove', [['dpad', 'mover console'], ['sq', 'soltar'], ['back', 'cancelar']]];
   if (screen === 'systems' && typeof topSel !== 'undefined' && topSel >= 0) return ['top', [['dpad', 'escolher'], ['ok', 'abrir'], ['back', 'voltar']]];
   if (screen === 'systems') return ['systems', [['dpad', 'console / ↑ topo'], ['ok', 'entrar'], ['sq', 'mover'], ['start', 'configuração'], ['l3', 'buscar'], ['sel', 'modo TV']]];
@@ -60,8 +60,8 @@ const KB = {
   sysmove: [['← →', 'mover console'], ['Espaço', 'soltar'], ['Esc', 'cancelar']],
   top: [['← →', 'escolher'], ['Enter', 'abrir'], ['↓ Esc', 'voltar']],
   systems: [['← →', 'escolher console'], ['↑', 'topo'], ['Ctrl+← →', 'mover console'], ['M', 'som'], ['Enter', 'entrar'], ['A-Z', 'buscar'], ['F1', 'configuração']],
-  games: [['↑ ↓', 'navegar'], ['→', 'menu'], ['Enter', 'jogar'], ['PgUp PgDn', 'pular'], ['F2', 'renomear'], ['A-Z', 'buscar'], ['Esc', 'voltar']],
-  favgrid: [['Setas', 'navegar'], ['Enter', 'jogar'], ['Espaço', 'mover'], ['I', 'info'], ['Esc', 'voltar'], ['Alt+arrastar', 'imagem do card'], ['Ctrl+redimensionar', 'proporção'], ['Arrastar no vazio', 'selecionar vários', ['Ctrl+Z', 'desfazer']]],
+  games: [['↑ ↓', 'navegar'], ['→', 'menu'], ['Enter', 'jogar'], ['PgUp PgDn', 'pular'], ['F2', 'renomear'], ['A-Z', 'buscar'], ['F3', 'grade / lista'], ['Esc', 'voltar']],
+  favgrid: [['Setas', 'navegar'], ['Enter', 'jogar'], ['Espaço', 'mover'], ['I', 'info'], ['Esc', 'voltar'], ['Alt+arrastar', 'imagem do card'], ['Ctrl+redimensionar', 'proporção'], ['Arrastar no vazio', 'selecionar vários', ['Ctrl+Z', 'desfazer'], ['F3', 'lista']]],
   fgmove: [['Setas', 'mover card'], ['Espaço', 'soltar'], ['Esc', 'cancelar']],
   config: [['Clique', 'escolher'], ['F1', 'configuração'], ['Esc', 'voltar']],
   configcard: [['↑ ↓', 'cards'], ['Enter', 'editar card'], ['Esc', 'voltar']],
