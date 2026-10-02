@@ -106,15 +106,18 @@ function openCtx(g, x, y) {
     ['cover', 'Trocar capa', () => openCover(false)],
     ['bg', 'Trocar fundo', () => openCover(true)],
     ['cover', 'Trocar título (lombada)', () => openCover('logo')],
+    ...(catSid() ? [null, ['folder', 'Mover para subcategoria', () => setTimeout(() => catMoveMenu(g, x, y), 0), '', 1]] : []),
     null,
     ['del', sysOf(g).type === 'pc' ? 'Desinstalar / excluir' : 'Excluir', () => askDelete(g), 'red'],
   ];
-  const m = $('ctx');
-  m.innerHTML = ctxItems.map((it, k) => it ? `<div class="ci ${it[3] || ''}" data-k="${k}">${ICO[it[0]]}${it[1]}</div>` : '<div class="sep"></div>').join('');
-  m.querySelectorAll('.ci').forEach(el => el.onclick = e => { e.stopPropagation(); closeCtx(); ctxItems[+el.dataset.k][2](); });
-  m.classList.add('on'); ctxSel = -1;
-  const r = m.getBoundingClientRect();
-  ctxPlace(m, x, y);
+  if (!ICO.folder) catMenuIco();
+  fgMenu(ctxItems, x, y);
+}
+function catMoveMenu(g, x, y) {
+  const cur = ecat(g) || '';
+  fgMenu([['back', 'Voltar', () => setTimeout(() => openCtx(g, x, y), 0), '', 2], null, 'Mover para',
+    ...catTargets().map(c => ['folder', esc(catLabel(c)) + (c === cur ? '  ✓' : ''), async () => { await saveKey('cat|' + coverKey(g), c || '__main'); toast(`Movido para "${catLabel(c)}"`); refilterKeep(); }]),
+    null, ['plus', 'Nova subcategoria', async () => { const v = await catAdd(); if (v) { await saveKey('cat|' + coverKey(g), v); refilterKeep(); } }]], x, y);
 }
 // posiciona o menu: abre para cima quando não cabe embaixo; nunca sai da tela
 function ctxPlace(m, x, y) {
@@ -200,16 +203,24 @@ async function catAdd() {
   if (catTargets().some(c => catLabel(c).toLowerCase() === v.toLowerCase())) { toast('Já existe uma subcategoria com esse nome', true); return; }
   const list = userCats(sid); list.push(v); await saveKey('ucat|' + sid, JSON.stringify(list));
   saveKey('dcat|' + sid, JSON.stringify(deadCats(sid).filter(c => c !== v)));
-  toast(`Subcategoria "${v}" criada`); refilterKeep();
+  toast(`Subcategoria "${v}" criada`); refilterKeep(); return v;
 }
-function catEditMenu(x, y) {
+// botão "Subcategorias": um só lugar para criar, renomear e excluir (funciona com mouse, teclado e controle)
+const CAT_ICO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 7.5A1.5 1.5 0 0 1 4.5 6H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/></svg>';
+function catMenuIco() { Object.assign(ICO, { folder: CAT_ICO, plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>' }); }
+function catMenu(x, y, c) {
   const sid = catSid(); if (!sid) { toast('Abra um console para editar subcategorias', true); return; }
-  const cs = catTargets().filter(Boolean);
-  ctxItems = cs.length ? cs.flatMap(c => [['pen', `Renomear "${catLabel(c)}"`, () => catRename(c)], ['del', `Excluir "${catLabel(c)}"`, () => catDelete(c), 'red']]) : [['pen', 'Nenhuma subcategoria', () => {}]];
-  const m = $('ctx');
-  m.innerHTML = ctxItems.map((it, k) => it ? `<div class="ci ${it[3] || ''}" data-k="${k}">${ICO[it[0]]}${esc(it[1])}</div>` : '<div class="sep"></div>').join('');
-  m.querySelectorAll('.ci').forEach(el => el.onclick = e => { e.stopPropagation(); closeCtx(); ctxItems[+el.dataset.k][2](); });
-  m.classList.add('on'); ctxSel = -1; ctxPlace(m, x, y); ctxMove(1);
+  if (!ICO.folder) catMenuIco();
+  const n = k => (games || []).filter(g => g.sid === sys.id && ecat(g) === k).length, again = k => () => setTimeout(() => catMenu(x, y, k), 0);
+  let items;
+  if (c != null) items = [['back', 'Voltar', again(null), '', 2], null, esc(catLabel(c)), ['pen', 'Renomear', () => catRename(c)], ['del', 'Excluir', () => catDelete(c), 'red']];
+  else {
+    const cs = catTargets().filter(Boolean);
+    items = [`Subcategorias · ${esc(sys.name)}`, ['plus', 'Nova subcategoria', () => catAdd()], null,
+      ...(cs.length ? cs.map(k => ['folder', `${esc(catLabel(k))} <i class="cn">${n(k)}</i>`, again(k), '', 1]) : ['Nenhuma subcategoria ainda']),
+      null, 'Para mover jogos: arraste-os ou use o menu do jogo'];
+  }
+  fgMenu(items, x, y);
 }
 async function catRename(c) {
   const sid = catSid(), ok = await askInput('Renomear subcategoria', 'Só o nome muda; os jogos continuam nela.', 'Salvar', catLabel(c), 'Nome da subcategoria');
@@ -409,7 +420,7 @@ function filter() {
   for (const g of [...multi]) if (!shown.includes(g)) multi.delete(g);
   if (multi.size < 2) multi.clear(); $('list').classList.toggle('multi', multi.size > 1); multiInfo();
   $('list').classList.toggle('g', globalMode);
-  ['catEdit', 'catAdd'].forEach(id => { $(id).style.display = globalMode ? 'none' : ''; });   // subcategorias são de cada console
+  $('catBtn').style.display = globalMode ? 'none' : '';   // subcategorias são de cada console
   vEmpty = `<div class="empty">${favMode ? 'Nenhum jogo favoritado ainda — use a ⭐ ao lado de um jogo.' : globalMode && !q ? 'Digite o nome de um jogo.' : 'Nenhum jogo encontrado.'}</div>`;
   $('list').scrollTop = 0; vRender();
   selectGame(0, true);
@@ -438,5 +449,4 @@ async function firstOk(urls) { for (const u of urls) { const r = await loadImg(u
 const cleanTitle = n => n.replace(/\([^)]*\)|\[[^\]]*\]|\{[^}]*\}/g, ' ').replace(/www\.\S+|\b(BR|PTBR|PT-BR|Decrypted|USA|Europe|Rev ?\d*)\b/gi, ' ')
   .replace(/^(.*), The\b/, 'The $1').replace(/[_]+/g, ' ').replace(/\s+/g, ' ').trim();
 
-$('catEdit').onclick = e => { e.stopPropagation(); const r = $('catEdit').getBoundingClientRect(); catEditMenu(r.left, r.bottom + 4); };
-$('catAdd').onclick = e => { e.stopPropagation(); catAdd(); };
+$('catBtn').onclick = e => { e.stopPropagation(); const r = $('catBtn').getBoundingClientRect(); $('catBtn').blur(); catMenu(r.left, r.bottom + 4); };

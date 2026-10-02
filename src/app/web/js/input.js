@@ -121,11 +121,11 @@ function input(a) {
     else if (a === 'ok') openSystem();
   } else {
     // topo da lista: busca e ordenação acessíveis pelo D-pad/setas (subir além do 1º jogo)
-    const ae = document.activeElement, qi = $('q'), tops = [qi, $('sortBtn'), $('catEdit'), $('catAdd')].filter(x => x && x.offsetParent), ti = tops.indexOf(ae);
+    const ae = document.activeElement, qi = $('q'), tops = [qi, $('sortBtn'), $('catBtn')].filter(x => x && x.offsetParent), ti = tops.indexOf(ae);
     if (ti >= 0) {
       const go = el => { ae.classList.remove('padsel'); el.focus(); el.classList.add('padsel'); sfx('tick'); };
       if (a === 'down') { ae.blur(); ae.classList.remove('padsel'); selectGame(Math.max(0, gIdx)); return; }
-      if (a === 'right' && ti < tops.length - 1 && (ae !== qi || lastInputPad)) { go(tops[ti + 1]); return; }
+      if (a === 'right' && ti < tops.length - 1) { go(tops[ti + 1]); return; }
       if (a === 'left' && ti > 0) { go(tops[ti - 1]); return; }
       if (a === 'ok') { if (ae === qi) { if (lastInputPad) openOsk(qi); } else ae.click(); return; }
       if (a === 'back') { ae.blur(); ae.classList.remove('padsel'); return; }
@@ -221,7 +221,7 @@ document.addEventListener('keydown', e => {
   const map = { ArrowLeft:'left', ArrowRight:'right', ArrowUp:'up', ArrowDown:'down', Enter:'ok', Escape:'back', PageUp:'pgup', PageDown:'pgdn', Home:'home', End:'end' };
   const inSearch = document.activeElement === $('q');
   // → no fim do texto da busca: abre o menu do jogo em foco (ou do lote), mesmo depois de digitar
-  if (inSearch && screen === 'games' && e.key === 'ArrowRight' && !e.shiftKey && $('q').selectionStart === $('q').value.length && shown[gIdx]) { e.preventDefault(); $('q').blur(); input('right'); return; }
+  if (inSearch && screen === 'games' && e.key === 'ArrowRight' && !e.shiftKey && $('q').selectionStart === $('q').value.length) { e.preventDefault(); input('right'); return; }   // fim do texto: → vai para ordenação / subcategorias
   if (map[e.key] && !(inSearch && ['left','right','home','end'].includes(map[e.key]))) {
     if (inSearch && e.key === 'Escape' && $('q').value) { $('q').value = ''; filter(); e.preventDefault(); return; }
     e.preventDefault(); if (inSearch && map[e.key] === 'back') $('q').blur(); input(map[e.key]); return;
@@ -295,6 +295,6 @@ function pollPad1() {
 }
 requestAnimationFrame(pollPad);
 window.addEventListener('gamepadconnected', e => { padLast = e.gamepad.id; toast('🎮 Controle conectado: ' + (e.gamepad.id || '').replace(/\(.*\)/, '').trim()); });
-['q', 'sortBtn', 'catEdit', 'catAdd'].forEach(id => $(id) && $(id).addEventListener('blur', () => $(id).classList.remove('padsel')));
+['q', 'sortBtn', 'catBtn'].forEach(id => $(id) && $(id).addEventListener('blur', () => $(id).classList.remove('padsel')));
 
 document.addEventListener('keyup', e => { if (e.key === 'Control' && screen === 'systems' && sysMoving) sysMoveInput('fav'); });

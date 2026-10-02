@@ -700,3 +700,7 @@ body.th-light .hview { background:rgba(255,255,255,.7); color:#2E2721; border-co
 #ctx .ch { padding:8px 12px 4px; color:inherit; font-size:11px; letter-spacing:.08em; text-transform:uppercase; opacity:.5; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:280px; }
 #ctx .ci span { flex:1; }
 #ctx .ci .sub { margin-left:14px; opacity:.55; font-weight:400; }
+.catbtn svg { width:15px; height:15px; vertical-align:-3px; margin-right:5px; }
+#ctx .ci i.cn { font-style:normal; opacity:.5; font-size:12px; margin-left:6px; }
+#ctx .ch:last-child { text-transform:none; letter-spacing:0; font-size:11.5px; white-space:normal; }
+.search .catbtn, .search .sortwrap { flex-shrink:0; } .search .catbtn { margin-left:0; display:inline-flex; align-items:center; }
