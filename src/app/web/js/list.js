@@ -182,11 +182,13 @@ async function toggleFav(g) {
   refilterKeep();
 }
 async function toggleHidden(g) {
-  const k = coverKey(g);
-  if (hidden.has(k)) hidden.delete(k); else hidden.add(k);
+  const k = coverKey(g), hiding = !hidden.has(k), i0 = shown.indexOf(g);
+  if (hiding) hidden.add(k); else hidden.delete(k);
   sfx('back');
+  // ocultou o jogo em foco: o foco vai para o que estava logo abaixo dele (ou o de cima, se era o último)
+  const nb = hiding && i0 >= 0 && shown[gIdx] === g ? (shown.slice(i0 + 1).find(x => !hidden.has(coverKey(x))) || shown.slice(0, i0).reverse().find(x => !hidden.has(coverKey(x)))) : null;
   try { await api('/api/hidden', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify([...hidden]) }); } catch (e) { toast(e.message, true); }
-  const keep = shown[gIdx]; filter(); const j = shown.indexOf(keep); selectGame(j >= 0 ? j : Math.min(gIdx, shown.length - 1), true);
+  const keep = nb || shown[gIdx]; filter(); const j = shown.indexOf(keep); selectGame(j >= 0 ? j : Math.min(gIdx, shown.length - 1), true);
 }
 // ---- categoria manual (arrastar), ordenação e categorias recolhíveis ----
 function ecat(g) { const o = covers['cat|' + coverKey(g)]; const c = o === undefined ? g.cat : (o === '__main' ? '' : o); return c && deadCats(g.sid).includes(c) ? '' : c; }
