@@ -4,14 +4,14 @@ let favGridDim = '4x12';            // linhas x colunas (Configuração → Favo
 const fg = { items: [], place: [], pages: 1, page: 0, sel: 0 };
 let fgInfoOpen = false;
 const fgDim = () => { const [r, c] = (favGridDim || '4x12').split('x').map(Number); return { R: r || 4, C: c || 12 }; };
-const fgSize = g => { const v = covers['fsz|' + coverKey(g)]; if (!v) return { w: 1, h: 1 }; const [w, h] = v.split(',').map(Number); const { R, C } = fgDim(); return { w: Math.max(1, Math.min(4, C, w || 1)), h: Math.max(1, Math.min(4, R, h || 1)) }; };
+const fgSize = g => { const v = covers['fsz|' + coverKey(g)]; if (!v) return { w: 1, h: 1 }; const [w, h] = v.split(',').map(Number); const { R, C } = fgDim(); return { w: Math.max(1, Math.min(C, w || 1)), h: Math.max(1, Math.min(R, h || 1)) }; };
 
 // posição escolhida pelo usuário (arrastando): 'fpos|chave' = "página,coluna,linha"
 const fgPos = g => { const v = covers['fpos|' + coverKey(g)]; if (!v) return null; const [p, x, y] = v.split(',').map(Number); return { p, x, y }; };
 
 // ---------- modo livre ("não alinhar à grade"): cards com tamanho/posição livres, em unidades de célula (1 = célula + espaço) ----------
 let fgFree = true; try { fgFree = localStorage.getItem('fgfree') !== '0'; } catch (e) {}
-const FR_MIN = .6, FR_MAX = 4, FR_STEP = .25;
+const FR_MIN = .6, FR_MAX = Infinity, FR_STEP = .25;   // sem teto: o limite é o tamanho da página
 const fgFr = g => { const v = covers['ffree|' + coverKey(g)]; if (!v) return null; const [p, x, y, w, h] = v.split(',').map(Number); return { p, x, y, w, h }; };
 function fgSetFr(g, q) {
   const key = 'ffree|' + coverKey(g), r2 = n => Math.round(n * 10000) / 10000, val = q ? `${q.p},${r2(q.x)},${r2(q.y)},${r2(q.w)},${r2(q.h)}` : '';
@@ -23,7 +23,7 @@ function fgFrSize(g) {
   const a = cachedArt(g), u = covers[coverKey(g)] || (a && a.box);
   let r = a && a.ratio; if (!r && u) { const d = imgDims[u] || imgDims[cp(u)]; if (d) r = d.w / d.h; }
   r = Math.max(.4, Math.min(2.4, r || .72));
-  const h = r > 1.2 ? 1.2 : 1.5, w = Math.max(FR_MIN, Math.min(FR_MAX, h * r));
+  const h = r > 1.2 ? 1.2 : 1.5, w = Math.max(FR_MIN, Math.min(4, h * r));
   return { w, h };
 }
 const frHit = (a, b) => a.x < b.x + b.w - .001 && a.x + a.w > b.x + .001 && a.y < b.y + b.h - .001 && a.y + a.h > b.y + .001;
@@ -407,8 +407,8 @@ function fgBind(el) {
     let w = pl.w, hh = pl.h;
     h.setPointerCapture(e.pointerId); el.classList.add('rz');
     h.onpointermove = ev => {
-      if (mode.includes('r')) w = Math.max(1, Math.min(4, C - pl.x, Math.round(pl.w + (ev.clientX - sx) / cw)));
-      if (mode.includes('b')) hh = Math.max(1, Math.min(4, R - pl.y, Math.round(pl.h + (ev.clientY - sy) / ch)));
+      if (mode.includes('r')) w = Math.max(1, Math.min(C - pl.x, Math.round(pl.w + (ev.clientX - sx) / cw)));
+      if (mode.includes('b')) hh = Math.max(1, Math.min(R - pl.y, Math.round(pl.h + (ev.clientY - sy) / ch)));
       el.style.gridColumn = `${pl.x + 1} / span ${w}`; el.style.gridRow = `${pl.y + 1} / span ${hh}`;
     };
     h.onpointerup = () => { h.onpointermove = h.onpointerup = null; el.classList.remove('rz'); if (fgMulti.size > 1 && fgMulti.has(i)) { const sel = [...fgMulti].map(k => fg.items[k]); sel.forEach(g => { const key = 'fsz|' + coverKey(g), val = (w === 1 && hh === 1) ? '' : `${w},${hh}`; if (val) covers[key] = val; else delete covers[key]; api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, url: val }) }).catch(() => {}); fgSetPos(g, null); }); sfx('ok'); renderFavGrid(); return; } fgResize(fg.items[i], w, hh); };
@@ -836,7 +836,7 @@ function fgBatchAuto() {
 // aumentar / diminuir: todos crescem juntos a partir do card escolhido, sem se afastar uns dos outros
 function fgBatchScale(f) {
   const l = fgSelList(), { R, C } = fgDim();
-  if (!fgFree) { fgKeepSel(() => { l.forEach(k => { const o = fg.place[k], w = Math.max(1, Math.min(4, C, o.w + (f > 1 ? 1 : -1))), h = Math.max(1, Math.min(4, R, o.h + (f > 1 ? 1 : -1))); fgResize(fg.items[k], w, h); }); }); return; }
+  if (!fgFree) { fgKeepSel(() => { l.forEach(k => { const o = fg.place[k], w = Math.max(1, Math.min(C, o.w + (f > 1 ? 1 : -1))), h = Math.max(1, Math.min(R, o.h + (f > 1 ? 1 : -1))); fgResize(fg.items[k], w, h); }); }); return; }
   const a = fg.place[l[0]], news = {};
   l.forEach(k => { const o = fg.place[k], w = Math.max(FR_MIN, Math.min(FR_MAX, C, o.w * f)), h = Math.max(FR_MIN, Math.min(FR_MAX, R, o.h * f));
     news[k] = o.p !== a.p ? { ...o, w: Math.min(w, C - o.x), h: Math.min(h, R - o.y) } : { p: o.p, x: Math.max(0, Math.min(C - w, a.x + (o.x - a.x) * f)), y: Math.max(0, Math.min(R - h, a.y + (o.y - a.y) * f)), w, h }; });
@@ -885,7 +885,7 @@ function fgCtx(x, y, sizes) {
     }]];
   } else if (sizes) {
     items = [back, null, 'Tamanho (colunas × linhas)'];
-    for (let h = 1; h <= Math.min(4, R); h++) for (let w = 1; w <= Math.min(4, C); w++) items.push(['resize', `${w} × ${h}${w === cur.w && h === cur.h ? '  ✓' : ''}`, () => fgResize(g, w, h)]);
+    for (let h = 1; h <= R; h++) for (let w = 1; w <= C; w++) items.push(['resize', `${w} × ${h}${w === cur.w && h === cur.h ? '  ✓' : ''}`, () => fgResize(g, w, h)]);
   } else items = [
     esc(dn(g)),
     ['info', 'Info', () => fgInfo(true)],
