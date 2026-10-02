@@ -95,7 +95,7 @@ function renderConfig() {
     <div class="cfcache">
       <h3>🎨 SteamGridDB (opcional)</h3>
       ${SGDB_HELP}
-      <div class="line"><input id="cfSgKey" placeholder="Cole aqui a sua chave da API" value="${esc(cfg.sgdbKey || '')}" style="flex:1;background:#101010;border:1px solid #333;color:#eee;border-radius:6px;padding:8px 10px"><button class="btn sec sm" id="cfSgTest">Testar chave</button></div>
+      <div class="line"><input id="cfSgKey" type="password" autocomplete="new-password" spellcheck="false" placeholder="Cole aqui a sua chave da API" value="${esc(cfg.sgdbKey || '')}" style="flex:1;background:#101010;border:1px solid #333;color:#eee;border-radius:6px;padding:8px 10px"><button class="btn sec sm" id="cfSgTest">Testar chave</button></div>
       <label class="chk2"><input type="checkbox" id="cfSgOn" ${cfg.useSgdb && cfg.sgdbKey ? 'checked' : ''}> Usar o SteamGridDB para capas, fundos e logos</label>
     </div>`) +
     sec('favoritos', '⭐ Favoritos', `<div class="cfcache"><h3>Grade dos favoritos</h3>

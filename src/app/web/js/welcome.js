@@ -26,7 +26,7 @@ function runWelcome() {
       const s = steps[st];
       $('wStepN').textContent = s.n; $('wTitle').textContent = s.t;
       if (s.key) {   // SteamGridDB: explica, guia com links e recebe a chave
-        $('wText').innerHTML = SGDB_HELP + `<input id="wKey" placeholder="Cole aqui a chave da API" value="${esc(picks.sgdbKey)}" style="width:100%;margin-top:10px;background:#0e0b1a;border:1px solid #4a3f70;color:#fff;border-radius:8px;padding:10px 12px;font-size:14px">`;
+        $('wText').innerHTML = SGDB_HELP + `<input id="wKey" type="password" autocomplete="new-password" spellcheck="false" placeholder="Cole aqui a chave da API" value="${esc(picks.sgdbKey)}" style="width:100%;margin-top:10px;background:#0e0b1a;border:1px solid #4a3f70;color:#fff;border-radius:8px;padding:10px 12px;font-size:14px">`;
         bindLinks($('wText')); $('wKey').oninput = () => { picks.sgdbKey = $('wKey').value.trim(); $('wNext').disabled = !picks.sgdbKey; };
         $('wPath').style.display = 'none'; $('wPick').style.display = 'none';
       } else { if (s.k === 'root') $('wText').innerHTML = WEL_TREE; else $('wText').textContent = s.p; $('wPath').style.display = ''; $('wPick').style.display = ''; }
