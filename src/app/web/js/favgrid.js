@@ -706,7 +706,13 @@ function fgCtx(x, y, sizes) {
   } else if (sizes && fgFree) {
     const i = fg.sel, pl = fg.place[i], { R, C } = fgDim();
     const rs = f => frCommit(i, { ...pl, w: Math.max(FR_MIN, Math.min(FR_MAX, C - pl.x, pl.w * f)), h: Math.max(FR_MIN, Math.min(FR_MAX, R - pl.y, pl.h * f)) });
-    ctxItems = [['pen', '← Voltar', () => fgCtx(x, y)], null, ['cover', 'Aumentar', () => rs(1.25)], ['cover', 'Diminuir', () => rs(.8)], ['cover', 'Formato da capa', () => { const s2 = fgFrSize(fg.items[i]); frCommit(i, { ...pl, w: Math.min(s2.w, C - pl.x), h: Math.min(s2.h, R - pl.y) }); }]];
+    ctxItems = [['pen', '← Voltar', () => fgCtx(x, y)], null, ['cover', 'Aumentar', () => rs(1.25)], ['cover', 'Diminuir', () => rs(.8)], ['cover', 'Formato da capa', async () => {   // usa a imagem que está no card agora (inclusive uma capa recém-trocada)
+      const g = fg.items[i], el = $('fgTrack').querySelector(`.fgcard[data-i="${i}"]`), u = covers[coverKey(g)] || (el && el._url);
+      const d = u ? await loadDims(u) : null, r = d ? Math.max(.4, Math.min(2.4, d.w / d.h)) : null;
+      const area = pl.w * pl.h, s2 = r ? { h: Math.sqrt(area / r), w: Math.sqrt(area * r) } : fgFrSize(g);   // mantém o tamanho, muda só o formato
+      s2.w = Math.max(FR_MIN, Math.min(FR_MAX, s2.w)); s2.h = Math.max(FR_MIN, Math.min(FR_MAX, s2.h));
+      frCommit(i, { ...pl, w: Math.min(s2.w, C - pl.x), h: Math.min(s2.h, R - pl.y) });
+    }]];
   } else if (sizes) {
     ctxItems = [['pen', '← Voltar', () => fgCtx(x, y)], null];
     for (let h = 1; h <= Math.min(4, R); h++) for (let w = 1; w <= Math.min(4, C); w++) ctxItems.push(['cover', `${w} × ${h}${w === cur.w && h === cur.h ? '  ✓' : ''}`, () => fgResize(g, w, h)]);
