@@ -103,7 +103,7 @@ function input(a) {
   if (oskOpen) { oskInput(a); return; }
   if (ARTPICK.open) { apInput(a); return; }
   if (askOpen) { askPad(a); return; }
-  if ($('ctx').classList.contains('on')) { if (a === 'down') ctxMove(1); else if (a === 'up') ctxMove(-1); else if (a === 'ok') ctxOk(); else if (a === 'back' || a === 'menu') closeCtx(); return; }
+  if ($('ctx').classList.contains('on')) { if (a === 'down') ctxMove(1); else if (a === 'up') ctxMove(-1); else if (a === 'ok') ctxOk(); else if (a === 'back' || a === 'menu' || a === 'left') closeCtx(); return; }
   if (modalOpen) { if (a === 'back') closeCover(); else if (['left','right','up','down'].includes(a)) coverNav(a); else if (a === 'ok') coverPick(); else if (a === 'menu') openOsk($('cq')); return; }
   if (fxOpen) { if (a === 'back') fgFxClose(); return; }
   if (fp.open) { fpInput(a); return; }
@@ -132,11 +132,15 @@ function input(a) {
     }
     if (a === 'up' && gIdx <= 0) { qi.focus(); qi.classList.add('padsel'); sfx('tick'); return; }
     if (a === 'up') selectGame(gIdx - 1); else if (a === 'down') selectGame(gIdx + 1);
-    else if (a === 'pgup' || a === 'left') selectGame(gIdx - 10); else if (a === 'pgdn' || a === 'right') selectGame(gIdx + 10);
+    else if (a === 'pgup' || a === 'left') selectGame(gIdx - 10); else if (a === 'pgdn') selectGame(gIdx + 10);
     else if (a === 'home') selectGame(0); else if (a === 'end') selectGame(shown.length - 1);
     else if (a === 'ok') listLaunch(); else if (a === 'back') back(); else if (a === 'cover') openCover();
     else if (a === 'fav' && shown[gIdx]) toggleFav(shown[gIdx]);
-    else if (a === 'menu' && shown[gIdx]) { ensureVisible(gIdx); const el = $('list').querySelector('.row.cur'); const r = el ? el.getBoundingClientRect() : $('list').getBoundingClientRect(); openCtx(shown[gIdx], r.left + 60, r.bottom); ctxMove(1); }
+    else if ((a === 'menu' || a === 'right') && shown[gIdx]) {   // → (ou △): menu de contexto; com lote selecionado, o menu do lote
+      ensureVisible(gIdx); const el = $('list').querySelector('.row.cur'), r = el ? el.getBoundingClientRect() : $('list').getBoundingClientRect();
+      if (multi.size > 1) openBatchCtx(r.left + 60, r.bottom); else openCtx(shown[gIdx], r.left + 60, r.bottom);
+      ctxMove(1);
+    }
   }
 }
 document.addEventListener('keydown', e => {
@@ -153,7 +157,7 @@ document.addEventListener('keydown', e => {
     const d = { ArrowLeft:'left', ArrowRight:'right', ArrowUp:'up', ArrowDown:'down' }[e.key]; if (d) { e.preventDefault(); askPad(d); }
     return;   // Enter/Espaço apertam o botão em foco (comportamento nativo)
   }
-  if ($('ctx').classList.contains('on')) { e.preventDefault(); if (e.key === 'ArrowDown') ctxMove(1); else if (e.key === 'ArrowUp') ctxMove(-1); else if (e.key === 'Enter') ctxOk(); else if (e.key === 'Escape') closeCtx(); return; }
+  if ($('ctx').classList.contains('on')) { e.preventDefault(); if (e.key === 'ArrowDown') ctxMove(1); else if (e.key === 'ArrowUp') ctxMove(-1); else if (e.key === 'Enter' || e.key === ' ') ctxOk(); else if (e.key === 'Escape' || e.key === 'ArrowLeft') closeCtx(); return; }
   if (e.key === 'F1') { e.preventDefault(); if (screen !== 'config' && screen !== 'welcome') { if (modalOpen) closeCover(); openConfig(); } return; }
   if (screen === 'welcome' || renaming) return;
   if (fxOpen) { if (e.key === 'Escape' || e.key === 'Backspace') { e.preventDefault(); fgFxClose(); } return; }
