@@ -20,7 +20,7 @@ function runWelcome() {
     const syncPc = () => { picks.pcDirs = stores.filter(x => x.on && x.path.trim()).map(x => x.path.trim()); };
     const steps = [
       { k: 'root', n: 'Passo 1 de 3', t: 'Onde estão seus emuladores?', p: 'Escolha a pasta principal onde ficam os emuladores e as ROMs (uma subpasta por console). O PlayLoop encontra tudo sozinho.', skip: false },
-      { k: 'pc', n: 'Passo 2 de 3', t: 'E os seus jogos de PC?', p: 'Marque as lojas que você usa — já deixamos a pasta padrão de cada uma (dá para trocar). Se guardar atalhos em outra pasta, escolha abaixo. Se não quiser, é só pular.', skip: true },
+      { k: 'pc', n: 'Passo 2 de 3', t: 'E os seus jogos de PC?', p: 'Marque a Steam para usar a pasta padrão dos atalhos dela (dá para trocar). Para outras lojas ou pastas, use "Outra pasta...". Se não quiser, é só pular.', skip: true },
       { k: 'sgdbKey', n: 'Passo 3 de 3 · opcional', t: 'Quer capas ainda mais bonitas?', key: true, skip: true },
     ];
     const upd = () => { const s = steps[st]; if (!s.key) $('wNext').disabled = !picks[s.k] && !(s.k === 'pc' && picks.pcDirs.length) && !s.skip; };

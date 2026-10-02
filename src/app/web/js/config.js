@@ -180,14 +180,15 @@ function confirmDel(i) { return window.confirm(`Remover "${cfg.consoles[i].name}
 let cfStores = null;
 async function cfLoadStores() { if (cfStores) return; try { cfStores = (await api('/api/setup')).stores || []; } catch (e) { cfStores = []; } if (screen === 'config' && cfStores.length) { const y = $('cfMain').scrollTop; renderConfig(); $('cfMain').scrollTop = y; } }
 function pcStoreMigrate(c) {   // pasta padrão de loja que estava na lista comum vira caixinha marcada
-  if (c.type !== 'pc' || !cfStores) return; c.storeDirs = c.storeDirs || {};
+  if (c.type !== 'pc' || !cfStores) return; c.storeDirs = c.storeDirs || {}; c.romDirs = c.romDirs || [];
+  Object.keys(c.storeDirs).forEach(id => { if (!cfStores.some(st => st.id === id)) { if (c.storeDirs[id]) c.romDirs.push(c.storeDirs[id]); delete c.storeDirs[id]; } });   // lojas que não são mais oferecidas viram pastas comuns
   cfStores.forEach(st => { const j = (c.romDirs || []).findIndex(d => d.trim().toLowerCase().replace(/\\$/, '') === st.path.toLowerCase().replace(/\\$/, '')); if (j >= 0 && c.storeDirs[st.id] == null) { c.storeDirs[st.id] = c.romDirs[j]; c.romDirs.splice(j, 1); } });
 }
 function dirsHtml(i, c) {
   const pc = c.type === 'pc'; pcStoreMigrate(c);
   if (!c.romDirs) c.romDirs = []; if (!c.romDirs.length && !(pc && c.storeDirs && Object.keys(c.storeDirs).length)) c.romDirs.push('');
   const row = (attr, v, del) => `<div class="line dline"><input ${attr} value="${esc(v)}" spellcheck="false" placeholder="Caminho da pasta"><button class="btn sec sm" ${attr.replace('data-', 'data-b')}>...</button>${del ? `<button class="btn sec sm dx" ${attr.replace('data-', 'data-x')}>Excluir pasta</button>` : ''}</div>`;
-  const stores = pc && cfStores ? `<div class="fld"><label>Lojas</label>${cfStores.map(st => { const on = c.storeDirs && c.storeDirs[st.id] != null; return `<div class="stbox${on ? ' on' : ''}"><label class="chk2"><input type="checkbox" data-st="${i}|${st.id}"${on ? ' checked' : ''}> ${esc(st.name)}${st.exists ? '' : ' <i class="dim">(pasta padrão não encontrada)</i>'}</label>${on ? row(`data-sd="${i}|${st.id}"`, c.storeDirs[st.id], false) : ''}</div>`; }).join('')}</div>` : '';
+  const stores = pc && cfStores ? `<div class="fld"><label>Loja</label>${cfStores.map(st => { const on = c.storeDirs && c.storeDirs[st.id] != null; return `<div class="stbox${on ? ' on' : ''}"><label class="chk2"><input type="checkbox" data-st="${i}|${st.id}"${on ? ' checked' : ''}> ${esc(st.name)}${st.exists ? '' : ' <i class="dim">(pasta padrão não encontrada)</i>'}</label>${on ? row(`data-sd="${i}|${st.id}"`, c.storeDirs[st.id], false) : ''}</div>`; }).join('')}</div>` : '';
   return stores + `<div class="fld"><label>${pc ? 'Pastas com atalhos dos jogos (.lnk / .url / .exe)' : 'Pastas de jogos'}</label>${c.romDirs.map((d, j) => row(`data-rd="${i}|${j}"`, d, true)).join('')}<div class="line"><button class="btn sec sm" data-rda="${i}">+ Adicionar pasta</button></div></div>`;
 }
 function dirsBind() {

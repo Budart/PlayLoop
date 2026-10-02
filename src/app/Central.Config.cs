@@ -34,13 +34,8 @@ static partial class Central
         string ap = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), pd = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
         string um = Path.Combine(ap, @"Microsoft\Windows\Start Menu\Programs"), cm = Path.Combine(pd, @"Microsoft\Windows\Start Menu\Programs");
         Func<string[], string> first = ps => ps.FirstOrDefault(Directory.Exists) ?? ps[0];
-        string xbox = null;
-        try { foreach (var d in DriveInfo.GetDrives()) if (d.DriveType == DriveType.Fixed && d.IsReady && Directory.Exists(Path.Combine(d.RootDirectory.FullName, "XboxGames"))) { xbox = Path.Combine(d.RootDirectory.FullName, "XboxGames"); break; } } catch { }
         var list = new[] {
             new[] { "steam", "Steam", first(new[] { Path.Combine(um, "Steam"), Path.Combine(cm, "Steam") }) },
-            new[] { "gog", "GOG", first(new[] { Path.Combine(um, "GOG.com"), Path.Combine(cm, "GOG.com") }) },
-            new[] { "epic", "Epic Games", first(new[] { Path.Combine(um, "Epic Games"), Path.Combine(cm, "Epic Games"), Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory) }) },
-            new[] { "xbox", "Xbox", xbox ?? @"C:\XboxGames" },
         };
         return list.Select(x => (object)new Dictionary<string, object> { { "id", x[0] }, { "name", x[1] }, { "path", x[2] }, { "exists", Directory.Exists(x[2]) } }).ToArray();
     }
