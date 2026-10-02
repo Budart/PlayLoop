@@ -262,3 +262,20 @@ function buildCase(g, url, back, ratio) {
     `</div></div></div></div>`;
 }
 let artReq = 0, lastArt = null;
+// fundo automático do jogo (quando a capa não trouxe um): SteamGridDB (heroes) > Steam (library_hero) > tela/título do jogo (libretro)
+const bgFind = {};
+async function findBg(g) {
+  const key = 'bga|' + coverKey(g);
+  if (key in bgFind) return bgFind[key];
+  if (cacheOn && artDisk[key]) return bgFind[key] = artDisk[key].snap || null;
+  return bgFind[key] = (async () => {
+    const s = (typeof sysOf === 'function' && sysOf(g)) || sys || {}, q = cleanTitle(dn(g)) || dn(g);
+    let u = null;
+    try { if (sgdbOn) { const id = await sgdbGame(g); if (id) { const h = await sg(`/api/v2/heroes/game/${id}?${STATIC}`).catch(() => []); if (h[0]) u = h[0].url; } } } catch (e) {}
+    if (!u) try { const m = (await idCovers(g).catch(() => []) || []).map(x => (x || '').match(/steam\/apps\/(\d+)/)).find(Boolean); if (m) u = await firstOk([`${STEAM}${m[1]}/library_hero.jpg`]); } catch (e) {}
+    if (!u && s.thumbs) try { await loadThumbIndex(s); const b = boxartUrls(s, g.name); const alt = []; b.forEach(x => alt.push(x.replace('/Named_Boxarts/', '/Named_Snaps/'), x.replace('/Named_Boxarts/', '/Named_Titles/'))); u = await firstOk(alt); } catch (e) {}
+    if (!u) try { const it = (await steamSearch(q)).map(x => ({ x, ...relevance(q, x.name) })).filter(x => x.phrase || x.overlap >= .8).sort((a, b) => (b.phrase - a.phrase) || (b.overlap - a.overlap))[0]; if (it) u = await firstOk([`${STEAM}${it.x.id}/library_hero.jpg`]); } catch (e) {}
+    if (cacheOn) { artDisk[key] = { snap: u || '', src: 'bg' }; api('/api/artcache', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, val: artDisk[key] }) }).catch(() => {}); }
+    return bgFind[key] = u;
+  })();
+}

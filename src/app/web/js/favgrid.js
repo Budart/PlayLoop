@@ -567,7 +567,7 @@ async function fgGameBg(g, force) {
   const tok = ++fgBgTok;
   if (!favBgGame || !g) { host._g = null; host.querySelectorAll('.bgl').forEach(o => { o.classList.remove('on'); setTimeout(() => o.remove(), 600); }); return; }
   const over = covers['bg|' + coverKey(g)];
-  let url = over; if (!url) { const a = cachedArt(g) || await resolveArt(g).catch(() => null); if (a) url = a.snap || a.box; }
+  let url = over; if (!url) { const a = cachedArt(g) || await resolveArt(g).catch(() => null); url = a && a.snap; if (!url) url = await findBg(g).catch(() => null); if (!url && a) url = a.box; }   // sem fundo da capa: busca um fundo de verdade antes de usar a própria capa
   if (tok !== fgBgTok || !url) return;
   const old = [...host.querySelectorAll('.bgl')];
   const l = document.createElement('div'); l.className = 'bgl'; l.style.backgroundImage = `url("${cp(url).replace(/"/g, '%22')}")`;
