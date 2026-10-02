@@ -719,3 +719,13 @@ body.th-light .hview { background:rgba(255,255,255,.7); color:#2E2721; border-co
 .cgrid .it.more:hover, .cgrid .it.more.kb { border-color:var(--c1); }
 .cgrid .it.more.busy { opacity:.6; cursor:wait; }
 .wpimg.wpmore { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; border:2px dashed rgba(255,255,255,.3); background:rgba(255,255,255,.03); color:var(--text); font:inherit; font-weight:600; } .wpimg.wpmore b { font-size:26px; font-weight:400; } .wpimg.wpmore span { position:static; background:none; }
+.fgdots { height:40px; gap:8px; }
+.fgdots span { width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:rgba(255,255,255,.7); background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.18); transition:background .15s, transform .15s; }
+.fgdots span:hover { background:rgba(255,255,255,.22); transform:scale(1.08); }
+.fgdots span.on { width:30px; border-radius:50%; background:var(--c1); color:#061018; border-color:transparent; }
+.fgdots .fgnav { height:30px; min-width:34px; padding:0 6px; display:flex; align-items:center; justify-content:center; border-radius:8px; border:1px solid rgba(255,255,255,.2); background:rgba(255,255,255,.08); color:#fff; cursor:pointer; margin:0 6px; font:inherit; }
+.fgdots .fgnav:hover { background:rgba(255,255,255,.18); }
+.fgdots .fgnav .kk { font-size:16px; font-weight:700; }
+.fgdots .fgnav .pb { margin:0; }
+body.th-light .fgdots span { color:#3A322B; background:rgba(46,39,33,.1); } body.th-light .fgdots span.on { color:#fff; }
+body.th-light .fgdots .fgnav { color:#3A322B; border-color:rgba(46,39,33,.25); }

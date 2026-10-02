@@ -312,8 +312,10 @@ function renderFavGrid() {
     html += '</div>';
   }
   $('fgTrack').innerHTML = html;
-  $('fgDots').innerHTML = fg.pages > 1 ? Array.from({ length: fg.pages }, (_, p) => `<span class="${p === fg.page ? 'on' : ''}" data-p="${p}"></span>`).join('') : '';
+  $('fgDots').innerHTML = fg.pages > 1 ? `<button class="fgnav" data-nv="-1"></button>` + Array.from({ length: fg.pages }, (_, p) => `<span class="${p === fg.page ? 'on' : ''}" data-p="${p}">${p + 1}</span>`).join('') + `<button class="fgnav" data-nv="1"></button>` : '';
   $('fgDots').querySelectorAll('[data-p]').forEach(d => d.onclick = () => fgPage(+d.dataset.p));
+  $('fgDots').querySelectorAll('[data-nv]').forEach(b => b.onclick = () => { b.blur(); fgInput(+b.dataset.nv < 0 ? 'pgup' : 'pgdn'); });
+  fgNavKey = ''; fgNavPaint();
   fgPage(fg.place[fg.sel] ? fg.place[fg.sel].p : 0, true);
   $('fgTrack').querySelectorAll('.fgcard').forEach(el => { fgBind(el); fgArt(+el.dataset.i, el); });
   fgDetails();
@@ -565,6 +567,14 @@ async function fgLogo(g) {
   }
 }
 $('fgHead').querySelector('.fdp').onclick = () => { const g = fg.items[fg.sel]; if (g) api('/api/reveal', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ path: g.path }) }).catch(er => toast(er.message, true)); };
+// setas ao lado das páginas: ← → no teclado; L1/R1 (ou LB/RB, L/R) com o controle
+let fgNavKey = '';
+function fgNavPaint(mode) {
+  mode = mode || (typeof legendMode !== 'undefined' && document.body.classList.contains('pad') && typeof padType !== 'undefined' && padType && navigator.getGamepads && [...navigator.getGamepads()].some(Boolean) ? legendMode : 'kb');
+  const key = mode + '|' + (typeof padType !== 'undefined' ? padType : ''); if (key === fgNavKey) return; fgNavKey = key;
+  const bs = $('fgDots') ? $('fgDots').querySelectorAll('[data-nv]') : []; if (!bs.length) return;
+  bs.forEach(b => { const l = +b.dataset.nv < 0; b.innerHTML = mode === 'pad' ? SH(l ? 0 : 1) : `<b class="kk">${l ? '←' : '→'}</b>`; b.title = l ? 'Página anterior' : 'Próxima página'; });
+}
 // fundo da tela de favoritos = fundo do jogo selecionado (opcional, Configuração → Favoritos)
 let favBgGame = false, fgBgTok = 0;
 async function fgGameBg(g, force) {

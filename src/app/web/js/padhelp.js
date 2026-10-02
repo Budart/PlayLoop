@@ -80,6 +80,7 @@ function updatePadHelp(pad) {
   document.body.classList.add('pad');   // legenda sempre visível; sem controle, mostra os atalhos do teclado
   padType = t || 'gen';
   const mode = t ? legendMode : 'kb';
+  if (typeof fgNavPaint === 'function') fgNavPaint(mode);
   const [k, items] = padContext(), key = mode + '|' + padType + '|' + k;
   if (key === padKey) return;
   padKey = key;
