@@ -707,3 +707,4 @@ body.th-light .hview { background:rgba(255,255,255,.7); color:#2E2721; border-co
 .ctx .ci.open { background:rgba(255,255,255,.1); }
 #ctx2 { z-index:10000 !important; }
 .cathead .hctl { height:26px; width:110px; object-fit:contain; vertical-align:middle; margin:-4px 10px 0 0; padding:4px 10px; box-sizing:border-box; border-radius:8px; background:linear-gradient(135deg,#ffffff 0%,#e9e6ff 55%,#d6f3ff 100%); box-shadow:0 2px 10px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.7); }
+.fgfx.grow.zoomfit { transition:left .55s cubic-bezier(.2,.8,.2,1), top .55s cubic-bezier(.2,.8,.2,1), width .55s cubic-bezier(.2,.8,.2,1), height .55s cubic-bezier(.2,.8,.2,1), border-radius .55s, background-size .55s cubic-bezier(.2,.8,.2,1), opacity .5s, filter .5s; }

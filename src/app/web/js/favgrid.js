@@ -585,7 +585,7 @@ function playFx(rect, bgImage, bgPos, radius, bgSize) {
   clearTimeout(fxTimer); fxTimer = setTimeout(() => { if (fxOpen) launch(); }, 1400);
   if (window.chrome && chrome.webview && !$('fgFx').classList.contains('frombg')) chrome.webview.postMessage('fxon');   // pelo fundo: só ocupa a janela, sem tela cheia (evita a piscada)
   fx.style.backgroundImage = bgImage || ''; fx.style.backgroundPosition = bgPos || 'center'; fx.style.backgroundSize = bgSize && bgSize !== 'auto' ? bgSize : 'cover';
-  fx.className = 'fgfx' + (fx.classList.contains('frombg') ? ' frombg' : ''); Object.assign(fx.style, { left: rect.left + 'px', top: rect.top + 'px', width: rect.width + 'px', height: rect.height + 'px', borderRadius: (radius || 0) + 'px' });
+  fx.className = 'fgfx' + (fx.classList.contains('frombg') ? ' frombg' : '') + (fx.classList.contains('zoomfit') ? ' zoomfit' : ''); Object.assign(fx.style, { left: rect.left + 'px', top: rect.top + 'px', width: rect.width + 'px', height: rect.height + 'px', borderRadius: (radius || 0) + 'px' });
   fxOpen = true; fxAt = Date.now(); fx.classList.add('on');
   requestAnimationFrame(() => requestAnimationFrame(() => { fx.classList.add('grow'); Object.assign(fx.style, { left: '0px', top: '0px', width: '100vw', height: '100vh', borderRadius: '0px' }); }));
 }
@@ -610,7 +610,12 @@ function fgLaunch(noWait) {
       const fx = $('fgFx'), cs = getComputedStyle(lay);
       fx.classList.add('frombg');
       fx.style.opacity = cs.opacity; fx.style.filter = cs.filter === 'none' ? '' : cs.filter;   // começa igual ao fundo atual (opacidade e efeitos)
-      playFx(host.getBoundingClientRect(), lay.style.backgroundImage, cs.backgroundPosition, 0, cs.backgroundSize);
+      const f = lay._fit;
+      if (f) {   // imagem original (sem bordas esticadas), crescendo até cobrir a tela inteira sem distorcer
+        playFx(host.getBoundingClientRect(), `url("${f.src.replace(/"/g, '%22')}")`, `${f.px}% ${f.py}%`, 0, `${f.dw}px ${f.dh}px`);
+        const sc = Math.max(innerWidth / f.iw, innerHeight / f.ih, f.dw / f.iw);
+        fx.classList.add('zoomfit'); requestAnimationFrame(() => requestAnimationFrame(() => { fx.style.backgroundSize = `${f.iw * sc}px ${f.ih * sc}px`; }));
+      } else playFx(host.getBoundingClientRect(), lay.style.backgroundImage, cs.backgroundPosition, 0, cs.backgroundSize);
       host.classList.add('hidebg');   // o fundo original some na hora: a cópia que cresce está exatamente por cima, igual a ele
       clearTimeout(fxTimer); fxTimer = setTimeout(() => { if (fxOpen) launch(); }, 2000);   // animação mais longa: o jogo abre depois dela
       setTimeout(() => { if (fxOpen) { fx.classList.add('sharp'); fx.style.opacity = '1'; fx.style.filter = 'none'; } }, 600);   // depois de crescer: fica nítido aos poucos
@@ -646,7 +651,7 @@ async function fgBgRender(l, url, g) {
   const cover = Math.max(W / iw, H / ih), contain = Math.min(W / iw, H / ih);
   const sc = o ? cover * o.z : manual ? Math.min(cover, Math.max(contain, 1)) : cover;
   const px = o ? o.x : 50, py = o ? o.y : 50, dw = iw * sc, dh = ih * sc;
-  l.style.backgroundImage = `url("${src.replace(/"/g, '%22')}")`;
+  l.style.backgroundImage = `url("${src.replace(/"/g, '%22')}")`; l._fit = { src, iw, ih, dw, dh, px, py };   // usado na animação de abrir o jogo
   if (dw >= W - .5 && dh >= H - .5) { l.style.backgroundSize = `${dw}px ${dh}px`; l.style.backgroundPosition = `${px}% ${py}%`; return; }
   try {
     const k = Math.min(1, 1920 / W), cw = Math.round(W * k), ch = Math.round(H * k), w = dw * k, h = dh * k;
