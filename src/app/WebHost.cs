@@ -164,6 +164,9 @@ static class WebHost
         form.Controls.Add(view);
         // o controle só funciona com o foco dentro da página: devolve o foco ao WebView sempre que a janela é ativada
         form.Activated += (s, e) => { try { if (view != null && !GameOn) view.Focus(); } catch { } };
+        // janela sem foco / minimizada: vídeo mudo e pausado, e o WebView2 usa menos memória
+        form.Activated += (s, e) => { try { if (ready) { view.CoreWebView2.ExecuteScriptAsync("window.vidAwaySet&&vidAwaySet(false)"); view.CoreWebView2.MemoryUsageTargetLevel = CoreWebView2MemoryUsageTargetLevel.Normal; } } catch { } };
+        form.Deactivate += (s, e) => { try { if (ready) { view.CoreWebView2.ExecuteScriptAsync("window.vidAwaySet&&vidAwaySet(true)"); view.CoreWebView2.MemoryUsageTargetLevel = CoreWebView2MemoryUsageTargetLevel.Low; } } catch { } };
         form.FormClosing += (s, e) => { if (e.CloseReason == CloseReason.UserClosing) { e.Cancel = true; form.Hide(); } };
         form.Shown += async (s, e) =>
         {

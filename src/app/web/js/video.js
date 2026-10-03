@@ -195,8 +195,12 @@ function setVidLogo(g, url) {
 }
 
 // som do vídeo: ligado por padrão; desligado pelo botão de som do app ou em Configuração → Capas e vídeo
-function vidSoundOn() { let v = '1'; try { v = localStorage.getItem('vidsound') || '1'; } catch (e) {} return v !== '0' && !(typeof muted !== 'undefined' && muted); }
-let VID_VOL = 20; try { VID_VOL = Math.max(0, Math.min(100, +(localStorage.getItem('vidvol') ?? 20))); } catch (e) {}
+// gravado também no arquivo do app ('pref|...'), porque o localStorage pode se perder quando o app fecha de repente
+function vidPref(k, def) { const c = typeof covers !== 'undefined' && covers && covers['pref|' + k]; if (c != null && c !== '') return c; try { const v = localStorage.getItem(k); if (v != null) return v; } catch (e) {} return def; }
+function vidPrefSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} if (typeof covers !== 'undefined' && covers) { covers['pref|' + k] = String(v); api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key: 'pref|' + k, url: String(v) }) }).catch(() => {}); } }
+let vidAway = false;   // janela sem foco: vídeo mudo e pausado
+function vidSoundOn() { return !vidAway && vidPref('vidsound', '1') !== '0' && !(typeof muted !== 'undefined' && muted); }
+let VID_VOL = 20; const vidVolLoad = () => { VID_VOL = Math.max(0, Math.min(100, +vidPref('vidvol', 20))); }; vidVolLoad();
 function vidCmd(f, func, args) { try { f.contentWindow.postMessage(JSON.stringify({ event: 'command', func, args: args || [] }), '*'); } catch (e) {} }
 function vidSetVol(f) { vidCmd(f, 'setVolume', [VID_VOL]); }
 // controles próprios sobre o vídeo: volume e mudo (aparecem ao passar o mouse); clique no vídeo mostra/oculta a interface do YouTube
@@ -207,8 +211,8 @@ function vidSetVol(f) { vidCmd(f, 'setVolume', [VID_VOL]); }
   box.appendChild(ui);
   const btn = ui.querySelector('.vvm'), rng = ui.querySelector('.vvr');
   const paint = () => { const on = vidSoundOn(); btn.textContent = !on || VID_VOL === 0 ? '🔇' : VID_VOL < 50 ? '🔉' : '🔊'; rng.value = VID_VOL; rng.style.setProperty('--p', VID_VOL + '%'); };
-  rng.oninput = () => { VID_VOL = +rng.value; try { localStorage.setItem('vidvol', VID_VOL); } catch (e) {} if (VID_VOL > 0) { try { localStorage.setItem('vidsound', '1'); } catch (e) {} } box.querySelectorAll('.vid').forEach(vidSetVol); vidApplySound(); paint(); };
-  btn.onclick = e => { e.stopPropagation(); let v = '1'; try { v = localStorage.getItem('vidsound') || '1'; localStorage.setItem('vidsound', v === '0' ? '1' : '0'); } catch (er) {} vidApplySound(); paint(); };
+  rng.oninput = () => { VID_VOL = +rng.value; clearTimeout(rng._t); rng._t = setTimeout(() => { vidPrefSet('vidvol', VID_VOL); if (VID_VOL > 0 && vidPref('vidsound', '1') === '0') vidPrefSet('vidsound', '1'); }, 250); box.querySelectorAll('.vid').forEach(vidSetVol); vidApplySound(); paint(); };
+  btn.onclick = e => { e.stopPropagation(); vidPrefSet('vidsound', vidPref('vidsound', '1') === '0' ? '1' : '0'); vidApplySound(); paint(); };
   ui.addEventListener('click', e => e.stopPropagation()); ui.addEventListener('pointerdown', e => e.stopPropagation());
   box.addEventListener('click', () => box.classList.toggle('ui'));
   box.addEventListener('mouseleave', () => box.classList.remove('ui'));
@@ -229,3 +233,18 @@ function placeVidLogo(on) {
   const d = $('details'), r = document.querySelector('.right'); if (!d || !r || !window.ResizeObserver) return;
   new ResizeObserver(() => r.style.setProperty('--dh', d.offsetHeight + 'px')).observe(d);
 })();
+
+// janela perdeu o foco (ou foi minimizada): vídeo fica mudo e pausado; ao voltar, retoma
+let vidFreeT = 0, vidFreed = null;
+function vidAwaySet(away) {
+  if (away === vidAway) return; vidAway = away;
+  document.querySelectorAll('#vidBox .vid').forEach(f => vidCmd(f, away ? 'pauseVideo' : 'playVideo'));
+  vidApplySound();
+  clearTimeout(vidFreeT);
+  if (away) vidFreeT = setTimeout(() => { if (vidAway && vidFor) { vidFreed = vidFor; stopVideo(); } }, 45000);   // muito tempo em segundo plano: descarta o player do YouTube (é o que mais ocupa memória)
+  else if (vidFreed) { const g = vidFreed; vidFreed = null; if (typeof shown !== 'undefined' && shown[gIdx] === g && screen === 'games') queueVideo(g); }
+}
+window.vidAwaySet = vidAwaySet;
+window.addEventListener('blur', () => setTimeout(() => { const a = document.activeElement; if (!(a && a.tagName === 'IFRAME')) vidAwaySet(true); }, 0));   // clicar no próprio vídeo não conta
+window.addEventListener('focus', () => vidAwaySet(false));
+document.addEventListener('visibilitychange', () => vidAwaySet(document.hidden || !document.hasFocus()));

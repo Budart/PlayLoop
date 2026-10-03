@@ -5,6 +5,7 @@
     if (location.pathname === '/welcome' || (await api('/api/setup')).needed) { runWelcome(); return; }
     allSystems = await api('/api/consoles');
     try { covers = await api('/api/covers') || {}; } catch (e) { covers = {}; }
+    if (typeof vidVolLoad === 'function') { vidVolLoad(); if (window.vidVolPaint) window.vidVolPaint(); }   // volume do vídeo salvo
     // capas antigas só do card dos Favoritos ('fimg|') passam a ser a capa única do jogo
     Object.keys(covers).filter(k => k.startsWith('fimg|')).forEach(k => {
       const base = k.slice(5), post = (key, url) => api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, url }) }).catch(() => {});
