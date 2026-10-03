@@ -282,7 +282,7 @@ static partial class Central
                 var pcs = new List<string>(); if (S(body, "pc") != "") pcs.Add(S(body, "pc"));
                 if (body.ContainsKey("pcDirs") && body["pcDirs"] is object[]) foreach (var o in (object[])body["pcDirs"]) { var d = (o as string ?? "").Trim(); if (d != "" && !pcs.Contains(d, StringComparer.OrdinalIgnoreCase)) pcs.Add(d); }
                 var auto = AutoConfig.Build(S(body, "root"), pcs);
-                foreach (Dictionary<string, object> ac in (object[])auto["consoles"]) { ac["fullscreen"] = true; ac["fsArgs"] = FullscreenArg(Full(S(auto, "root"), S(ac, "emulator"))); }
+                foreach (Dictionary<string, object> ac in (object[])auto["consoles"]) { ac["fullscreen"] = false; ac["fsArgs"] = FullscreenArg(Full(S(auto, "root"), S(ac, "emulator"))); }
                 if (S(body, "sgdbKey") != "") { auto["sgdbKey"] = S(body, "sgdbKey"); auto["useSgdb"] = true; }
                 bool runKey = false;
                 try { using (var k = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run")) runKey = k.GetValue("PlayLoop") != null; } catch { }
@@ -323,7 +323,7 @@ static partial class Central
                 c["emulator"] = rel;
                 if (S(c, "args") == "") c["args"] = "\"{rom}\"";
                 c["fsArgs"] = FullscreenArg(picked);
-                if (!c.ContainsKey("fullscreen")) c["fullscreen"] = true;
+                if (!c.ContainsKey("fullscreen")) c["fullscreen"] = false;
                 SaveConfigText(Json.Serialize(cfg));
                 SendJson(ctx, new Dictionary<string, object> { { "ok", true }, { "emulator", rel } });
             }
@@ -350,8 +350,8 @@ static partial class Central
                 bool inside = AllDirs(c).Any(rd => rom.StartsWith(Full(root, rd).TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase));
                 if (!inside || !File.Exists(rom)) { SendJson(ctx, Err("ROM inválida"), 400); return; }
                 string args = S(c, "args"); if (args == "") args = "\"{rom}\"";
-                // tela cheia (padrão: ligado) — argumento próprio de cada emulador, editável na configuração
-                object fsv; bool fs = !(c.TryGetValue("fullscreen", out fsv) && fsv is bool && !(bool)fsv);
+                // tela cheia (padrão: desligado — alguns emuladores/versões não aceitam o argumento e nem abrem o jogo) — argumento próprio de cada emulador, editável na configuração
+                object fsv; bool fs = c.TryGetValue("fullscreen", out fsv) && fsv is bool && (bool)fsv;
                 string fsArgs = c.ContainsKey("fsArgs") ? S(c, "fsArgs") : FullscreenArg(emu);
                 if (fs && fsArgs != "") args = fsArgs + " " + args;
                 var proc = Process.Start(new ProcessStartInfo(emu, args.Replace("{rom}", rom)) { WorkingDirectory = Path.GetDirectoryName(emu), UseShellExecute = true });
