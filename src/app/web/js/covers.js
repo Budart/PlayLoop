@@ -38,6 +38,12 @@ async function setCover(url) {
     else if (shown[gIdx] === g) showArt(g);
     return;
   }
+  if (cardMode) {   // card dos Favoritos: fundo fica só no card (os consoles continuam com a capa); capa é a mesma dos consoles
+    const fk = 'fcard|' + coverKey(g), asBg = url && cardKind === 'bg';
+    if (asBg || covers[fk] || !url) { if (asBg) covers[fk] = url; else delete covers[fk]; api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key: fk, url: asBg ? url : '' }) }).catch(() => {}); }
+    if (asBg) { closeCover(); toast('Fundo salvo no card!'); renderFavGrid(); return; }
+    if (!url) { closeCover(); toast('Voltou para a imagem automática'); renderFavGrid(); return; }   // "padrão" no card não mexe na capa dos consoles
+  }
   try { await api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, url }) }); } catch (e) { toast(e.message, true); return; }
   if (url) covers[key] = url; else { delete covers[key]; delete artCache[key]; delete artDisk[key]; api('/api/artcache', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, val: null }) }).catch(() => {}); }
   closeCover(); toast(url ? 'Capa salva!' : 'Voltou para a capa automática');

@@ -323,7 +323,7 @@ function renderFavGrid() {
 }
 // imagem do card: escolhida pelo usuário > (card largo) tela/fundo do jogo > capa
 async function fgArt(i, el) {
-  const g = fg.items[i], pl = fg.place[i], custom = covers[coverKey(g)];
+  const g = fg.items[i], pl = fg.place[i], custom = covers['fcard|' + coverKey(g)] || covers[coverKey(g)];   // fundo escolhido só para o card (fcard|) > capa compartilhada com os consoles
   let url = custom;
   if (!url) { const a = cachedArt(g) || await resolveArt(g).catch(() => null); if (a) url = (pl.w > pl.h && a.snap) ? a.snap : a.box; }
   const im = el.querySelector('.fgimg');
@@ -1036,7 +1036,7 @@ $('favgrid').addEventListener('pointerdown', e => {
 });
 
 // ---------- Ctrl+Z nos Favoritos: desfaz a última mudança (posição, tamanho, imagem do card, fundo, desfavoritar) ----------
-const FG_KEYS = ['fpos|', 'fsz|', 'ffree|', 'fofs|', 'bofs|', 'fav|'];
+const FG_KEYS = ['fcard|', 'fpos|', 'fsz|', 'ffree|', 'fofs|', 'bofs|', 'fav|'];
 let fgUndo = [], fgLastSnap = null, fgUndoing = false;
 function fgSnap() { const o = {}; for (const k in covers) if (FG_KEYS.some(p => k.startsWith(p))) o[k] = covers[k]; return o; }
 const fgSame = (a, b) => { const ka = Object.keys(a), kb = Object.keys(b); return ka.length === kb.length && ka.every(k => a[k] === b[k]); };
