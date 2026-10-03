@@ -74,35 +74,36 @@ async function searchCovers(more) {
       const games = (await sg('/api/v2/search/autocomplete/' + encodeURIComponent(q))).map(x => ({ x, ...relevance(q, x.name) })).sort((a, b) => (b.phrase - a.phrase) || (b.overlap - a.overlap)).slice(0, 3 * L);
       for (const gm of games) {
         const list = logoMode ? await sg(`/api/v2/logos/game/${gm.x.id}?${STATIC}`) : bgLike ? await sg(`/api/v2/heroes/game/${gm.x.id}?${STATIC}`) : await sgdbGrids(gm.x.id);
-        list.slice(0, 30 * L).forEach(x => { if (!items.some(i => i.url === x.url)) items.push({ url: x.url, label: gm.x.name, src: 'SteamGridDB · ★' + (x.score || 0), phrase: gm.phrase, overlap: gm.overlap }); });
+        list.forEach(x => { if (!items.some(i => i.url === x.url)) items.push({ url: x.url, label: gm.x.name, src: 'SteamGridDB · ★' + (x.score || 0), phrase: gm.phrase, overlap: gm.overlap }); });
       }
     } catch (e) { $('cmsg').textContent = 'SteamGridDB: ' + e.message; }
   }
-  {   // demais fontes: sempre, até 10 de cada (mais a cada "Mais")
+  const N = (sgdbOn ? 6 : 10) * L;   // demais fontes: 6 de cada com o SteamGridDB ligado (10 sem ele); mais a cada "Mais"
+  {
   if (logoMode) {   // títulos: logos do Steam e da libretro (Named_Logos)
-    for (const it of (await steamSearch(q)).slice(0, 10 * L)) items.push({ url: `${STEAM}${it.id}/logo.png`, label: it.name, src: 'Steam', ...relevance(q, it.name) });
+    for (const it of (await steamSearch(q)).slice(0, N)) items.push({ url: `${STEAM}${it.id}/logo.png`, label: it.name, src: 'Steam', ...relevance(q, it.name) });
     await loadThumbIndex(s); const ix = s.thumbs && thumbIndex[s.thumbs];
-    if (ix && ix.names) { const ws = q.toLowerCase().split(/\s+/).filter(Boolean); ix.names.filter(n => ws.every(w => n.toLowerCase().includes(w))).slice(0, 10 * L).forEach(n => items.push({ url: `${THUMBS}${s.thumbs}/master/Named_Logos/${encodeURIComponent(n)}`, label: n.replace(/\.png$/i, ''), src: 'libretro', ...relevance(q, n) })); }
+    if (ix && ix.names) { const ws = q.toLowerCase().split(/\s+/).filter(Boolean); ix.names.filter(n => ws.every(w => n.toLowerCase().includes(w))).slice(0, N).forEach(n => items.push({ url: `${THUMBS}${s.thumbs}/master/Named_Logos/${encodeURIComponent(n)}`, label: n.replace(/\.png$/i, ''), src: 'libretro', ...relevance(q, n) })); }
   } else {
   // 1) acervo libretro (busca por palavras no índice do console)
   await loadThumbIndex(s);
   const idx = s.thumbs && thumbIndex[s.thumbs];
   if (idx && idx.names) {
     const words = q.toLowerCase().split(/\s+/).filter(Boolean);
-    idx.names.filter(n => words.every(w => n.toLowerCase().includes(w))).slice(0, 10 * L)
+    idx.names.filter(n => words.every(w => n.toLowerCase().includes(w))).slice(0, N)
       .forEach(n => add(`${THUMBS}${s.thumbs}/master/Named_Boxarts/${encodeURIComponent(n)}`, n.replace(/\.png$/i, ''), 'libretro'));
   }
   // 1b) repositório pelo código do jogo (GameTDB / xlenore)
   for (const u of await idCovers(coverGame)) if (await loadImg(u)) { add(u, 'Código do jogo', /gametdb/.test(u) ? 'GameTDB' : /steam/.test(u) ? 'Steam' : 'xlenore'); break; }
   // 1c) Steam
-  for (const it of (await steamSearch(q)).slice(0, 10 * L)) add(`${STEAM}${it.id}/library_600x900_2x.jpg`, it.name, 'Steam');
+  for (const it of (await steamSearch(q)).slice(0, N)) add(`${STEAM}${it.id}/library_600x900_2x.jpg`, it.name, 'Steam');
   // 1e) Wikipédia — só a imagem principal dos artigos de jogos
-  for (const p of await wikiMain(q, 10 * L)) add(p.img, p.title, p.src);
+  for (const p of await wikiMain(q, N)) add(p.img, p.title, p.src);
   // 1d) Fandom, PCGamingWiki e StrategyWiki
   const fake = { name: q };
-  for (const p of await fandomImage(fake, 10 * L)) add(p.img, p.title, p.src);
-  for (const p of await mw('https://www.pcgamingwiki.com/w/api.php', q, 10 * L)) add(p.img, p.title, 'PCGamingWiki');
-  for (const p of await mw('https://strategywiki.org/w/api.php', q, 10 * L)) add(p.img, p.title, 'StrategyWiki');
+  for (const p of await fandomImage(fake, N)) add(p.img, p.title, p.src);
+  for (const p of await mw('https://www.pcgamingwiki.com/w/api.php', q, N)) add(p.img, p.title, 'PCGamingWiki');
+  for (const p of await mw('https://strategywiki.org/w/api.php', q, N)) add(p.img, p.title, 'StrategyWiki');
   }
   }
   if (modalOpen === false) return;
