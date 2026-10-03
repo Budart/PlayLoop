@@ -21,14 +21,14 @@ function runWelcome() {
     const steps = [
       { k: 'root', n: 'Passo 1 de 3', t: 'Onde estão seus emuladores?', p: 'Escolha a pasta principal onde ficam os emuladores e as ROMs (uma subpasta por console). O PlayLoop encontra tudo sozinho.', skip: false },
       { k: 'pc', n: 'Passo 2 de 3', t: 'E os seus jogos de PC?', p: 'Marque a Steam para usar a pasta padrão dos atalhos dela (dá para trocar). Para outras lojas ou pastas, use "Outra pasta...". Se não quiser, é só pular.', skip: true },
-      { k: 'sgdbKey', n: 'Passo 3 de 3 · opcional', t: 'Quer capas ainda mais bonitas?', key: true, skip: true },
+      { k: 'sgdbKey', n: 'Passo 3 de 3 · opcional', t: 'Opcional: quer ainda mais opções de capas?', key: true, skip: true },
     ];
     const upd = () => { const s = steps[st]; if (!s.key) $('wNext').disabled = !picks[s.k] && !(s.k === 'pc' && picks.pcDirs.length) && !s.skip; };
     const render = () => {
       const s = steps[st];
       $('wStepN').textContent = s.n; $('wTitle').textContent = s.t;
       if (s.key) {   // SteamGridDB: explica, guia com links e recebe a chave
-        $('wText').innerHTML = SGDB_HELP + `<input id="wKey" type="password" autocomplete="new-password" spellcheck="false" placeholder="Cole aqui a chave da API" value="${esc(picks.sgdbKey)}" style="width:100%;margin-top:10px;background:#0e0b1a;border:1px solid #4a3f70;color:#fff;border-radius:8px;padding:10px 12px;font-size:14px">`;
+        $('wText').innerHTML = `<div class="wopt"><b>Este passo é opcional — pode pular.</b> O PlayLoop já encontra capas e fundos sozinho em várias fontes gratuitas. A chave do SteamGridDB só aumenta as opções, e dá para configurar depois em Configuração → Capas e vídeo.</div>` + SGDB_HELP + `<input id="wKey" type="password" autocomplete="new-password" spellcheck="false" placeholder="Cole aqui a chave da API" value="${esc(picks.sgdbKey)}" style="width:100%;margin-top:10px;background:#0e0b1a;border:1px solid #4a3f70;color:#fff;border-radius:8px;padding:10px 12px;font-size:14px">`;
         bindLinks($('wText')); $('wKey').oninput = () => { picks.sgdbKey = $('wKey').value.trim(); $('wNext').disabled = !picks.sgdbKey; };
         $('wPath').style.display = 'none'; $('wPick').style.display = 'none';
       } else { if (s.k === 'root') $('wText').innerHTML = WEL_TREE; else $('wText').textContent = s.p; $('wPath').style.display = ''; $('wPick').style.display = ''; }
@@ -46,8 +46,8 @@ function runWelcome() {
       $('wSkip').style.display = s.skip ? '' : 'none';
       $('wBack').style.display = st > 0 ? '' : 'none';
       $('wNext').textContent = st === steps.length - 1 ? 'Concluir' : 'Continuar'; upd();
-      $('wSkip').textContent = s.key ? 'Continuar sem' : 'Pular';
-      if (s.key) { $('wNext').textContent = 'Salvar chave e prosseguir'; $('wNext').disabled = !picks.sgdbKey; }
+      $('wSkip').textContent = s.key ? 'Pular e concluir' : 'Pular'; $('wSkip').classList.toggle('wprim', !!s.key);
+      if (s.key) { $('wNext').textContent = 'Salvar chave e concluir'; $('wNext').disabled = !picks.sgdbKey; }
     };
     $('wPick').onclick = async () => {
       try { const r = await api('/api/browse', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ type: 'folderabs', start: picks[steps[st].k] || '' }) }); if (r.path) { picks[steps[st].k] = r.path; sfx('ok'); render(); } } catch (e) { toast(e.message, true); }

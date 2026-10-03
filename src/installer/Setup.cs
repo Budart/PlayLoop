@@ -45,16 +45,36 @@ class Setup : Form
         {
             System.Net.ServicePointManager.SecurityProtocol = (System.Net.SecurityProtocolType)3072;
             string f = Path.Combine(Path.GetTempPath(), "MicrosoftEdgeWebview2Setup.exe");
+            Log("WebView2 ausente: baixando");
             using (var wc = new System.Net.WebClient()) wc.DownloadFile("https://go.microsoft.com/fwlink/p/?LinkId=2124703", f);
             var p = Process.Start(new ProcessStartInfo(f, "/silent /install") { UseShellExecute = true });
-            p.WaitForExit(10 * 60 * 1000);
+            if (p != null) { p.WaitForExit(10 * 60 * 1000); Log("WebView2: instalador terminou" + (p.HasExited ? " (código " + p.ExitCode + ")" : " (ainda rodando)")); }
         }
-        catch { }
+        catch (Exception e) { Log("WebView2: " + e.Message); }
     }
     static Stream Res(string n) { return Assembly.GetExecutingAssembly().GetManifestResourceStream(n); }
 
+    // registro da instalação (para descobrir onde parou se algo der errado): %TEMP%\PlayLoop-instalacao.log
+    static readonly string LogFile = Path.Combine(Path.GetTempPath(), "PlayLoop-instalacao.log");
+    static void Log(string m) { try { File.AppendAllText(LogFile, DateTime.Now.ToString("HH:mm:ss.fff") + "  " + m + Environment.NewLine); } catch { } }
+    static void Crash(object ex)
+    {
+        Log("ERRO FATAL: " + ex);
+        try { MessageBox.Show("A instalação parou por um erro inesperado:\n\n" + ((ex as Exception) != null ? ((Exception)ex).Message : "" + ex) + "\n\nDetalhes em:\n" + LogFile, "PlayLoop - Instalador", MessageBoxButtons.OK, MessageBoxIcon.Error); } catch { }
+    }
+
     [STAThread]
-    static void Main() { Application.EnableVisualStyles(); Application.Run(new Setup()); }
+    static void Main()
+    {
+        try { File.WriteAllText(LogFile, ""); } catch { }
+        Log("Instalador " + Assembly.GetExecutingAssembly().GetName().Version + " · Windows " + Environment.OSVersion + " · .NET " + Environment.Version + " · " + (Environment.Is64BitOperatingSystem ? "64" : "32") + " bits");
+        Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
+        Application.ThreadException += (s, e) => Crash(e.Exception);
+        AppDomain.CurrentDomain.UnhandledException += (s, e) => Crash(e.ExceptionObject);
+        try { Application.EnableVisualStyles(); Application.Run(new Setup()); }
+        catch (Exception ex) { Crash(ex); }
+        Log("Instalador fechado");
+    }
 
     Setup()
     {
@@ -177,7 +197,7 @@ class Setup : Form
         }
     }
 
-    void SetStatus(string t, int p) { Invoke((Action)(() => { status.Text = t; bar.Value = Math.Min(100, p); })); Thread.Sleep(220); }
+    void SetStatus(string t, int p) { Log(p + "% · " + t); if (IsDisposed) return; Invoke((Action)(() => { status.Text = t; bar.Value = Math.Min(100, p); })); Thread.Sleep(220); }
 
     string InstallDir()
     {
@@ -196,14 +216,17 @@ class Setup : Form
             try
             {
                 SetStatus("Fechando versões abertas...", 8);
-                foreach (var n in new[] { "PlayLoop", "Joggo", "Jogo", "Central de Jogos" }) foreach (var p in Process.GetProcessesByName(n)) try { p.Kill(); p.WaitForExit(3000); } catch { }
-                foreach (var p in Process.GetProcesses()) try { if (p.ProcessName.StartsWith(".central-antigo")) p.Kill(); } catch { }
+                int me = Process.GetCurrentProcess().Id;   // nunca fecha o próprio instalador (ex.: se o arquivo foi salvo como "PlayLoop.exe")
+                foreach (var n in new[] { "PlayLoop", "Joggo", "Jogo", "Central de Jogos" }) foreach (var p in Process.GetProcessesByName(n)) try { if (p.Id != me) { Log("fechando " + n + " (" + p.Id + ")"); p.Kill(); p.WaitForExit(3000); } } catch (Exception e) { Log("não fechou " + n + ": " + e.Message); }
+                foreach (var p in Process.GetProcesses()) try { if (p.Id != me && p.ProcessName.StartsWith(".central-antigo")) p.Kill(); } catch { }
                 Thread.Sleep(500);
 
                 SetStatus("Copiando arquivos...", 30);
                 Directory.CreateDirectory(dir);
                 string exe = Path.Combine(dir, "PlayLoop.exe");
+                Log("destino: " + exe);
                 using (var s = Res("PlayLoop.exe")) using (var o = File.Create(exe)) s.CopyTo(o);
+                Log("copiado: " + new FileInfo(exe).Length + " bytes");
 
                 SetStatus("Criando atalhos...", 50);
                 if (desk) Shortcut(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "PlayLoop.lnk"), exe);
@@ -224,7 +247,7 @@ class Setup : Form
                     k.SetValue("Publisher", "PlayLoop"); k.SetValue("InstallLocation", dir);
                     k.SetValue("UninstallString", "\"" + exe + "\" --uninstall"); k.SetValue("NoModify", 1); k.SetValue("NoRepair", 1);
                 }
-                using (var k = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true))
+                using (var k = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run"))   // em PCs novos a chave pode não existir
                 {
                     try { k.DeleteValue("CentralDeJogos", false); k.DeleteValue("Jogo", false); } catch { }
                     if (auto) k.SetValue("PlayLoop", "\"" + exe + "\" silent"); else k.DeleteValue("PlayLoop", false);
@@ -251,6 +274,8 @@ class Setup : Form
             }
             catch (Exception ex)
             {
+                Log("ERRO: " + ex);
+                if (IsDisposed) return;
                 Invoke((Action)(() => { status.Text = "Erro: " + ex.Message; status.ForeColor = Color.FromArgb(255, 120, 140); installBtn.Enabled = true; browseBtn.Enabled = true; pathBox.Enabled = true; }));
             }
         }) { IsBackground = true }.Start();

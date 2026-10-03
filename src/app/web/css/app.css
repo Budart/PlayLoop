@@ -729,3 +729,6 @@ body.th-light .hview { background:rgba(255,255,255,.7); color:#2E2721; border-co
 .fgdots .fgnav .pb { margin:0; }
 body.th-light .fgdots span { color:#3A322B; background:rgba(46,39,33,.1); } body.th-light .fgdots span.on { color:#fff; }
 body.th-light .fgdots .fgnav { color:#3A322B; border-color:rgba(46,39,33,.25); }
+.wopt { background:rgba(62,207,142,.12); border:1px solid rgba(62,207,142,.45); color:#d7ffe9; border-radius:10px; padding:10px 12px; margin-bottom:12px; font-size:13.5px; line-height:1.45; }
+.wopt b { color:#7dffbf; display:block; margin-bottom:2px; font-size:14px; }
+#wSkip.wprim { background:linear-gradient(90deg,#3b82f6,#8b5cf6); color:#fff; text-decoration:none; border:none; padding:9px 18px; border-radius:8px; font-weight:700; opacity:1; }
