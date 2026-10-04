@@ -190,6 +190,7 @@ document.addEventListener('keydown', e => {
     return;   // Enter/Espaço apertam o botão em foco (comportamento nativo)
   }
   if ($('ctx').classList.contains('on')) { e.preventDefault(); if (e.key === 'ArrowDown') ctxMove(1); else if (e.key === 'ArrowUp') ctxMove(-1); else if (e.key === 'Enter' || e.key === ' ') ctxOk(); else if (e.key === 'ArrowRight') ctxRight(); else if (e.key === 'Escape' || e.key === 'ArrowLeft') ctxLeft(); return; }
+  if (e.key === 'F1' && screen === 'favgrid' && !modalOpen && !$('ctx').classList.contains('on') && typeof fp !== 'undefined' && !fp.open) { e.preventDefault(); fgInput('menu'); return; }
   if (e.key === 'F1') { e.preventDefault(); if (screen !== 'config' && screen !== 'welcome') { if (modalOpen) closeCover(); openConfig(); } return; }
   if (screen === 'welcome' || renaming) return;
   if (fxOpen) { if (e.key === 'Escape' || e.key === 'Backspace') { e.preventDefault(); fgFxClose(); } return; }

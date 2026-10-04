@@ -61,7 +61,7 @@ const KB = {
   top: [['← →', 'escolher'], ['Enter', 'abrir'], ['↓ Esc', 'voltar']],
   systems: [['← →', 'escolher console'], ['↑', 'topo'], ['Ctrl+← →', 'mover console'], ['M', 'som'], ['Enter', 'entrar'], ['A-Z', 'buscar'], ['F1', 'configuração']],
   games: [['↑ ↓', 'navegar'], ['→', 'menu'], ['Enter', 'jogar'], ['Ctrl+Espaço', 'selecionar'], ['PgUp PgDn', 'pular'], ['F2', 'renomear'], ['A-Z', 'buscar'], ['F3', 'grade / lista'], ['Esc', 'voltar']],
-  favgrid: [['Setas', 'navegar'], ['Enter', 'jogar'], ['Espaço', 'mover'], ['I', 'info'], ['F2', 'renomear'], ['Esc', 'voltar'], ['Alt+arrastar', 'imagem do card'], ['Ctrl+redimensionar', 'proporção'], ['Arrastar no vazio', 'selecionar vários'], ['Ctrl+Z', 'desfazer'], ['Ctrl+PgUp/PgDn', 'mover página'], ['Arrastar nº da página', 'reordenar'], ['F3', 'lista']],
+  favgrid: [['Setas', 'navegar'], ['Enter', 'jogar'], ['Espaço', 'mover'], ['I', 'info'], ['F1', 'menu'], ['F2', 'renomear'], ['Esc', 'voltar'], ['Alt+arrastar', 'imagem do card'], ['Ctrl+redimensionar', 'proporção'], ['Ctrl+Z', 'desfazer'], ['F3', 'lista']],
   fgmove: [['Setas', 'mover card'], ['Espaço', 'soltar'], ['Esc', 'cancelar']],
   config: [['Clique', 'escolher'], ['F1', 'configuração'], ['Esc', 'voltar']],
   configcard: [['↑ ↓', 'cards'], ['Enter', 'editar card'], ['Esc', 'voltar']],
@@ -88,4 +88,12 @@ function updatePadHelp(pad) {
   $('padHelp').innerHTML = mode === 'kb'
     ? (KB[k] || []).map(([kk, txt]) => `<span class="pi"><b class="kk">${kk}</b><em>${txt}</em></span>`).join('')
     : items.map(([g, txt]) => `<span class="pi">${G[g]()}<em>${txt}</em></span>`).join('');
+  padFit();
 }
+// legenda sempre cabe na barra: encolhe itens e espaços conforme a largura da tela
+function padFit() {
+  const el = $('padHelp'); if (!el) return; let z = 1; el.style.setProperty('--phz', 1);
+  const w = el.clientWidth - 24; if (w <= 0) return;
+  while (z > .45 && el.scrollWidth > w + 1) { z -= .05; el.style.setProperty('--phz', z.toFixed(2)); }
+}
+window.addEventListener('resize', () => { clearTimeout(padFit._t); padFit._t = setTimeout(padFit, 80); });

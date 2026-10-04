@@ -753,3 +753,4 @@ body.th-light .fgdots .fgnav { color:#3A322B; border-color:rgba(46,39,33,.25); }
 
 .fgdots span.drag { position:relative; z-index:2; transition:none; cursor:grabbing; box-shadow:0 4px 14px rgba(0,0,0,.5); } .fgdots span.gap { margin-left:30px; } .fgdots span { touch-action:none; user-select:none; transition:background .15s, transform .15s, margin .15s; }
 .cclist { display:flex; flex-direction:column; gap:6px; margin:10px 0; } .ccrow { justify-content:space-between; gap:12px; } .ccrow .cct { flex:1; } .ccrow .msg { white-space:nowrap; }
+.padhelp { gap:calc(26px * var(--phz, 1)); overflow:hidden; } .padhelp .pi { zoom:var(--phz, 1); }
