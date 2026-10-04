@@ -743,3 +743,4 @@ body.th-light .fgdots .fgnav { color:#3A322B; border-color:rgba(46,39,33,.25); }
 .fgcard:not(.has) .fgimg::after { content:""; position:absolute; inset:0; background-image:repeating-linear-gradient(135deg, rgba(255,255,255,.035) 0 2px, transparent 2px 14px); }
 .texfade { position:absolute; inset:0; background:center/cover no-repeat; opacity:0; transition:opacity .7s ease; pointer-events:none; }
 .texfade.on { opacity:1; }
+.cw.morph, .cw.morph *:not(.rot):not(.flip) { transition:width .8s cubic-bezier(.22,.9,.24,1), height .8s cubic-bezier(.22,.9,.24,1), left .8s cubic-bezier(.22,.9,.24,1), top .8s cubic-bezier(.22,.9,.24,1), transform .8s cubic-bezier(.22,.9,.24,1), border-radius .8s, font-size .8s !important; }

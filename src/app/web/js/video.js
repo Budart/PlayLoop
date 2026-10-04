@@ -168,6 +168,9 @@ async function showArt(g) {
       f.appendChild(d); requestAnimationFrame(() => requestAnimationFrame(() => d.classList.add('on')));
     });
     lastArt = { g, url: front, ratio: lastArt.ratio, done: true, soft: true };
+    // depois do esmaecimento, a caixa ganha o formato da capa encontrada (animado, sem girar nem redesenhar)
+    const rr = ratio !== undefined ? Promise.resolve(ratio) : (pr || loadRatio(front));
+    rr.then(r2 => { if (r2 && my === artReq && lastArt.g === g) { lastArt.ratio = r2; setTimeout(() => { if (my === artReq) morphCase(g, front, r2); }, 350); } });
     { const lg = covers['logo|' + coverKey(g)] || a.logo; if (lg) spineLogo(lg, my); }
   } else
   if (pre && pre.url === front && (pre.ratio || 0) === (ratio || pre.ratio || 0)) { { const lg = covers['logo|' + coverKey(g)] || a.logo; if (lg) spineLogo(lg, my); } }   // já está na tela: não redesenha
@@ -253,3 +256,16 @@ window.vidAwaySet = vidAwaySet;
 window.addEventListener('blur', () => setTimeout(() => { const a = document.activeElement; if (!(a && a.tagName === 'IFRAME')) vidAwaySet(true); }, 0));   // clicar no próprio vídeo não conta
 window.addEventListener('focus', () => vidAwaySet(false));
 document.addEventListener('visibilitychange', () => vidAwaySet(document.hidden || !document.hasFocus()));
+
+// troca o formato da caixa 3D aos poucos: monta a nova geometria escondida e passa só as medidas para os elementos que já estão na tela
+function morphCase(g, url, ratio) {
+  const cw = $('art').querySelector('.cw'); if (!cw) return;
+  const tmp = document.createElement('div'); tmp.innerHTML = buildCase(g, url, false, ratio);
+  const nw = tmp.firstElementChild; if (!nw) return;
+  const keep = el => !el.classList.contains('texfade') && !el.classList.contains('tex');
+  const A = [cw, ...cw.querySelectorAll('*')].filter(keep), B = [nw, ...nw.querySelectorAll('*')].filter(keep);
+  if (A.length !== B.length) return;
+  cw.classList.add('morph');
+  A.forEach((el, i) => { if (el.classList.contains('rot') || el.classList.contains('flip') || el.tagName !== B[i].tagName) return; const st = B[i].getAttribute('style'); if (st != null && st !== el.getAttribute('style')) el.setAttribute('style', st); });
+  clearTimeout(morphCase._t); morphCase._t = setTimeout(() => cw.classList.remove('morph'), 900);
+}
