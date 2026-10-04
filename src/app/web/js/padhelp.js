@@ -92,8 +92,9 @@ function updatePadHelp(pad) {
 }
 // legenda sempre cabe na barra: encolhe itens e espaços conforme a largura da tela
 function padFit() {
-  const el = $('padHelp'); if (!el) return; let z = 1; el.style.setProperty('--phz', 1);
-  const w = el.clientWidth - 24; if (w <= 0) return;
-  while (z > .45 && el.scrollWidth > w + 1) { z -= .05; el.style.setProperty('--phz', z.toFixed(2)); }
+  const el = $('padHelp'); if (!el) return; el.style.setProperty('--phz', 1);
+  const pis = [...el.children], w = el.clientWidth - 32; if (w <= 0 || !pis.length) return;
+  const sum = pis.reduce((t, p) => t + p.getBoundingClientRect().width, 0) + 26 * (pis.length - 1);
+  el.style.setProperty('--phz', Math.max(.6, Math.min(1, w / sum)).toFixed(3));
 }
 window.addEventListener('resize', () => { clearTimeout(padFit._t); padFit._t = setTimeout(padFit, 80); });
