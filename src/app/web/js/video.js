@@ -92,7 +92,7 @@ function paintCached(g) {
   lastArt = { g, url: front, ratio, done: true };
   $('art').innerHTML = buildCase(g, front, false, ratio);
   const bgOver = covers['bg|' + coverKey(g)];
-  setBg(cp(bgOver || a.snap || a.box), bgOver || a.snap ? 'game' : 'blur', true);
+  setBg(bgOver || a.snap ? cpb(bgOver || a.snap) : cp(a.box), bgOver || a.snap ? 'game' : 'blur', true);
   return true;
 }
 // placeholder fixo (skeleton) do tamanho aproximado da capa do console, enquanto nada foi carregado
@@ -104,7 +104,7 @@ async function setBg(url, mode, instant) {
   const id = url + '|' + mode; if (id === bgCur) return; bgCur = id;
   const tok = ++bgTok, host = $('gameBg');
   if (url && artAlts(url).length > 1) url = await artResolve(url);   // imagem do tema: usa a reserva se a original falhar
-  else if (url && !instant) { const r = await Promise.race([loadImg(url), new Promise(r => setTimeout(() => r('t'), 1200))]); if (r === null && url.startsWith('/api/img?u=')) url = decodeURIComponent(url.slice(11)); }
+  else if (url && !instant) { const r = await Promise.race([loadImg(url), new Promise(r => setTimeout(() => r('t'), 1200))]); if (r === null && url.startsWith('/api/img?u=')) url = decodeURIComponent(url.slice(11).replace(/&k=bg$/, '')); }
   if (tok !== bgTok) return;
   const old = [...host.querySelectorAll('.bgl')];
   if (url) {
@@ -191,7 +191,7 @@ async function showArt(g) {
   const lbl = { libretro:'capa: libretro', gametdb:'capa: GameTDB', wikimain:'capa: Wikipédia', xlenore:'capa: xlenore', steam:'capa: Steam', fandom:'capa: Fandom', pcgw:'capa: PCGamingWiki', strategywiki:'capa: StrategyWiki', manual:'capa escolhida manualmente', generica:'capa genérica (não encontrada)' }[a.src];
   // segunda imagem de fundo: tela do jogo (ou a capa desfocada) no lugar do fundo do console
   const bgOver = covers['bg|' + coverKey(g)];
-  const bgUrl = cp(bgOver || a.snap || a.box);
+  const bgUrl = bgOver || a.snap ? cpb(bgOver || a.snap) : cp(a.box);
   setBg(bgUrl || bgUrlOf(sys), bgOver || a.snap ? 'game' : a.box ? 'blur' : '');
   if (!bgOver) queueVideo(g); else stopVideo();   // fundo escolhido manualmente tem prioridade sobre o vídeo
 }

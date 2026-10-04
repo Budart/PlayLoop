@@ -636,7 +636,7 @@ async function fgGameBg(g, force) {
   let url = over; if (!url) { const a = cachedArt(g) || await resolveArt(g).catch(() => null); url = a && a.snap; if (!url) url = await findBg(g).catch(() => null); if (!url && a) url = a.box; }   // sem fundo da capa: busca um fundo de verdade antes de usar a própria capa
   if (tok !== fgBgTok || !url) return;
   const old = [...host.querySelectorAll('.bgl')];
-  const l = document.createElement('div'); l.className = 'bgl'; l.style.backgroundImage = `url("${cp(url).replace(/"/g, '%22')}")`;
+  const l = document.createElement('div'); l.className = 'bgl'; l.style.backgroundImage = `url("${cpb(url).replace(/"/g, '%22')}")`;
   host.appendChild(l); host._url = url; host._g = g; fgBgRender(l, url, g); requestAnimationFrame(() => requestAnimationFrame(() => l.classList.add('on')));
   old.forEach(o => { o.classList.remove('on'); setTimeout(() => o.remove(), 600); });
 }
@@ -698,7 +698,7 @@ function listLaunch() {
   if (!emuReady(g)) { launch(); return; }
   const right = document.querySelector('#games .right') || $('art'), a = cachedArt(g);
   const src = covers['bg|' + coverKey(g)] || (a && (a.snap || a.box)) || (lastArt && lastArt.g === g && lastArt.url);   // fundo do jogo > tela > capa
-  let img = src ? `url("${cp(src).replace(/"/g, '%22')}")` : '';
+  let img = src ? `url("${cpb(src).replace(/"/g, '%22')}")` : '';
   if (!img) { const bgl = [...$('gameBg').querySelectorAll('.bgl')].pop(); img = bgl ? bgl.style.backgroundImage : ''; }
   if (!img) { launch(); return; }
   playFx(right.getBoundingClientRect(), img, 'center', 10);
@@ -712,7 +712,7 @@ const fgBgOfs = g => { const v = covers['bofs|' + coverKey(g)]; if (!v) return n
 async function fgBgRender(l, url, g) {
   const tok = fgBgTok, o = fgBgOfs(g), manual = !!covers['bg|' + coverKey(g)];
   // sempre pela cópia local (mesma origem): assim o canvas pode ler os pixels para esticar/embaçar as bordas
-  const src = /^https?:/.test(url) ? '/api/img?u=' + encodeURIComponent(url) : cp(url), im = await new Promise(ok => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = src; });
+  const src = /^https?:/.test(url) ? '/api/img?u=' + encodeURIComponent(url) + '&k=bg' : cp(url), im = await new Promise(ok => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = src; });
   if (!im || tok !== fgBgTok && l.parentNode !== $('fgBg')) return;
   const W = l.offsetWidth || innerWidth, H = l.offsetHeight || innerHeight, iw = im.naturalWidth, ih = im.naturalHeight;
   const cover = Math.max(W / iw, H / ih), contain = Math.min(W / iw, H / ih);

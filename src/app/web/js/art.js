@@ -61,6 +61,7 @@ async function steamSearch(q) {
 // cache de capas no computador (servidor guarda as imagens e o resultado da busca)
 let cacheOn = true, artDisk = {};
 const cp = u => (cacheOn && u && /^https?:/.test(u)) ? '/api/img?u=' + encodeURIComponent(u) : u;
+const cpb = u => { const r = cp(u); return r && r.startsWith('/api/img?u=') ? r + '&k=bg' : r; };   // imagem de fundo: cache separado
 // capa já conhecida (manual, memória ou cache em disco) — resposta imediata, sem esperar nada
 function cachedArt(g) {
   const key = coverKey(g);

@@ -24,6 +24,18 @@ static partial class Central
     static readonly UTF8Encoding Utf8 = new UTF8Encoding(false);
     static string ExePath = Assembly.GetExecutingAssembly().Location;
     static readonly string CacheDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CentralDeJogos", "covers");
+    static readonly string BgCacheDir = Path.Combine(CacheDir, "bg");
+    // tipos de cache: covers = imagens de capas/logos, bg = imagens de fundo, search = resultados de busca (resolved.json), videos = vídeos achados (videos.json)
+    static IEnumerable<FileInfo> CacheFiles(string kind)
+    {
+        string d = kind == "bg" ? BgCacheDir : CacheDir; if (!Directory.Exists(d)) yield break;
+        foreach (var fi in new DirectoryInfo(d).GetFiles())
+        {
+            string nm = fi.Name.ToLowerInvariant();
+            bool ok = kind == "bg" ? true : kind == "search" ? nm == "resolved.json" : kind == "videos" ? nm == "videos.json" : kind == "covers" && !nm.EndsWith(".json");
+            if (ok) yield return fi;
+        }
+    }
     static string Hash(string s) { using (var h = System.Security.Cryptography.SHA1.Create()) return BitConverter.ToString(h.ComputeHash(Encoding.UTF8.GetBytes(s))).Replace("-", "").ToLowerInvariant(); }
     static readonly object CoverLock = new object();
 }

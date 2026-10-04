@@ -91,7 +91,8 @@ function renderConfig() {
     <div class="cfcache">
       <h3>💾 Cache</h3>
       <label class="chk2"><input type="checkbox" id="cfCacheOn" ${cfg.coverCache === false ? '' : 'checked'}> Salvar capas no computador (carregam na hora nas próximas vezes)</label>
-      <div class="line"><button class="btn sec sm" id="cfCacheClear">Limpar cache de capas</button><span class="msg" id="cfCacheInfo"></span></div>
+      <div class="cclist">${[['covers', '🖼 Imagens das capas e logos'], ['bg', '🌄 Imagens de fundo'], ['search', '🔎 Resultados das buscas de capas e fundos'], ['videos', '🎬 Vídeos encontrados no YouTube'], ['thumbs', '📇 Índice de miniaturas (libretro)']].map(([k, t]) => `<div class="line ccrow"><span class="cct">${t}</span><span class="msg" data-ci="${k}"></span><button class="btn sec sm" data-cc="${k}">Limpar</button></div>`).join('')}</div>
+      <div class="line"><button class="btn sec sm" id="cfCacheClear">Limpar tudo</button><span class="msg" id="cfCacheInfo"></span></div>
     </div>
     <div class="cfcache">
       <h3>🎨 SteamGridDB (opcional)</h3>
@@ -143,7 +144,8 @@ function renderConfig() {
   $('cfBody').querySelectorAll('[data-fs]').forEach(el => el.onchange = () => { cfg.consoles[+el.dataset.fs].fullscreen = el.checked; });
   cfg.consoles.forEach(async (c, i) => { if (c.fsArgs == null && c.emulator && c.type !== 'pc') { try { const r = await api('/api/fsarg?emu=' + encodeURIComponent(c.emulator)); c.fsArgs = r.arg; const el = $('cfBody').querySelector(`[data-i="${i}"][data-k="fsArgs"]`); if (el) el.value = r.arg; } catch (e) {} } });
   $('cfCacheOn').onchange = () => { cfg.coverCache = $('cfCacheOn').checked; };
-  $('cfCacheClear').onclick = async () => { try { await api('/api/cache/clear', { method:'POST' }); artDisk = {}; for (const k in artCache) delete artCache[k]; toast('Cache de capas limpo'); cacheInfo(); } catch (e) { toast(e.message, true); } };
+  $('cfCacheClear').onclick = () => cacheClear('all');
+  document.querySelectorAll('[data-cc]').forEach(b => b.onclick = () => cacheClear(b.dataset.cc));
   cacheInfo();
   $('cfBody').querySelectorAll('[data-ico]').forEach(el => el.onclick = () => iconPicker(+el.dataset.ico, 'logo'));
   $('cfBody').querySelectorAll('[data-bgp]').forEach(el => el.onclick = () => iconPicker(+el.dataset.bgp, 'bg'));
@@ -172,7 +174,23 @@ function iconPicker(i, kind) {
   };
   $('ipdef' + i).onclick = () => set('');
 }
-async function cacheInfo() { try { const r = await api('/api/cache/info'); $('cfCacheInfo').textContent = `${r.files} arquivos · ${(r.size / 1048576).toFixed(1)} MB`; } catch (e) {} }
+const ccFmt = (n, sz) => `${n} ${n === 1 ? 'arquivo' : 'arquivos'} · ${(sz / 1048576).toFixed(1)} MB`;
+function thumbsCacheKeys() { const o = []; try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith('tidx|')) o.push(k); } } catch (e) {} return o; }
+async function cacheInfo() {
+  try {
+    const r = await api('/api/cache/info'); if ($('cfCacheInfo')) $('cfCacheInfo').textContent = 'Total: ' + ccFmt(r.files, r.size);
+    const ks = r.kinds || {}; for (const k in ks) { const e = document.querySelector(`[data-ci="${k}"]`); if (e) e.textContent = ccFmt(ks[k].files, ks[k].size); }
+    const tk = thumbsCacheKeys(), e = document.querySelector('[data-ci="thumbs"]'); if (e) { let sz = 0; try { tk.forEach(k => sz += (localStorage.getItem(k) || '').length * 2); } catch (er) {} e.textContent = `${tk.length} ${tk.length === 1 ? 'console' : 'consoles'} · ${(sz / 1048576).toFixed(1)} MB`; }
+  } catch (e) {}
+}
+async function cacheClear(k) {
+  try {
+    if (k === 'thumbs' || k === 'all') { thumbsCacheKeys().forEach(x => { try { localStorage.removeItem(x); } catch (e) {} }); for (const x in thumbIndex) delete thumbIndex[x]; }
+    if (k !== 'thumbs') await api('/api/cache/clear?k=' + k, { method:'POST' });
+    if (k === 'search' || k === 'all') { artDisk = {}; for (const x in artCache) delete artCache[x]; }
+    toast(k === 'all' ? 'Cache limpo' : 'Cache limpo: ' + document.querySelector(`[data-cc="${k}"]`).previousElementSibling.previousElementSibling.textContent.replace(/^\S+\s/, '')); cacheInfo();
+  } catch (e) { toast(e.message, true); }
+}
 // configurações do console "Favoritos" (cfg.fav = { enabled, logo, bg })
 function favCfg() { if (!cfg.fav) cfg.fav = { enabled: cfg.favConsole !== false }; if (cfg.fav.enabled == null) cfg.fav.enabled = true; return cfg.fav; }
 function confirmDel(i) { return window.confirm(`Remover "${cfg.consoles[i].name}" do PlayLoop? (os arquivos não são apagados)`); }

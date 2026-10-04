@@ -203,7 +203,8 @@ static partial class Central
                 // cache de capas em disco: baixa uma vez, depois serve direto do computador
                 string u = req.QueryString["u"] ?? "";
                 if (!Regex.IsMatch(u, "^https?://")) { Send(ctx, 400, "text/plain", new byte[0]); return; }
-                string f = Path.Combine(CacheDir, Hash(u));
+                string cdir = req.QueryString["k"] == "bg" ? BgCacheDir : CacheDir;   // fundos em pasta própria (limpáveis à parte)
+                string f = Path.Combine(cdir, Hash(u));
                 byte[] data = null;
                 if (File.Exists(f)) data = File.ReadAllBytes(f);
                 else
@@ -220,7 +221,7 @@ static partial class Central
                             data = wc.DownloadData(u);
                         }
                         object en; bool on = !(cfg.TryGetValue("coverCache", out en) && en is bool && !(bool)en);
-                        if (on && data.Length > 0) { Directory.CreateDirectory(CacheDir); File.WriteAllBytes(f, data); }
+                        if (on && data.Length > 0) { Directory.CreateDirectory(cdir); File.WriteAllBytes(f, data); }
                     }
                     catch { Send(ctx, 404, "text/plain", new byte[0]); return; }
                 }
@@ -250,14 +251,15 @@ static partial class Central
             else if (path == "/api/cache/info")
             {
                 object bm; string bgMode = cfg.TryGetValue("bgMode", out bm) && bm is string ? (string)bm : "video";
-                long size = 0; int n = 0;
-                if (Directory.Exists(CacheDir)) foreach (var fi in new DirectoryInfo(CacheDir).GetFiles()) { size += fi.Length; n++; }
+                long size = 0; int n = 0; var kinds = new Dictionary<string, object>();
+                foreach (var kd in new[] { "covers", "bg", "search", "videos" }) { long ks = 0; int kn = 0; foreach (var fi in CacheFiles(kd)) { ks += fi.Length; kn++; } size += ks; n += kn; kinds[kd] = new Dictionary<string, object> { { "files", kn }, { "size", ks } }; }
                 object en; bool on = !(cfg.TryGetValue("coverCache", out en) && en is bool && !(bool)en);
-                SendJson(ctx, new Dictionary<string, object> { { "enabled", on }, { "size", size }, { "files", n }, { "bgMode", bgMode }, { "coverStyle", S(cfg, "coverStyle") }, { "favGrid", S(cfg, "favGrid") }, { "theme", S(cfg, "theme") }, { "favBgGame", !(cfg.ContainsKey("favBgGame") && cfg["favBgGame"] is bool && !(bool)cfg["favBgGame"]) }, { "sgdb", S(cfg, "sgdbKey") != "" && cfg.ContainsKey("useSgdb") && cfg["useSgdb"] is bool && (bool)cfg["useSgdb"] }, { "fav", cfg.ContainsKey("fav") ? cfg["fav"] : null }, { "favConsole", !(cfg.ContainsKey("favConsole") && cfg["favConsole"] is bool && !(bool)cfg["favConsole"]) } });
+                SendJson(ctx, new Dictionary<string, object> { { "enabled", on }, { "size", size }, { "files", n }, { "kinds", kinds }, { "bgMode", bgMode }, { "coverStyle", S(cfg, "coverStyle") }, { "favGrid", S(cfg, "favGrid") }, { "theme", S(cfg, "theme") }, { "favBgGame", !(cfg.ContainsKey("favBgGame") && cfg["favBgGame"] is bool && !(bool)cfg["favBgGame"]) }, { "sgdb", S(cfg, "sgdbKey") != "" && cfg.ContainsKey("useSgdb") && cfg["useSgdb"] is bool && (bool)cfg["useSgdb"] }, { "fav", cfg.ContainsKey("fav") ? cfg["fav"] : null }, { "favConsole", !(cfg.ContainsKey("favConsole") && cfg["favConsole"] is bool && !(bool)cfg["favConsole"]) } });
             }
             else if (path == "/api/cache/clear" && req.HttpMethod == "POST")
             {
-                lock (CoverLock) { if (Directory.Exists(CacheDir)) foreach (var fi in new DirectoryInfo(CacheDir).GetFiles()) try { fi.Delete(); } catch { } }
+                string k = req.QueryString["k"] ?? "all";
+                lock (CoverLock) { foreach (var kd in k == "all" ? new[] { "covers", "bg", "search", "videos" } : new[] { k }) foreach (var fi in CacheFiles(kd)) try { fi.Delete(); } catch { } }
                 SendJson(ctx, new Dictionary<string, object> { { "ok", true } });
             }
             else if (path == "/api/hidden")
