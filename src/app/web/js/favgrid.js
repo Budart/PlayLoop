@@ -711,7 +711,8 @@ const fgBgOfs = g => { const v = covers['bofs|' + coverKey(g)]; if (!v) return n
 // ou afastou/diminuiu o fundo em "Reposicionar fundo" deixando cantos vazios — e aí as bordas esticadas ficam embaçadas e escurecidas
 async function fgBgRender(l, url, g) {
   const tok = fgBgTok, o = fgBgOfs(g), manual = !!covers['bg|' + coverKey(g)];
-  const src = cp(url), im = await new Promise(ok => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = src; });
+  // sempre pela cópia local (mesma origem): assim o canvas pode ler os pixels para esticar/embaçar as bordas
+  const src = /^https?:/.test(url) ? '/api/img?u=' + encodeURIComponent(url) : cp(url), im = await new Promise(ok => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = src; });
   if (!im || tok !== fgBgTok && l.parentNode !== $('fgBg')) return;
   const W = l.offsetWidth || innerWidth, H = l.offsetHeight || innerHeight, iw = im.naturalWidth, ih = im.naturalHeight;
   const cover = Math.max(W / iw, H / ih), contain = Math.min(W / iw, H / ih);
@@ -730,13 +731,8 @@ async function fgBgRender(l, url, g) {
     if (x1 < cw) e.drawImage(im, iw - 1, 0, 1, ih, Math.floor(x1) - 1, y0, cw - Math.floor(x1) + 1, h);
     if (y0 > 0) e.drawImage(ed, 0, Math.ceil(Math.max(0, y0)), cw, 1, 0, 0, cw, Math.ceil(y0) + 1);
     if (y1 < ch) e.drawImage(ed, 0, Math.floor(Math.min(ch, y1)) - 1, cw, 1, 0, Math.floor(y1) - 1, cw, ch - Math.floor(y1) + 1);
-    x.filter = 'blur(28px)'; x.drawImage(ed, -40, -40, cw + 80, ch + 80); x.filter = 'none';
-    // 2) degradê escurecendo as bordas esticadas, mais forte longe da imagem
-    const dark = (gx0, gy0, gx1, gy1, rx, ry, rw, rh) => { const gr = x.createLinearGradient(gx0, gy0, gx1, gy1); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,.55)'); x.fillStyle = gr; x.fillRect(rx, ry, rw, rh); };
-    if (x0 > 0) dark(x0, 0, 0, 0, 0, 0, x0, ch);
-    if (x1 < cw) dark(x1, 0, cw, 0, x1, 0, cw - x1, ch);
-    if (y0 > 0) dark(0, y0, 0, 0, 0, 0, cw, y0);
-    if (y1 < ch) dark(0, y1, 0, ch, 0, y1, cw, ch - y1);
+    // embaça só a parte esticada (sem escurecer); um 2º passe mais leve deixa a transição mais natural
+    x.filter = 'blur(32px) saturate(1.15)'; x.drawImage(ed, -48, -48, cw + 96, ch + 96); x.filter = 'blur(10px)'; x.globalAlpha = .5; x.drawImage(ed, -12, -12, cw + 24, ch + 24); x.globalAlpha = 1; x.filter = 'none';
     // 3) a imagem nítida por cima, com a borda suavizada (sem corte seco)
     const sh = document.createElement('canvas'); sh.width = cw; sh.height = ch; const s2 = sh.getContext('2d');
     s2.drawImage(im, x0, y0, w, h);
@@ -746,7 +742,11 @@ async function fgBgRender(l, url, g) {
     s2.drawImage(mk, 0, 0); x.drawImage(sh, 0, 0);
     if (l.parentNode !== $('fgBg')) return;
     l.style.backgroundImage = `url("${cv.toDataURL('image/jpeg', .9)}")`; l.style.backgroundSize = '100% 100%'; l.style.backgroundPosition = 'center';
-  } catch (er) {}   // imagem sem permissão de leitura: fica só a imagem
+  } catch (er) {   // sem acesso aos pixels: preenche as sobras com a própria imagem esticada e embaçada (só CSS, leve)
+    if (l.parentNode !== $('fgBg')) return;
+    l.style.backgroundSize = `${dw}px ${dh}px`; l.style.backgroundPosition = `${px}% ${py}%`; l.style.backgroundRepeat = 'no-repeat';
+    const fill = document.createElement('div'); fill.className = 'bgfill'; fill.style.backgroundImage = `url("${src.replace(/"/g, '%22')}")`; l.prepend(fill);
+  }
 }
 function fgApplyBgOfs(l, url, g) { return fgBgRender(l, url, g); }
 const fgOfs = g => { const v = covers['fofs|' + coverKey(g)]; if (!v) return null; const [x, y, z] = v.split(',').map(Number); return { x, y, z: z || 1 }; };

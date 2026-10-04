@@ -749,3 +749,4 @@ body.th-light .fgdots .fgnav { color:#3A322B; border-color:rgba(46,39,33,.25); }
 #coverModal.bgs .cgrid { grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:14px; }
 #coverModal.bgs .cgrid .it img { height:auto; aspect-ratio:16/9; object-fit:cover; border-radius:5px; }
 #coverModal.bgs .cgrid .it.more { min-height:0; aspect-ratio:16/9; }
+#fgBg .bgl { isolation:isolate; } #fgBg .bgl .bgfill { position:absolute; inset:-60px; z-index:-1; background-size:100% 100%; filter:blur(36px) saturate(1.15); }
