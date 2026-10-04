@@ -347,10 +347,14 @@ function vRender() {
 }
 function vSchedule() { if (!vRaf) vRaf = requestAnimationFrame(vRender); }
 function rowTop(i) { let y = 0; for (const it of vItems) { if (it.i === i) return y; y += it.h; } return -1; }
+let listMouseAt = 0;
+document.addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('#list')) listMouseAt = Date.now(); }, true);
 function ensureVisible(i) {
   const L = $('list'), y = rowTop(i); if (y < 0) return;
-  if (y < L.scrollTop) L.scrollTop = y;
-  else if (y + vRowH > L.scrollTop + L.clientHeight) L.scrollTop = y + vRowH - L.clientHeight;
+  if (Date.now() - listMouseAt < 400) {   // clique do mouse: só garante que aparece (sem pular a lista)
+    if (y < L.scrollTop) L.scrollTop = y;
+    else if (y + vRowH > L.scrollTop + L.clientHeight) L.scrollTop = y + vRowH - L.clientHeight;
+  } else L.scrollTop = Math.max(0, y - (L.clientHeight - vRowH) / 2);   // teclado/controle: jogo em foco no meio, mostrando os que vêm depois
   vRender();
 }
 function bindListOnce() {
