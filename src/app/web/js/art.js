@@ -146,8 +146,9 @@ async function sgdbGame(g) {
     if (sid) { const r = await api('/api/sgdb?p=' + encodeURIComponent('/api/v2/games/steam/' + sid[1])); id = r && r.data && r.data.id; }
     if (!id) {
       const list = await sg('/api/v2/search/autocomplete/' + encodeURIComponent(q));
-      const best = list.map(x => ({ x, ...relevance(q, x.name) })).filter(x => x.phrase || x.overlap >= .6).sort((a, b) => (b.phrase - a.phrase) || (b.overlap - a.overlap))[0];
-      id = best ? best.x.id : null;
+      // o mais parecido; se nenhum tiver nome parecido, o 1º sugerido pelo SteamGridDB (igual à busca manual — ex.: nome japonês x inglês)
+      const best = list.map(x => ({ x, ...relevance(q, x.name) })).sort((a, b) => (b.phrase - a.phrase) || (b.overlap - a.overlap))[0];
+      id = best && (best.phrase || best.overlap >= .6) ? best.x.id : (list[0] ? list[0].id : null);
     }
   } catch (e) {}
   return sgdbCache[k] = id;
@@ -168,7 +169,7 @@ function genHash(n) { let h = 0; for (const ch of (n || '')) h = (h * 31 + ch.ch
 //  • depois de 2 s → a melhor com nome parecido de qualquer fonte (inclui SteamGridDB)
 //  • se tudo terminar sem nome parecido → a que carregou de qualquer jeito (nunca genérica se alguma imagem existe)
 // Fundo e título são completados depois, sem atrasar a capa.
-const SRC_PRIO = { libretro: 6, code: 6, steam: 4, sgdb: 3, wikimain: 2, fandom: 2, pcgw: 2, strategywiki: 2 };
+const SRC_PRIO = { libretro: 6, code: 6, sgdb: 5, steam: 4, wikimain: 2, fandom: 2, pcgw: 2, strategywiki: 2 };
 async function resolveArt0(g) {
   const key = coverKey(g);
   if (covers[key]) return { box: covers[key], snap: null, src: 'manual' };
@@ -182,14 +183,19 @@ async function resolveArt0(g) {
   const score = c => level(c) * 100 + (SRC_PRIO[c.src] || 1) * 10 + Math.min(9, (c.overlap || 0) * 9);
   const pick = minLevel => { const ok = cands.filter(c => c.ok && level(c) >= minLevel); ok.sort((x, y) => score(y) - score(x)); return ok[0]; };
   let decided = false;
+  // ordem: oficial com nome certo (na hora) > SteamGridDB (aos 4 s sem oficial) > outras fontes com nome parecido > qualquer imagem
   const decide = final => {
     if (decided) return;
-    const off = cands.filter(c => c.ok && level(c) === 2 && SRC_PRIO[c.src] === 6).sort((x, y) => score(y) - score(x))[0];
-    const late = Date.now() - t0 >= 2000;
-    const c = off || (late ? pick(1) : null) || (final ? pick(0) : null);
+    const el = Date.now() - t0, ok = cands.filter(c => c.ok);
+    const by = l => l.sort((x, y) => score(y) - score(x))[0];
+    const off = by(ok.filter(c => level(c) === 2 && SRC_PRIO[c.src] === 6));
+    const late = el >= (sgdbOn ? 4000 : 2000) || final;   // sem a chave não há por que esperar 4 s
+    const sgc = late ? by(ok.filter(c => c.src === 'sgdb')) : null;
+    const other = late ? by(ok.filter(c => c.src !== 'sgdb' && level(c) >= 1)) : null;
+    const c = off || sgc || other || (final ? by(ok) : null);
     if (c || final) { decided = true; finish(c || null); }
   };
-  const tmr = setTimeout(() => decide(false), 2000);
+  const tmr = setTimeout(() => decide(false), 2000), tmr2 = setTimeout(() => decide(false), 4000);
   const addC = (list, src, trusted) => {
     for (const it of list || []) {
       if (!it || !it.url || cands.some(c => c.url === it.url)) continue;
@@ -215,7 +221,7 @@ async function resolveArt0(g) {
   source(mw('https://www.pcgamingwiki.com/w/api.php', q, 2).then(l => l.map(p => ({ url: p.img, title: p.title }))), 'pcgw', false);
   source(mw('https://strategywiki.org/w/api.php', q, 2).then(l => l.map(p => ({ url: p.img, title: p.title }))), 'strategywiki', false);
   if (sgdbOn) source(sgP.then(a => a && a.box ? [{ url: a.box, title: q }] : []), 'sgdb', true);
-  const best = await out; clearTimeout(tmr);
+  const best = await out; clearTimeout(tmr); clearTimeout(tmr2);
   // libretro achada pelo nome exato do arquivo conta como oficial confiável
   let box = best ? best.url : null, src = best ? best.src : 'generica';
   if (src === 'code') src = /gametdb/.test(box) ? 'gametdb' : /steam/.test(box) ? 'steam' : 'xlenore';

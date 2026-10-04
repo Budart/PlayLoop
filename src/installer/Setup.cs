@@ -14,7 +14,7 @@ using Microsoft.Win32;
 
 [assembly: AssemblyTitle("PlayLoop - Instalador")]
 [assembly: AssemblyProduct("PlayLoop")]
-[assembly: AssemblyVersion("1.3.0.0")]
+[assembly: AssemblyVersion("1.3.1.0")]
 
 class Setup : Form
 {
@@ -121,7 +121,7 @@ class Setup : Form
 
         installBtn = Btn("Instalar", new Point(x + 244, 400), 160, true);
         installBtn.Click += (s, e) => { if (done) { if (cRun.Checked) Launch(); Close(); } else Install(); };
-        Controls.Add(new Label { Text = "v1.3.0", ForeColor = Muted, Font = new Font("Segoe UI", 8.5f), Location = new Point(x, 412), AutoSize = true });
+        Controls.Add(new Label { Text = "v1.3.1", ForeColor = Muted, Font = new Font("Segoe UI", 8.5f), Location = new Point(x, 412), AutoSize = true });
 
         MouseDown += Drag;
     }
@@ -243,7 +243,7 @@ class Setup : Form
                 SetStatus("Registrando no Windows...", 68);
                 using (var k = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\PlayLoop"))
                 {
-                    k.SetValue("DisplayName", "PlayLoop"); k.SetValue("DisplayIcon", exe); k.SetValue("DisplayVersion", "1.3.0");
+                    k.SetValue("DisplayName", "PlayLoop"); k.SetValue("DisplayIcon", exe); k.SetValue("DisplayVersion", "1.3.1");
                     k.SetValue("Publisher", "PlayLoop"); k.SetValue("InstallLocation", dir);
                     k.SetValue("UninstallString", "\"" + exe + "\" --uninstall"); k.SetValue("NoModify", 1); k.SetValue("NoRepair", 1);
                 }
