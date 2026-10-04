@@ -66,7 +66,7 @@ function cachedArt(g) {
   const key = coverKey(g);
   if (covers[key]) return { box: covers[key], snap: null, src: 'manual', ratio: artDisk[key] && artDisk[key].ratio, logo: artDisk[key] && artDisk[key].logo };
   if (artCache[key]) return artCache[key];
-  if (cacheOn && artDisk[key] && !/^(wikipedia|wikiintl)$/.test(artDisk[key].src) && (sgdbOn || artDisk[key].src !== 'sgdb') && (!sgdbOn || artDisk[key].src === 'sgdb')) return artCache[key] = artDisk[key];   // ignora capas antigas da Wikipédia
+  if (cacheOn && artDisk[key] && artDisk[key].v === 2 && (sgdbOn || artDisk[key].src !== 'sgdb')) return artCache[key] = artDisk[key];   // v2: capas reais primeiro (resultados antigos são refeitos uma vez)   // ignora capas antigas da Wikipédia
   return null;
 }
 async function resolveArt(g) {
@@ -152,36 +152,45 @@ async function resolveArt0(g) {
   if (covers[key]) return { box: covers[key], snap: null, src: 'manual' };
   if (artCache[key]) return artCache[key];
   const q = cleanTitle(dn(g)) || dn(g);
-  if (sgdbOn) { const a = await sgdbArt(g).catch(() => null); if (a && a.box) return artCache[key] = { ...a, src: 'sgdb' }; }
-  // busca em todos os repositórios ao mesmo tempo; prioridade: nome exato > mais palavras em comum > maior resolução
-  const tasks = [];
+  // capas: fontes "reais" primeiro (scans/artes oficiais); SteamGridDB (artes da comunidade) só se nada servir.
+  // fundos e títulos: SteamGridDB primeiro quando ligado. Ele começa em paralelo para não atrasar nada.
+  const sgP = sgdbOn ? sgdbArt(g).catch(() => null) : Promise.resolve(null);
   const sized = async (src, list, trusted) => {   // list: [{url, title}]
-    const out = [];
-    for (const it of list) { const r = await imgSize(it.url); if (r) out.push({ ...r, src, title: it.title, ...(trusted ? { phrase: 1, overlap: 1 } : relevance(q, it.title)) }); }
-    return out;
+    const out = await Promise.all(list.map(async it => { const r = await imgSize(it.url); return r ? { ...r, src, title: it.title, ...(trusted ? { phrase: 1, overlap: 1 } : relevance(q, it.title)) } : null; }));
+    return out.filter(Boolean);
   };
-  const add = (src, p, trusted) => tasks.push(p.then(list => sized(src, list || [], trusted)).catch(() => []));
+  const run = tasks => Promise.all(tasks).then(l => [].concat(...l).filter(c => c.phrase || c.overlap >= .6));   // descarta quem bate só com parte do nome
+  const add = (arr, src, p, trusted) => arr.push(p.then(list => sized(src, list || [], trusted)).catch(() => []));
   const repo = (k, n) => EXTRA_REPOS.find(r => r.key === k).find(g).then(l => l.slice(0, n || 3).map(p => ({ url: p.img, title: p.title })));
   const steam = n => steamSearch(q).then(items => Promise.all(items.slice(0, n).map(async it => { const u = await firstOk(steamUrls(it.id)); return u ? { url: u, title: it.name } : null; }))).then(l => l.filter(Boolean));
   const wiki = () => wikiMain(q, 2).then(l => l.map(p => ({ url: p.img, title: p.title })));
   const byId = () => idCovers(g).then(async urls => { const u = await firstOk(urls); return u ? [{ url: u, title: q }] : []; });
-  if (sys.type === 'pc') {
-    add('steam', byId(), true); add('steam', steam(3)); add('pcgw', repo('pcgw')); add('fandom', repo('fandom')); add('strategywiki', repo('strategywiki')); add('wikimain', wiki());
-  } else {
-    add('libretro', firstOk(boxartUrls(sys, g.name)).then(u => u ? [{ url: u, title: decodeURIComponent(u.split('/').pop()) }] : []));
-    add('code', byId(), true);
-    add('fandom', repo('fandom')); add('strategywiki', repo('strategywiki')); add('pcgw', repo('pcgw')); add('steam', steam(3)); add('wikimain', wiki());
+  // 1ª rodada (rápidas e com capas reais): libretro + código do jogo (GameTDB/xlenore); no PC, Steam
+  const t1 = [], t2 = [];
+  if (sys.type === 'pc') { add(t1, 'steam', byId(), true); add(t1, 'steam', steam(3)); }
+  else { add(t1, 'libretro', firstOk(boxartUrls(sys, g.name)).then(u => u ? [{ url: u, title: decodeURIComponent(u.split('/').pop()) }] : [])); add(t1, 'code', byId(), true); }
+  let found = (await run(t1)).sort(relCmp);
+  // 2ª rodada (wikis, mais lentas) só se a primeira não achou nada com o nome certo
+  if (!found.some(c => c.phrase)) {
+    add(t2, 'fandom', repo('fandom')); add(t2, 'strategywiki', repo('strategywiki')); add(t2, 'pcgw', repo('pcgw')); add(t2, 'wikimain', wiki());
+    if (sys.type !== 'pc') add(t2, 'steam', steam(3));
+    found = found.concat(await run(t2)).sort(relCmp);
   }
-  // descarta resultados que batem só com parte do nome (ex.: "Elite" para "Elite Soccer")
-  const found = [].concat(...(await Promise.all(tasks))).filter(c => c.phrase || c.overlap >= .6).sort(relCmp);
+  const sg = await sgP;
   const best = found[0];
-  let box = best ? best.url : null, src = best ? best.src : 'generica', snap = null;
+  let box = best ? best.url : null, src = best ? best.src : 'generica', snap = null, logo = null;
+  if (!box && sg && sg.box) { box = sg.box; src = 'sgdb'; }
   if (src === 'code') src = /gametdb/.test(box) ? 'gametdb' : /steam/.test(box) ? 'steam' : 'xlenore';
-  // imagem de fundo: tela do jogo (libretro) ou arte da Steam
-  if (box && /Named_Boxarts/.test(box)) snap = await firstOk([box.replace('/Named_Boxarts/', '/Named_Snaps/'), box.replace('/Named_Boxarts/', '/Named_Titles/')]);
+  // fundo: SteamGridDB (hero) > tela do jogo (libretro) > arte da Steam
+  if (sg && sg.snap) snap = sg.snap;
+  else if (box && /Named_Boxarts/.test(box)) snap = await firstOk([box.replace('/Named_Boxarts/', '/Named_Snaps/'), box.replace('/Named_Boxarts/', '/Named_Titles/')]);
   else if (box && /steamstatic/.test(box)) snap = await firstOk([box.replace(/\/[^/]+$/, '/library_hero.jpg')]);
   if (!snap && sys.type !== 'pc') { const lib = found.find(f => f.src === 'libretro'); if (lib) snap = await firstOk([lib.url.replace('/Named_Boxarts/', '/Named_Snaps/')]); }
-  return artCache[key] = { box, snap, src };
+  // título (logo): SteamGridDB > logo oficial da libretro (Named_Logos) ou da Steam — uma tentativa só, sem buscas extras
+  if (sg && sg.logo) logo = sg.logo;
+  else if (box && /Named_Boxarts/.test(box)) logo = await firstOk([box.replace('/Named_Boxarts/', '/Named_Logos/')]);
+  else if (box && /steamstatic/.test(box)) logo = await firstOk([box.replace(/\/[^/]+$/, '/logo.png')]);
+  return artCache[key] = { box, snap, src, v: 2, ...(logo ? { logo } : {}) };
 }
 /* ---------- case 3D: proporção e laterais de cada console ---------- */
 const CASES = {
