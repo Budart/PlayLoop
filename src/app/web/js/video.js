@@ -163,14 +163,21 @@ async function showArt(g) {
   // capa real chegando por cima da genérica: troca suave na mesma caixa (sem girar, sem redesenhar, rotação continua)
   if (!front && lastArt && lastArt.g === g && box.querySelector('.generic')) { lastArt = { g, url: null, done: true }; }   // continua a genérica que já está na tela (sem redesenhar)
   else if (front && lastArt && lastArt.g === g && !lastArt.url && box.querySelector('.generic')) {
-    box.querySelectorAll('.generic').forEach(el => {
-      const f = el.parentNode, d = document.createElement('div'); d.className = 'texfade'; d.style.backgroundImage = `url("${front.replace(/"/g, '%22')}")`;
-      f.appendChild(d); requestAnimationFrame(() => requestAnimationFrame(() => d.classList.add('on')));
-    });
     lastArt = { g, url: front, ratio: lastArt.ratio, done: true, soft: true };
-    // depois do esmaecimento, a caixa ganha o formato da capa encontrada (animado, sem girar nem redesenhar)
-    const rr = (ratio ? Promise.resolve(ratio) : (pr || loadRatio(front))).then(x => x || loadRatio(a.box)).then(x => x || loadDims(a.box).then(d => d && d.w / d.h)).catch(() => null);   // mede pela imagem original se o cache falhar
-    rr.then(r2 => { if (r2 && my === artReq && lastArt.g === g) { lastArt.ratio = r2; setTimeout(() => { if (my === artReq) morphCase(g, front, r2); }, 350); } });
+    // 1) baixa a imagem por inteiro; 2) esmaece por cima da genérica; 3) só depois disso a caixa muda de formato (medida pela própria imagem)
+    const im = new Image(), src0 = front;
+    const apply = (url, ok) => {
+      if (my !== artReq || lastArt.g !== g) return;
+      const layers = [];
+      box.querySelectorAll('.generic').forEach(el => { const d = document.createElement('div'); d.className = 'texfade'; d.style.backgroundImage = `url("${url.replace(/"/g, '%22')}")`; el.parentNode.appendChild(d); layers.push(d); });
+      requestAnimationFrame(() => requestAnimationFrame(() => layers.forEach(d => d.classList.add('on'))));
+      const r2 = ok && im.naturalWidth > 1 ? im.naturalWidth / im.naturalHeight : null;
+      setTimeout(() => { if (r2 && my === artReq && lastArt.g === g) { lastArt.ratio = r2; morphCase(g, url, r2); } }, 800);   // depois do esmaecimento (0,7 s) terminar
+    };
+    let cur = src0;
+    im.onload = () => apply(cur, true);
+    im.onerror = () => { if (a.box && cur !== a.box) { cur = a.box; im.src = cur; return; } apply(src0, false); };   // cache falhou: usa a imagem original
+    im.src = cur;
     { const lg = covers['logo|' + coverKey(g)] || a.logo; if (lg) spineLogo(lg, my); }
   } else
   if (pre && pre.url === front && (pre.ratio || 0) === (ratio || pre.ratio || 0)) { { const lg = covers['logo|' + coverKey(g)] || a.logo; if (lg) spineLogo(lg, my); } }   // já está na tela: não redesenha
@@ -262,7 +269,8 @@ function morphCase(g, url, ratio) {
   const cw = $('art').querySelector('.cw'); if (!cw) return;
   const tmp = document.createElement('div'); tmp.innerHTML = buildCase(g, url, false, ratio);
   const nw = tmp.firstElementChild; if (!nw) return;
-  const keep = el => !el.classList.contains('texfade') && !el.classList.contains('tex');
+  // só a estrutura da caixa: ignora camadas de imagem e o conteúdo da lombada (logo/texto mudam quando a imagem do título carrega)
+  const keep = el => !el.classList.contains('texfade') && !el.classList.contains('tex') && !(el.parentElement && el.parentElement.closest('.spine, .face.spine, [class*="spine"]'));
   const A = [cw, ...cw.querySelectorAll('*')].filter(keep), B = [nw, ...nw.querySelectorAll('*')].filter(keep);
   if (A.length !== B.length) return;
   cw.classList.add('morph');
