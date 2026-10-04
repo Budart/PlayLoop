@@ -65,7 +65,7 @@ const cp = u => (cacheOn && u && /^https?:/.test(u)) ? '/api/img?u=' + encodeURI
 function cachedArt(g) {
   const key = coverKey(g);
   if (covers[key]) return { box: covers[key], snap: null, src: 'manual', ratio: artDisk[key] && artDisk[key].ratio, logo: artDisk[key] && artDisk[key].logo };
-  if (artCache[key]) { const a = artCache[key]; if (a.box || !a.t || Date.now() - a.t < 60000) return a; delete artCache[key]; }   // capa genérica nunca é definitiva: depois de 1 min tenta de novo
+  if (artCache[key]) { const a = artCache[key]; if (a.box || !a.t || Date.now() - a.t < 3000) return a; delete artCache[key]; }   // capa genérica nunca é definitiva: depois de 1 min tenta de novo
   const d = artDisk[key]; if (cacheOn && d && d.v === 2 && (sgdbOn || d.src !== 'sgdb') && d.box) return artCache[key] = d;   // v2: capas reais primeiro (resultados antigos são refeitos uma vez)   // ignora capas antigas da Wikipédia
   return null;
 }
@@ -161,6 +161,7 @@ async function sgdbArt(g) {
   const grid = grids.find(x => aspectOk(x.width / x.height)) || grids[0];
   return { box: grid ? grid.url : null, snap: heroes[0] ? heroes[0].url : null, logo: logos[0] ? logos[0].url : null };
 }
+function genHash(n) { let h = 0; for (const ch of (n || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; }   // cor da capa genérica (fixa por jogo)
 async function resolveArt0(g) {
   const key = coverKey(g);
   if (covers[key]) return { box: covers[key], snap: null, src: 'manual' };
@@ -256,8 +257,7 @@ function buildCase(g, url, back, ratio) {
   const spineHtml = `<span style="color:var(--etxt, ${c.txt});font-size:${px(fs)}">${esc(cleanTitle(dn(g)) || dn(g))}</span>` +
     (lg ? `<img class="spl" src="${esc(cp(lg))}" alt="" style="opacity:0" onload="this.style.opacity=1;const t=this.previousElementSibling;if(t)t.remove()" onerror="this.remove()">` : '');
   // capa genérica: degradê com cor própria de cada jogo (pelo nome), brilhos suaves e textura leve
-  let hh = 0; for (const ch of (dn(g) || '')) hh = (hh * 31 + ch.charCodeAt(0)) >>> 0;
-  const hue = hh % 360, hue2 = (hue + 40 + (hh >> 8) % 60) % 360;
+  const hh = genHash(dn(g)), hue = hh % 360, hue2 = (hue + 40 + (hh >> 8) % 60) % 360;
   const coverStyle = `background:radial-gradient(120% 80% at 15% 10%, hsla(${hue2},90%,65%,.55), transparent 60%), radial-gradient(90% 70% at 90% 95%, hsla(${hue},85%,55%,.5), transparent 65%), linear-gradient(155deg, hsl(${hue},55%,22%) 0%, hsl(${hue2},45%,12%) 60%, #07080d 100%);`;
   const tex = url ? `<div style="position:absolute;inset:0;background:url('${url.replace(/'/g, "%27")}') center/cover no-repeat"></div>` : '';
   const inner = `<div class="generic" style="position:absolute;inset:0;color:#fff"><div class="gx"></div><div class="glg"><img class="lg" src="${logoUrl(sys)}" alt=""></div><img class="ct" src="${ART}controllers/${sys.art}.svg" alt=""><div class="gb"><div class="gt" style="font-size:${px(Math.max(13, W * .095))}">${esc(cleanTitle(dn(g)) || dn(g))}</div><div class="gs" style="font-size:${px(Math.max(8, W * .038))}">${esc(sys.name || '')}</div></div></div>`;
@@ -311,7 +311,7 @@ async function findBg(g) {
   })();
 }
 
-// enquanto houver capa genérica na tela, continua procurando a imagem de verdade (a cada 40 s; só o que está visível)
+// enquanto houver capa genérica na tela, continua procurando a imagem de verdade (a cada 3 s; só o que está visível)
 setInterval(() => {
   if (document.hidden || (typeof gameOn !== 'undefined' && gameOn)) return;
   if (typeof screen === 'undefined') return;
@@ -321,4 +321,4 @@ setInterval(() => {
   } else if (screen === 'favgrid' && typeof fgArt === 'function') {
     [...document.querySelectorAll('#fgTrack .fgcard:not(.has)')].slice(0, 4).forEach(el => fgArt(+el.dataset.i, el));
   }
-}, 40000);
+}, 3000);

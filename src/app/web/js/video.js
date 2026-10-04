@@ -96,12 +96,7 @@ function paintCached(g) {
   return true;
 }
 // placeholder fixo (skeleton) do tamanho aproximado da capa do console, enquanto nada foi carregado
-function skeletonCase(g) {
-  const base = CASES[sys.type === 'pc' ? 'pc' : sys.id] || { r:.72 };
-  const area = $('art').getBoundingClientRect(), small = area.width < 400;
-  const H = Math.max(60, Math.min(area.height * (small ? .8 : .52), area.width * (small ? .78 : .45) / base.r)), W = H * base.r;
-  return `<div class="skel" style="width:${W.toFixed(0)}px;height:${H.toFixed(0)}px"></div>`;
-}
+function skeletonCase(g) { return buildCase(g, null, false); }   // enquanto busca: já mostra a capa genérica (nada de placeholder)
 function clearBg() { bgCur = ''; bgTok++; $('gameBg').querySelectorAll('.bgl').forEach(o => o.remove()); }
 // fundo com transição suave (crossfade entre a imagem antiga e a nova)
 let bgCur = '', bgTok = 0;

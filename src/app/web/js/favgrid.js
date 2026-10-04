@@ -306,7 +306,7 @@ function renderFavGrid() {
       if (pl.p !== p) return;
       const g = fg.items[i];
       html += `<div class="fgcard${i === fg.sel ? ' sel' : ''}" data-i="${i}" style="${fgFree ? frStyle(pl) : `grid-column:${pl.x + 1} / span ${pl.w};grid-row:${pl.y + 1} / span ${pl.h}`}">
-        <div class="fgimg"></div><div class="fgname">${esc(dn(g))}</div>
+        <div class="fgimg" style="--gh:${genHash(dn(g)) % 360};--gh2:${(genHash(dn(g)) % 360 + 50) % 360}"></div><div class="fgname">${esc(dn(g))}</div>
         <button class="fgi" data-info title="Info (I)">i</button><span class="fgrz r" data-rz="r"></span><span class="fgrz b" data-rz="b"></span><span class="fgrz rb" data-rz="rb"></span></div>`;
     });
     html += '</div>';

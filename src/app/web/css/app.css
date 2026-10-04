@@ -738,3 +738,6 @@ body.th-light .fgdots .fgnav { color:#3A322B; border-color:rgba(46,39,33,.25); }
 .generic .gt { font-weight:800; line-height:1.05; letter-spacing:-.01em; text-shadow:0 3px 14px rgba(0,0,0,.45); display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden; }
 .generic .gs { margin-top:6%; font-weight:600; letter-spacing:.16em; text-transform:uppercase; opacity:.7; }
 .generic .gb::before { content:""; display:block; width:22%; height:3px; border-radius:2px; margin-bottom:8%; background:linear-gradient(90deg,#fff,rgba(255,255,255,0)); opacity:.8; }
+/* card sem imagem (buscando ou sem capa): capa genérica colorida, sem animação de carregamento */
+.fgcard:not(.has) .fgimg { animation:none !important; background:radial-gradient(120% 80% at 15% 10%, hsla(var(--gh2),90%,65%,.5), transparent 60%), radial-gradient(90% 70% at 90% 95%, hsla(var(--gh),85%,55%,.45), transparent 65%), linear-gradient(155deg, hsl(var(--gh),55%,22%), hsl(var(--gh2),45%,12%) 60%, #07080d) !important; }
+.fgcard:not(.has) .fgimg::after { content:""; position:absolute; inset:0; background-image:repeating-linear-gradient(135deg, rgba(255,255,255,.035) 0 2px, transparent 2px 14px); }
