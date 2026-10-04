@@ -359,6 +359,22 @@ async function fgArt(i, el) {
   if (!url) { const a = cachedArt(g) || await resolveArt(g).catch(() => null); if (a) { const r = el.getBoundingClientRect(), ar = r.height > 0 ? r.width / r.height : pl.w / pl.h; url = (sgdbOn && ar > 16 / 9 && a.snap) ? a.snap : a.box; } }   // fundo só com SteamGridDB e card mais largo que 16:9; senão, capa
   const im = el.querySelector('.fgimg');
   if (url) { im.style.backgroundImage = `url("${cp(url).replace(/"/g, '%22')}")`; el.classList.add('has'); el._url = url; fgApplyOfs(el, g); }
+  if (url && covers['fnew|' + coverKey(g)]) fgAutoShape(i, g, url);
+}
+// recém-favoritado: o card assume o formato da capa (uma vez só, assim que a capa aparece)
+async function fgAutoShape(i, g, url) {
+  const key = 'fnew|' + coverKey(g); delete covers[key]; api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, url: '' }) }).catch(() => {});
+  const d = await loadDims(url); if (!d || !d.w || !d.h || fg.moving || screen !== 'favgrid') return;
+  const k = fg.items.indexOf(g), pl = fg.place[k]; if (k < 0 || !pl) return;
+  const r = Math.max(.4, Math.min(2.4, d.w / d.h)), { R, C } = fgDim();
+  if (fgFree) {
+    const h = r > 1.2 ? 1.2 : 1.5, w = Math.max(FR_MIN, Math.min(4, C, h * r));
+    if (Math.abs(w - pl.w) < .05 && Math.abs(h - pl.h) < .05) return;
+    frResizeMany([k], w, h, { ...pl, w, h: Math.min(h, R) });
+  } else {
+    const w = r > 1.3 ? 2 : 1, h = r < .75 ? 2 : 1;
+    if (w !== pl.w || h !== pl.h) fgResize(g, w, h);
+  }
 }
 function fgPage(p, quiet) {
   fg.page = Math.max(0, Math.min(Math.max(fg.pages, $('fgTrack').querySelectorAll('.fgpage').length) - 1, p));

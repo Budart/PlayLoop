@@ -40,7 +40,7 @@ function multiInfo() { const n = multi.size; $('count').textContent = n > 1 ? `$
 const postCover = (key, url) => api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, url }) }).catch(() => {});
 async function batchFav(on) {
   const list = [...multi];
-  for (const g of list) { const key = 'fav|' + coverKey(g); if (on) covers[key] = '1'; else delete covers[key]; }
+  for (const g of list) { const key = 'fav|' + coverKey(g); if (on) { covers[key] = '1'; markFavNew(g); } else delete covers[key]; }
   sfx(on ? 'ok' : 'back'); toast(`${list.length} jogos ${on ? 'favoritados' : 'removidos dos favoritos'}`);
   await Promise.all(list.map(g => postCover('fav|' + coverKey(g), on ? '1' : '')));
   const nb = on ? nextBelow(new Set(list)) : null; multi.clear(); multiKeep = false;
@@ -179,9 +179,10 @@ async function askDelete(g) {
 function clearFavLayout(g) {
   ['fpos|', 'fsz|', 'ffree|'].forEach(p => { const k = p + coverKey(g); if (covers[k] === undefined) return; delete covers[k]; api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key: k, url: '' }) }).catch(() => {}); });
 }
+function markFavNew(g) { const k = 'fnew|' + coverKey(g); covers[k] = '1'; postCover(k, '1'); }   // nos Favoritos, o card vai pegar o formato da capa
 async function toggleFav(g) {
   const key = 'fav|' + coverKey(g), on = covers[key] !== '1';
-  if (on) covers[key] = '1'; else { delete covers[key]; clearFavLayout(g); }
+  if (on) { covers[key] = '1'; markFavNew(g); } else { delete covers[key]; clearFavLayout(g); }
   sfx(on ? 'ok' : 'back');
   const nb = on && screen === 'games' && shown[gIdx] === g ? nextBelow(new Set([g])) : null;   // favoritou o jogo em foco: segue para o de baixo
   try { await api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, url: on ? '1' : '' }) }); } catch (e) { toast(e.message, true); }
