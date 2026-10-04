@@ -201,6 +201,7 @@ document.addEventListener('keydown', e => {
   if (screen === 'favgrid' && !modalOpen && e.key === ' ') { e.preventDefault(); fgInput('fav'); return; }   // Espaço = □ (mover card)
   if (e.key === 'F3' && (screen === 'favgrid' || (screen === 'games' && favMode))) { e.preventDefault(); setFavView(favView === 'list' ? 'grid' : 'list'); return; }
   if (e.key === 'F2' && screen === 'games' && shown[gIdx]) { e.preventDefault(); startRename(gIdx); return; }
+  if (e.key === 'F2' && screen === 'favgrid' && fg.items[fg.sel] && !modalOpen) { e.preventDefault(); fgRename(); return; }
   if (screen === 'config') {   // teclado igual ao D-pad: setas navegam, Tab = próximo (Shift+Tab = anterior), Enter ativa, Esc volta
     const ae = document.activeElement, typing = ae && (ae.tagName === 'TEXTAREA' || (ae.tagName === 'INPUT' && !/checkbox|radio/.test(ae.type)));
     if (!document.querySelector('#cfBody .kbf') && ae && ae.closest && ae.closest('#cfBody')) cfgMark(ae.closest('.pick') || ae);   // começou com o mouse: segue dali

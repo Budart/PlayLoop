@@ -199,6 +199,7 @@ Object.assign(ICO, {
   grid: SV('<rect x="3" y="3" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1"/>'),
   back: SV('<path d="M15 5l-7 7 7 7"/>'),
   clear: SV('<rect x="3" y="3" width="18" height="18" rx="3" stroke-dasharray="3 3"/><path d="M9 9l6 6M15 9l-6 6"/>'),
+  title: SV('<path d="M4 6V4h16v2M12 4v16M9 20h6"/>'),
   org: SV('<path d="M4 6h16M4 12h10M4 18h6"/><path d="M17 15l3 3-3 3"/>'),
 });
 function ctxHtml(items) { return items.map((it, k) => !it ? '<div class="sep"></div>' : typeof it === 'string' ? `<div class="ch">${it}</div>` : `<div class="ci ${it[3] || ''}" data-k="${k}">${ICO[it[0]] || ''}<span>${it[1]}</span>${it[4] === 1 ? '<b class="sub">›</b>' : ''}</div>`).join(''); }
@@ -946,8 +947,10 @@ function fgCtx(x, y, sizes) {
   } else items = [
     esc(dn(g)),
     ['info', 'Info', () => fgInfo(true)],
+    ['pen', 'Renomear', () => fgRename()],
     null, 'Card',
     ['img', 'Alterar imagem', () => openCover('card')],
+    ['title', 'Alterar título', () => openCover('logo')],
     ['move', 'Reposicionar imagem', () => fgPosOpen()],
     ['resize', 'Redimensionar', sub(true), '', 1],
     null, 'Fundo',
@@ -1111,3 +1114,15 @@ document.addEventListener('keydown', e => {
   if (fp.open || fxOpen || modalOpen || oskOpen) return;
   e.preventDefault(); e.stopPropagation(); fgUndoLast();
 }, true);
+
+// renomear pelos Favoritos (menu ou F2): mesmo nome usado nas listas
+async function fgRename() {
+  const g = fg.items[fg.sel]; if (!g) return;
+  const ok = await askInput('Renomear jogo', 'O nome muda só no PlayLoop (o arquivo continua igual). Deixe vazio para voltar ao original.', 'Salvar', dn(g), 'Nome do jogo');
+  if (!ok) return;
+  const v = (($('catName') && $('catName').value) || '').trim(), key = 'name|' + coverKey(g), val = (!v || v === tidyName(g.name)) ? '' : v;
+  if (val) covers[key] = val; else delete covers[key];
+  try { await api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, url: val }) }); } catch (e) { toast(e.message, true); }
+  toast(val ? `Renomeado para "${val}"` : 'Nome original restaurado'); sfx('ok');
+  const keep = fg.sel; renderFavGrid(); fgSelect(Math.min(keep, fg.items.length - 1), true);
+}

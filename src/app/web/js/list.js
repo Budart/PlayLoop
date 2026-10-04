@@ -156,7 +156,7 @@ function ask(title, text, yes, alt, html) {   // alt: 3º botão opcional (resol
 let askOpen = false, askDone = null;
 // pergunta com campo de texto (Enter confirma; pelo controle, ✕ no campo abre o teclado virtual)
 function askInput(title, text, yes, value, ph) {
-  const p = ask(title, `${esc(text)}<input id="catName" class="catin" maxlength="40" placeholder="${esc(ph || '')}" value="${esc(value || '')}">`, yes, null, true);
+  const p = ask(title, `${esc(text)}<input id="catName" class="catin" maxlength="120" placeholder="${esc(ph || '')}" value="${esc(value || '')}">`, yes, null, true);
   setTimeout(() => { const i = $('catName'); if (!i) return; i.focus(); i.select(); i.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); $('askYes').click(); } else if (e.key === 'Escape') { e.preventDefault(); $('askNo').click(); } }; }, 30);
   return p;
 }
