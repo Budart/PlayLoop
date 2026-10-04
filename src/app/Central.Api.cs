@@ -306,6 +306,24 @@ static partial class Central
                 string f = Path.Combine(root, "central-covers.json");
                 Send(ctx, 200, "application/json; charset=utf-8", Utf8.GetBytes(File.Exists(f) ? File.ReadAllText(f, Encoding.UTF8) : "{}"));
             }
+            else if (path == "/api/cover/clear" && req.HttpMethod == "POST")
+            {
+                // escolhas salvas pelo usuário: picks = capas/fundos/logos escolhidos à mão; frames = enquadramento (posição/zoom) das imagens
+                string k = req.QueryString["k"] ?? "", f = Path.Combine(root, "central-covers.json"); int n = 0;
+                var known = new HashSet<string> { "bg", "bofs", "cat", "fav", "fcard", "ffree", "fnew", "fofs", "fpos", "fsz", "lcat", "logo", "name", "pref", "bga" };
+                lock (CoverLock)
+                {
+                    var map = File.Exists(f) ? (Dictionary<string, object>)Json.DeserializeObject(File.ReadAllText(f, Encoding.UTF8)) : new Dictionary<string, object>();
+                    foreach (var key in map.Keys.ToList())
+                    {
+                        int i = key.IndexOf('|'); string pre = i > 0 ? key.Substring(0, i) : "";
+                        bool del = k == "frames" ? (pre == "fofs" || pre == "bofs") : k == "picks" && (pre == "bg" || pre == "fcard" || pre == "logo" || (i > 0 && !known.Contains(pre)));
+                        if (del) { map.Remove(key); n++; }
+                    }
+                    File.WriteAllText(f, Json.Serialize(map), Utf8);
+                }
+                SendJson(ctx, new Dictionary<string, object> { { "ok", true }, { "removed", n } });
+            }
             else if (path == "/api/cover" && req.HttpMethod == "POST")
             {
                 string bodyText; using (var sr = new StreamReader(req.InputStream, Encoding.UTF8)) bodyText = sr.ReadToEnd();

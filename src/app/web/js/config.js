@@ -92,7 +92,10 @@ function renderConfig() {
       <h3>💾 Cache</h3>
       <label class="chk2"><input type="checkbox" id="cfCacheOn" ${cfg.coverCache === false ? '' : 'checked'}> Salvar capas no computador (carregam na hora nas próximas vezes)</label>
       <div class="cclist">${[['covers', '🖼 Imagens das capas e logos'], ['bg', '🌄 Imagens de fundo'], ['search', '🔎 Resultados das buscas de capas e fundos'], ['videos', '🎬 Vídeos encontrados no YouTube'], ['thumbs', '📇 Índice de miniaturas (libretro)']].map(([k, t]) => `<div class="line ccrow"><span class="cct">${t}</span><span class="msg" data-ci="${k}"></span><button class="btn sec sm" data-cc="${k}">Limpar</button></div>`).join('')}</div>
-      <div class="line"><button class="btn sec sm" id="cfCacheClear">Limpar tudo</button><span class="msg" id="cfCacheInfo"></span></div>
+      <h3 style="margin-top:14px">📌 Escolhas salvas</h3>
+      <div class="cclist">${[['picks', '🖼 Capas, fundos e logos escolhidos manualmente'], ['frames', '🎯 Enquadramento (posição e zoom) das imagens']].map(([k, t]) => `<div class="line ccrow"><span class="cct">${t}</span><span class="msg" data-ci="${k}"></span><button class="btn sec sm" data-cp="${k}">Limpar</button></div>`).join('')}</div>
+      <div class="msg">Para que as capas automáticas também sejam escolhidas de novo, limpe "Resultados das buscas".</div>
+      <div class="line"><button class="btn sec sm" id="cfCacheClear">Limpar todo o cache</button><span class="msg" id="cfCacheInfo"></span></div>
     </div>
     <div class="cfcache">
       <h3>🎨 SteamGridDB (opcional)</h3>
@@ -146,6 +149,7 @@ function renderConfig() {
   $('cfCacheOn').onchange = () => { cfg.coverCache = $('cfCacheOn').checked; };
   $('cfCacheClear').onclick = () => cacheClear('all');
   document.querySelectorAll('[data-cc]').forEach(b => b.onclick = () => cacheClear(b.dataset.cc));
+  document.querySelectorAll('[data-cp]').forEach(b => b.onclick = () => picksClear(b.dataset.cp));
   cacheInfo();
   $('cfBody').querySelectorAll('[data-ico]').forEach(el => el.onclick = () => iconPicker(+el.dataset.ico, 'logo'));
   $('cfBody').querySelectorAll('[data-bgp]').forEach(el => el.onclick = () => iconPicker(+el.dataset.bgp, 'bg'));
@@ -177,11 +181,22 @@ function iconPicker(i, kind) {
 const ccFmt = (n, sz) => `${n} ${n === 1 ? 'arquivo' : 'arquivos'} · ${(sz / 1048576).toFixed(1)} MB`;
 function thumbsCacheKeys() { const o = []; try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith('tidx|')) o.push(k); } } catch (e) {} return o; }
 async function cacheInfo() {
+  picksInfo();
   try {
     const r = await api('/api/cache/info'); if ($('cfCacheInfo')) $('cfCacheInfo').textContent = 'Total: ' + ccFmt(r.files, r.size);
     const ks = r.kinds || {}; for (const k in ks) { const e = document.querySelector(`[data-ci="${k}"]`); if (e) e.textContent = ccFmt(ks[k].files, ks[k].size); }
     const tk = thumbsCacheKeys(), e = document.querySelector('[data-ci="thumbs"]'); if (e) { let sz = 0; try { tk.forEach(k => sz += (localStorage.getItem(k) || '').length * 2); } catch (er) {} e.textContent = `${tk.length} ${tk.length === 1 ? 'console' : 'consoles'} · ${(sz / 1048576).toFixed(1)} MB`; }
   } catch (e) {}
+}
+const PICK_KNOWN = ['bg', 'bofs', 'cat', 'fav', 'fcard', 'ffree', 'fnew', 'fofs', 'fpos', 'fsz', 'lcat', 'logo', 'name', 'pref', 'bga'];
+const pickMatch = (k, key) => { const i = key.indexOf('|'), pre = i > 0 ? key.slice(0, i) : ''; return k === 'frames' ? (pre === 'fofs' || pre === 'bofs') : k === 'picks' && (pre === 'bg' || pre === 'fcard' || pre === 'logo' || (i > 0 && !PICK_KNOWN.includes(pre))); };
+function picksInfo() { for (const k of ['picks', 'frames']) { const e = document.querySelector(`[data-ci="${k}"]`); if (e) { const n = Object.keys(covers).filter(x => pickMatch(k, x)).length; e.textContent = `${n} ${n === 1 ? 'item' : 'itens'}`; } } }
+async function picksClear(k) {
+  try {
+    await api('/api/cover/clear?k=' + k, { method:'POST' });
+    Object.keys(covers).filter(x => pickMatch(k, x)).forEach(x => delete covers[x]);
+    toast(k === 'picks' ? 'Escolhas de capas e fundos limpas' : 'Enquadramentos limpos'); picksInfo();
+  } catch (e) { toast(e.message, true); }
 }
 async function cacheClear(k) {
   try {
