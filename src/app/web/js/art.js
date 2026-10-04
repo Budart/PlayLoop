@@ -267,6 +267,8 @@ function spineLogo(url, my) {   // logo do SteamGridDB na lateral, só depois de
 }
 function loadRatio(url) { return new Promise(ok => { const i = new Image(); i.onload = () => { const r = i.naturalWidth > 1 ? i.naturalWidth / i.naturalHeight : null; if (r) ratioCache[url] = r; ok(r); }; i.onerror = () => ok(null); i.src = url; }); }
 let coverStyle2d = false;
+// balanço da caixa 3D preso a um relógio único: recriar/trocar a capa nunca reinicia nem "estala" o movimento
+const swayPhase = () => (-(performance.now() % 3000) / 1000).toFixed(3) + 's';
 function buildCase(g, url, back, ratio) {
   const base = CASES[sys.type === 'pc' ? 'pc' : sys.id] || { r:.72, d:.1, spine:'#222', txt:'#ddd', rim:0 };
   const gen = base.txt;   // cor da capa genérica
@@ -309,7 +311,7 @@ function buildCase(g, url, back, ratio) {
       corners += face('corner', seg, D + O, `translate3d(${px(x)},${px(y)},0) rotateZ(${(th * 180 / Math.PI + 90).toFixed(2)}deg) rotateX(90deg)`, `background:${edge};backface-visibility:visible;`);
     }
   });
-  return `<div class="cw" style="transform:${scaleTf()}"><div class="rot" style="transform:${viewTf()};transform-style:preserve-3d"><div class="flip${back ? ' back' : ''}"><div class="case3d" style="width:${px(W)};height:${px(H)}">` +
+  return `<div class="cw" style="transform:${scaleTf()}"><div class="rot" style="transform:${viewTf()};transform-style:preserve-3d"><div class="flip${back ? ' back' : ''}"><div class="case3d" style="width:${px(W)};height:${px(H)};animation-delay:${swayPhase()}">` +
     face('front', W, H, `translateZ(${px(D / 2)})`, rimStyle + `background-color:var(--edge, ${c.rimc});`, `<div style="position:absolute;inset:0;background-size:cover;background-position:center;${coverStyle}"></div>${inner}${tex}`) +
     face('back', W, H, `rotateY(180deg) translateZ(${px(D / 2)})`, `background:${edge};border-radius:${R}px;`) +
     face('spine', D + O, H - 2 * R + O, `rotateY(-90deg) translateZ(${px(W / 2)})`, `--sh:${px((H - 2 * R) * .85)};--sw:${px(D * .8)};background:${edge};`, spineHtml) +
