@@ -282,6 +282,14 @@ static partial class Central
                 var pcs = new List<string>(); if (S(body, "pc") != "") pcs.Add(S(body, "pc"));
                 if (body.ContainsKey("pcDirs") && body["pcDirs"] is object[]) foreach (var o in (object[])body["pcDirs"]) { var d = (o as string ?? "").Trim(); if (d != "" && !pcs.Contains(d, StringComparer.OrdinalIgnoreCase)) pcs.Add(d); }
                 var auto = AutoConfig.Build(S(body, "root"), pcs);
+                // só a pasta da Steam nos jogos de PC: o console usa o ícone da Steam no lugar do "PC Games" genérico
+                try
+                {
+                    string steamDir = StoreDirs().Cast<Dictionary<string, object>>().Where(x => S(x, "id") == "steam").Select(x => S(x, "path")).FirstOrDefault() ?? "";
+                    if (pcs.Count == 1 && steamDir != "" && pcs[0].TrimEnd('\\').Equals(steamDir.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase))
+                        foreach (Dictionary<string, object> ac in (object[])auto["consoles"]) if (S(ac, "type") == "pc") ac["logo"] = "art:steam";
+                }
+                catch { }
                 foreach (Dictionary<string, object> ac in (object[])auto["consoles"]) { ac["fullscreen"] = false; ac["fsArgs"] = FullscreenArg(Full(S(auto, "root"), S(ac, "emulator"))); }
                 if (S(body, "sgdbKey") != "") { auto["sgdbKey"] = S(body, "sgdbKey"); auto["useSgdb"] = true; }
                 bool runKey = false;
