@@ -40,6 +40,10 @@ function boxartUrls(s, name) {
       for (const c of idx.keys) if ((c.startsWith(k) || k.startsWith(c)) && c.length >= 5 && Math.abs(c.length - k.length) < diff) { best = c; diff = Math.abs(c.length - k.length); }
       if (best) hit = idx.map.get(best);
     }
+    if (!hit) {   // por palavras: todas as palavras importantes do nome aparecem no arquivo (pega hacks/traduções renomeados)
+      const ws = name.replace(/\([^)]*\)|\[[^\]]*\]/g, ' ').toLowerCase().split(/[^a-z0-9]+/).filter(w => w.length > 2 && !/^(the|and|of|br|ptbr|hack|rev)$/.test(w));
+      if (ws.length) { let best = null; for (const n of idx.names) { const l = n.toLowerCase(); if (ws.every(w => l.includes(w)) && (!best || rank(n) < rank(best) || (rank(n) === rank(best) && n.length < best.length))) best = n; } hit = best; }
+    }
     return hit ? [base + encodeURIComponent(hit)] : [];
   }
   // sem índice (ex.: limite do GitHub): tenta nomes comuns

@@ -66,7 +66,7 @@ function cachedArt(g) {
   const key = coverKey(g);
   if (covers[key]) return { box: covers[key], snap: null, src: 'manual', ratio: artDisk[key] && artDisk[key].ratio, logo: artDisk[key] && artDisk[key].logo };
   if (artCache[key]) return artCache[key];
-  const d = artDisk[key]; if (cacheOn && d && d.v === 2 && (sgdbOn || d.src !== 'sgdb') && (d.box || (d.t && Date.now() - d.t < 7 * 864e5))) return artCache[key] = d;   // v2: capas reais primeiro (resultados antigos são refeitos uma vez)   // ignora capas antigas da Wikipédia
+  const d = artDisk[key]; if (cacheOn && d && d.v === 2 && (sgdbOn || d.src !== 'sgdb') && (d.box || (d.t && Date.now() - d.t < 864e5))) return artCache[key] = d;   // v2: capas reais primeiro (resultados antigos são refeitos uma vez)   // ignora capas antigas da Wikipédia
   return null;
 }
 // fila de buscas: no máximo 3 ao mesmo tempo; o pedido mais recente (o que está na tela/selecionado) vai na frente;
@@ -85,7 +85,9 @@ function resolveArt(g, now) {   // now: jogo em foco — passa na frente de tudo
   if (artInflight[key]) { const j = artQueue.find(x => x.key === key); if (j) { artQueue.splice(artQueue.indexOf(j), 1); artQueue.push(j); } return artInflight[key]; }   // pediu de novo: sobe na fila
   return artInflight[key] = new Promise(ok => { if (now) resolveArt0(g).then(ok, () => ok(null)); else { artQueue.push({ key, g, ok }); artPump(); } }).then(r => {
     delete artInflight[key];
-    if (cacheOn && r && r.src !== 'manual') { const v = { ...r, t: Date.now() }; artDisk[key] = v; api('/api/artcache', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, val: v }) }).catch(() => {}); }   // sem capa também fica guardado (por uns dias), para não refazer tudo a cada abertura
+    const s0 = (typeof sysOf === 'function' && sysOf(g)) || {}, idxOk = !s0.thumbs || (thumbIndex[s0.thumbs] && thumbIndex[s0.thumbs].map);
+    if (r && !r.box && !idxOk) delete artCache[key];   // sem capa porque o índice ainda não tinha baixado: tenta de novo na próxima vez
+    else if (cacheOn && r && r.src !== 'manual' && (r.box || idxOk)) { const v = { ...r, t: Date.now() }; artDisk[key] = v; api('/api/artcache', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, val: v }) }).catch(() => {}); }   // sem capa também fica guardado (por uns dias), para não refazer tudo a cada abertura
     return r;
   });
 }
@@ -172,7 +174,8 @@ async function resolveArt0(g) {
     const out = await Promise.all(list.map(async it => { const r = await imgSize(it.url); return r ? { ...r, src, title: it.title, ...(trusted ? { phrase: 1, overlap: 1 } : relevance(q, it.title)) } : null; }));
     return out.filter(Boolean);
   };
-  const run = tasks => Promise.all(tasks).then(l => [].concat(...l).filter(c => c.phrase || c.overlap >= .6));   // descarta quem bate só com parte do nome
+  let raw = [];   // tudo que carregou, mesmo com nome só parecido (usado como último recurso)
+  const run = tasks => Promise.all(tasks).then(l => { const all = [].concat(...l); raw = raw.concat(all); return all.filter(c => c.phrase || c.overlap >= .6); });   // descarta quem bate só com parte do nome
   const add = (arr, src, p, trusted) => arr.push(p.then(list => sized(src, list || [], trusted)).catch(() => []));
   const repo = (k, n) => EXTRA_REPOS.find(r => r.key === k).find(g).then(l => l.slice(0, n || 3).map(p => ({ url: p.img, title: p.title })));
   const steam = n => steamSearch(q).then(items => Promise.all(items.slice(0, n).map(async it => { const u = await firstOk(steamUrls(it.id)); return u ? { url: u, title: it.name } : null; }))).then(l => l.filter(Boolean));
@@ -182,7 +185,7 @@ async function resolveArt0(g) {
   const t1 = [], t2 = [];
   if (sys.type === 'pc') { add(t1, 'steam', byId(), true); add(t1, 'steam', steam(3)); }
   else { if (sys.thumbs) await Promise.race([loadThumbIndex(sys), new Promise(r => setTimeout(r, 1200))]);   // índice ainda baixando (1ª vez): não espera, tenta os nomes mais comuns
-    add(t1, 'libretro', firstOk(boxartUrls(sys, g.name)).then(u => u ? [{ url: u, title: decodeURIComponent(u.split('/').pop()) }] : [])); add(t1, 'code', byId(), true); }
+    add(t1, 'libretro', firstOk(boxartUrls(sys, g.name)).then(u => u ? [{ url: u, title: decodeURIComponent(u.split('/').pop()) }] : []), true); add(t1, 'code', byId(), true); }   // libretro achada pelo nome do arquivo: confiável
   let found = (await run(t1)).sort(relCmp);
   // 2ª rodada (wikis, mais lentas) só se a primeira não achou nada com o nome certo
   if (!found.some(c => c.phrase)) {
@@ -191,7 +194,10 @@ async function resolveArt0(g) {
     found = found.concat(await run(t2)).sort(relCmp);
   }
   const sg = await sgP;
-  const best = found[0];
+  let best = found[0];
+  // nunca ficar sem capa: SteamGridDB > a mais parecida de qualquer fonte > busca na Steam sem exigir o nome exato
+  if (!best && !(sg && sg.box)) best = raw.filter(c => c.overlap >= .3).sort(relCmp)[0];
+  if (!best && !(sg && sg.box)) { const st = (await run([sized('steam', await steam(1).catch(() => []))])), any = raw.sort(relCmp)[0]; best = st[0] || any; }
   let box = best ? best.url : null, src = best ? best.src : 'generica', snap = null, logo = null;
   if (!box && sg && sg.box) { box = sg.box; src = 'sgdb'; }
   if (src === 'code') src = /gametdb/.test(box) ? 'gametdb' : /steam/.test(box) ? 'steam' : 'xlenore';
@@ -250,9 +256,12 @@ function buildCase(g, url, back, ratio) {
   const ca = cachedArt(g), lg = covers['logo|' + coverKey(g)] || (ca && ca.logo);
   const spineHtml = `<span style="color:var(--etxt, ${c.txt});font-size:${px(fs)}">${esc(cleanTitle(dn(g)) || dn(g))}</span>` +
     (lg ? `<img class="spl" src="${esc(cp(lg))}" alt="" style="opacity:0" onload="this.style.opacity=1;const t=this.previousElementSibling;if(t)t.remove()" onerror="this.remove()">` : '');
-  const coverStyle = `background:linear-gradient(160deg, ${gen} -20%, ${base.spine} 55%, #000 130%);`;
+  // capa genérica: degradê com cor própria de cada jogo (pelo nome), brilhos suaves e textura leve
+  let hh = 0; for (const ch of (dn(g) || '')) hh = (hh * 31 + ch.charCodeAt(0)) >>> 0;
+  const hue = hh % 360, hue2 = (hue + 40 + (hh >> 8) % 60) % 360;
+  const coverStyle = `background:radial-gradient(120% 80% at 15% 10%, hsla(${hue2},90%,65%,.55), transparent 60%), radial-gradient(90% 70% at 90% 95%, hsla(${hue},85%,55%,.5), transparent 65%), linear-gradient(155deg, hsl(${hue},55%,22%) 0%, hsl(${hue2},45%,12%) 60%, #07080d 100%);`;
   const tex = url ? `<div style="position:absolute;inset:0;background:url('${url.replace(/'/g, "%27")}') center/cover no-repeat"></div>` : '';
-  const inner = `<div class="generic" style="position:absolute;inset:0;color:#fff"><img class="lg" src="${logoUrl(sys)}" alt=""><div class="gt" style="font-size:${px(Math.max(14, W * .085))}">${esc(cleanTitle(dn(g)) || dn(g))}</div><img class="ct" src="${ART}controllers/${sys.art}.svg" alt=""></div>`;
+  const inner = `<div class="generic" style="position:absolute;inset:0;color:#fff"><div class="gx"></div><div class="glg"><img class="lg" src="${logoUrl(sys)}" alt=""></div><img class="ct" src="${ART}controllers/${sys.art}.svg" alt=""><div class="gb"><div class="gt" style="font-size:${px(Math.max(13, W * .095))}">${esc(cleanTitle(dn(g)) || dn(g))}</div><div class="gs" style="font-size:${px(Math.max(8, W * .038))}">${esc(sys.name || '')}</div></div></div>`;
   const edge = 'var(--edge, #0b0b0b)';   // cor principal da capa (calculada da imagem), preto enquanto não sabe
   if (coverStyle2d) {   // 2D: encarte esticado — lombada (logo/nome deitados) encostada na frente, moldura preta
     const S = Math.max(small ? 14 : 22, W * .11), F = Math.max(4, Math.round(H * .025));
