@@ -154,7 +154,7 @@ async function showArt(g) {
   const pre = lastArt && lastArt.g === g && lastArt.done ? lastArt : null;   // já desenhada a partir do cache
   if (!pre) { lastArt = { g, url: null }; box.innerHTML = skeletonCase(g); }
 
-  const a = await resolveArt(g);
+  const a = await resolveArt(g, true);
   if (my !== artReq || shown[gIdx] !== g || screen !== 'games') return;
   if (!covers['logo|' + coverKey(g)] && a.logo) setVidLogo(g, a.logo);
   let front = cp(a.box), ratio = front ? ratioCache[front] : undefined;

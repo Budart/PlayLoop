@@ -58,63 +58,57 @@ function sortGrid() {
   }, 120);
 }
 let coverLvl = 1, coverLast = 0;   // "Mais +": cada clique busca mais fundo em cada fonte
+// busca manual: cada fonte aparece na tela assim que responde (não espera a mais lenta)
+let coverTok = 0, coverSeen = new Set(), coverItems = [];
 async function searchCovers(more) {
-  const q = $('cq').value.trim(), res = $('cres'), s = (coverGame && sysOf(coverGame)) || sys, L = more ? ++coverLvl : (coverLvl = 1), y = res.scrollTop;
-  if (!more) { res.innerHTML = ''; coverLast = 0; } else { const m = res.querySelector('.it.more'); if (m) { m.classList.add('busy'); m.querySelector('span').textContent = 'Buscando...'; } }
+  const q = $('cq').value.trim(), res = $('cres'), s = (coverGame && sysOf(coverGame)) || sys, L = more ? ++coverLvl : (coverLvl = 1), tok = ++coverTok;
+  if (!more) { res.innerHTML = ''; coverLast = 0; coverSeen = new Set(); coverItems = []; } else { const m = res.querySelector('.it.more'); if (m) { m.classList.add('busy'); m.querySelector('span').textContent = 'Buscando...'; } }
   if (!q) return;
   if (!more) $('cmsg').textContent = 'Buscando...';
-  const items = [];
   const bgLike = bgMode || (cardMode && cardKind === 'bg');
   const conv = u => !bgLike ? u : u.replace('/Named_Boxarts/', '/Named_Snaps/').replace(/library_600x900(_2x)?\.jpg$/, 'library_hero.jpg');
-  const toBg = u => u.replace('/Named_Boxarts/', '/Named_Snaps/').replace(/library_600x900(_2x)?\.jpg$/, 'library_hero.jpg');
-  const add = (url, label, src) => { for (const u of [conv(url)]) if (!items.some(i => i.url === u)) items.push({ url: u, label, src, ...relevance(q, label) }); };
-  // SteamGridDB ligado: só capas (grids) ou fundos (heroes) de lá, ordenados como na escolha automática
-  // SteamGridDB corre em paralelo com as outras fontes (e cada jogo dele também)
-  const sgP = !sgdbOn ? Promise.resolve([]) : (async () => {
-    try {
-      const games = (await sg('/api/v2/search/autocomplete/' + encodeURIComponent(q))).map(x => ({ x, ...relevance(q, x.name) })).sort((a, b) => (b.phrase - a.phrase) || (b.overlap - a.overlap)).slice(0, 3 * L);
-      const lists = await Promise.all(games.map(gm => (logoMode ? sg(`/api/v2/logos/game/${gm.x.id}?${STATIC}`) : bgLike ? sg(`/api/v2/heroes/game/${gm.x.id}?${STATIC}`) : sgdbGrids(gm.x.id)).catch(() => [])));
-      return games.flatMap((gm, k) => lists[k].map(x => ({ url: x.url, label: gm.x.name, src: 'SteamGridDB · ★' + (x.score || 0), phrase: gm.phrase, overlap: gm.overlap })));
-    } catch (e) { $('cmsg').textContent = 'SteamGridDB: ' + e.message; return []; }
-  })();
   const N = (sgdbOn ? 6 : 10) * L;   // demais fontes: 6 de cada com o SteamGridDB ligado (10 sem ele); mais a cada "Mais"
-  {
-  if (logoMode) {   // títulos: logos do Steam e da libretro (Named_Logos)
-    for (const it of (await steamSearch(q)).slice(0, N)) items.push({ url: `${STEAM}${it.id}/logo.png`, label: it.name, src: 'Steam', ...relevance(q, it.name) });
-    await loadThumbIndex(s); const ix = s.thumbs && thumbIndex[s.thumbs];
-    if (ix && ix.names) { const ws = q.toLowerCase().split(/\s+/).filter(Boolean); ix.names.filter(n => ws.every(w => n.toLowerCase().includes(w))).slice(0, N).forEach(n => items.push({ url: `${THUMBS}${s.thumbs}/master/Named_Logos/${encodeURIComponent(n)}`, label: n.replace(/\.png$/i, ''), src: 'libretro', ...relevance(q, n) })); }
+  let found = 0;
+  const flush = list => {   // desenha só o que ainda não está na tela
+    if (tok !== coverTok || modalOpen === false) return;
+    const fresh = list.filter(it => it.url && !coverSeen.has(it.url)); if (!fresh.length) return;
+    const m = res.querySelector('.it.more'); if (m && !more) m.remove();
+    const html = fresh.map(it => { coverSeen.add(it.url); const i = coverItems.push(it) - 1; return `<div class="it" data-i="${i}" data-ph="${it.phrase}" data-ov="${(it.overlap || 0).toFixed(3)}"><img src="${esc(it.url)}" alt="" onload="this.nextElementSibling.textContent=this.naturalWidth+'×'+this.naturalHeight;this.parentNode.dataset.px=this.naturalWidth*this.naturalHeight;this.parentNode.dataset.ar=this.naturalWidth/this.naturalHeight;sortGrid()" onerror="this.parentNode.remove()"><div class="dim">…</div><div>${esc(it.label)}</div><div class="src">${esc(it.src)}</div></div>`; }).join('');
+    const mo = res.querySelector('.it.more'); if (mo) mo.insertAdjacentHTML('beforebegin', html); else res.insertAdjacentHTML('beforeend', html);
+    res.querySelectorAll('.it:not(.more):not([data-b])').forEach(el => { el.dataset.b = 1; el.onclick = () => setCover(coverItems[+el.dataset.i].url); });
+    found += fresh.length; if (!more) $('cmsg').textContent = `Buscando... ${coverItems.length} imagens até agora`;
+  };
+  const mk = (url, label, src) => ({ url: conv(url), label, src, ...relevance(q, label) });
+  const safe = p => Promise.resolve(p).catch(() => []);
+  const tasks = [];
+  const src = (p, map) => tasks.push(safe(p).then(r => flush(map(r || []))).catch(() => {}));
+  // SteamGridDB (cada jogo dele em paralelo)
+  if (sgdbOn) src((async () => {
+    const games = (await sg('/api/v2/search/autocomplete/' + encodeURIComponent(q))).map(x => ({ x, ...relevance(q, x.name) })).sort((a, b) => (b.phrase - a.phrase) || (b.overlap - a.overlap)).slice(0, 3 * L);
+    const lists = await Promise.all(games.map(gm => (logoMode ? sg(`/api/v2/logos/game/${gm.x.id}?${STATIC}`) : bgLike ? sg(`/api/v2/heroes/game/${gm.x.id}?${STATIC}`) : sgdbGrids(gm.x.id)).catch(() => [])));
+    return games.flatMap((gm, k) => lists[k].map(x => ({ url: x.url, label: gm.x.name, src: 'SteamGridDB · ★' + (x.score || 0), phrase: gm.phrase, overlap: gm.overlap })));
+  })(), l => l);
+  const libNames = () => { const ix = s.thumbs && thumbIndex[s.thumbs]; if (!ix || !ix.names) return []; const ws = q.toLowerCase().split(/\s+/).filter(Boolean); return ix.names.filter(n => ws.every(w => n.toLowerCase().includes(w))).slice(0, N); };
+  if (logoMode) {   // títulos: logos da Steam e da libretro (Named_Logos)
+    src(steamSearch(q), l => l.slice(0, N).map(it => ({ url: `${STEAM}${it.id}/logo.png`, label: it.name, src: 'Steam', ...relevance(q, it.name) })));
+    src(loadThumbIndex(s).then(libNames), l => l.map(n => ({ url: `${THUMBS}${s.thumbs}/master/Named_Logos/${encodeURIComponent(n)}`, label: n.replace(/\.png$/i, ''), src: 'libretro', ...relevance(q, n) })));
   } else {
-  // todas as fontes ao mesmo tempo (antes uma esperava a outra); a ordem de entrada na lista continua a mesma
-  const safe = p => p.catch(() => []), fake = { name: q };
-  const [, idu, st, wk, fd, pg, sw] = await Promise.all([
-    loadThumbIndex(s),
-    safe(idCovers(coverGame).then(async us => { const u = await firstOk(us); return u ? [u] : []; })),
-    safe(steamSearch(q)), safe(wikiMain(q, N)), safe(fandomImage(fake, N)),
-    safe(mw('https://www.pcgamingwiki.com/w/api.php', q, N)), safe(mw('https://strategywiki.org/w/api.php', q, N))]);
-  // 1) acervo libretro (busca por palavras no índice do console)
-  const idx = s.thumbs && thumbIndex[s.thumbs];
-  if (idx && idx.names) {
-    const words = q.toLowerCase().split(/\s+/).filter(Boolean);
-    idx.names.filter(n => words.every(w => n.toLowerCase().includes(w))).slice(0, N)
-      .forEach(n => add(`${THUMBS}${s.thumbs}/master/Named_Boxarts/${encodeURIComponent(n)}`, n.replace(/\.png$/i, ''), 'libretro'));
+    src(loadThumbIndex(s).then(libNames), l => l.map(n => mk(`${THUMBS}${s.thumbs}/master/Named_Boxarts/${encodeURIComponent(n)}`, n.replace(/\.png$/i, ''), 'libretro')));
+    src(idCovers(coverGame).then(async us => { const u = await firstOk(us); return u ? [u] : []; }), l => l.map(u => mk(u, 'Código do jogo', /gametdb/.test(u) ? 'GameTDB' : /steam/.test(u) ? 'Steam' : 'xlenore')));
+    src(steamSearch(q), l => l.slice(0, N).map(it => mk(`${STEAM}${it.id}/library_600x900_2x.jpg`, it.name, 'Steam')));
+    src(wikiMain(q, N), l => l.map(p => mk(p.img, p.title, p.src)));
+    src(fandomImage({ name: q }, N), l => l.map(p => mk(p.img, p.title, p.src)));
+    src(mw('https://www.pcgamingwiki.com/w/api.php', q, N), l => l.map(p => mk(p.img, p.title, 'PCGamingWiki')));
+    src(mw('https://strategywiki.org/w/api.php', q, N), l => l.map(p => mk(p.img, p.title, 'StrategyWiki')));
   }
-  // 1b) código do jogo (GameTDB / xlenore), 1c) Steam, 1e) Wikipédia, 1d) Fandom, PCGamingWiki e StrategyWiki
-  idu.forEach(u => add(u, 'Código do jogo', /gametdb/.test(u) ? 'GameTDB' : /steam/.test(u) ? 'Steam' : 'xlenore'));
-  st.slice(0, N).forEach(it => add(`${STEAM}${it.id}/library_600x900_2x.jpg`, it.name, 'Steam'));
-  wk.forEach(p => add(p.img, p.title, p.src)); fd.forEach(p => add(p.img, p.title, p.src));
-  pg.forEach(p => add(p.img, p.title, 'PCGamingWiki')); sw.forEach(p => add(p.img, p.title, 'StrategyWiki'));
-  }
-  }
-  (await sgP).forEach(x => { if (!items.some(i => i.url === x.url)) items.push(x); });
-  if (modalOpen === false) return;
-  $('cmsg').textContent = items.length ? `${items.length} imagens encontradas — clique para usar ${logoMode ? 'como título' : 'como capa'}.` : 'Nada encontrado. Tente outro nome, ou cole o link de uma imagem.';
-  const from = more ? coverLast : 0, html = items.slice(from).map((it, i0) => { const i = i0 + from; return `<div class="it" data-i="${i}" data-ph="${it.phrase}" data-ov="${it.overlap.toFixed(3)}"><img src="${esc(it.url)}" alt="" onload="this.nextElementSibling.textContent=this.naturalWidth+'×'+this.naturalHeight;this.parentNode.dataset.px=this.naturalWidth*this.naturalHeight;this.parentNode.dataset.ar=this.naturalWidth/this.naturalHeight;sortGrid()" onerror="this.parentNode.remove()"><div class="dim">…</div><div>${esc(it.label)}</div><div class="src">${esc(it.src)}</div></div>`; }).join('');
-  if (more) { const m = res.querySelector('.it.more'); if (m) m.remove(); res.insertAdjacentHTML('beforeend', html); } else res.innerHTML = html;
-  res.querySelectorAll('.it:not(.more)').forEach(el => el.onclick = () => setCover(items[+el.dataset.i].url));
-  const grew = items.length > coverLast; coverLast = items.length;
-  if (items.length && (grew || !more)) { const m = document.createElement('div'); m.className = 'it more'; m.innerHTML = '<b>＋</b><span>Mais</span>'; m.onclick = e => { e.stopPropagation(); if (!m.classList.contains('busy')) searchCovers(true); }; res.appendChild(m); }
-  else if (more) $('cmsg').textContent = `${items.length} imagens — não há mais resultados para essa busca.`;
-  if (more) res.scrollTop = y;
+  await Promise.all(tasks);
+  if (tok !== coverTok || modalOpen === false) return;
+  const n = coverItems.length;
+  $('cmsg').textContent = n ? `${n} imagens encontradas — clique para usar ${logoMode ? 'como título' : 'como capa'}.` : 'Nada encontrado. Tente outro nome, ou cole o link de uma imagem.';
+  const old = res.querySelector('.it.more'); if (old) old.remove();
+  if (n && (found || !more)) { const m = document.createElement('div'); m.className = 'it more'; m.innerHTML = '<b>＋</b><span>Mais</span>'; m.onclick = e => { e.stopPropagation(); if (!m.classList.contains('busy')) searchCovers(true); }; res.appendChild(m); }
+  else if (more) $('cmsg').textContent = `${n} imagens — não há mais resultados para essa busca.`;
+  coverLast = n;
 }
 $('cgo').onclick = () => searchCovers();
 $('cq').onkeydown = e => { if (e.key === 'Enter') searchCovers(); };

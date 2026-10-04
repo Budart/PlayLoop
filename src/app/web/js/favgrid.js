@@ -557,7 +557,7 @@ async function fgLogo(g) {
   const my = ++fgLogoTok; im.classList.remove('on');
   if (!g) return;
   const tries = [covers['logo|' + coverKey(g)]];
-  const a = cachedArt(g) || await resolveArt(g).catch(() => null);
+  const a = cachedArt(g) || await resolveArt(g, true).catch(() => null);
   if (my !== fgLogoTok) return;
   if (a) { tries.push(a.logo); if (a.box && /\/Named_Boxarts\//.test(a.box)) tries.push(a.box.replace('/Named_Boxarts/', '/Named_Logos/')); }
   for (const u of tries.filter(Boolean)) {

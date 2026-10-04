@@ -78,11 +78,12 @@ function artPump() {
     resolveArt0(job.g).then(job.ok, () => job.ok(null)).finally(() => { artRunning--; artPump(); });
   }
 }
-function resolveArt(g) {
+function resolveArt(g, now) {   // now: jogo em foco — passa na frente de tudo, sem esperar a fila
   const key = coverKey(g);
   const c = cachedArt(g); if (c) return Promise.resolve(c);
+  if (artInflight[key] && now) { const j = artQueue.find(x => x.key === key); if (j) { artQueue.splice(artQueue.indexOf(j), 1); resolveArt0(j.g).then(j.ok, () => j.ok(null)); } return artInflight[key]; }
   if (artInflight[key]) { const j = artQueue.find(x => x.key === key); if (j) { artQueue.splice(artQueue.indexOf(j), 1); artQueue.push(j); } return artInflight[key]; }   // pediu de novo: sobe na fila
-  return artInflight[key] = new Promise(ok => { artQueue.push({ key, g, ok }); artPump(); }).then(r => {
+  return artInflight[key] = new Promise(ok => { if (now) resolveArt0(g).then(ok, () => ok(null)); else { artQueue.push({ key, g, ok }); artPump(); } }).then(r => {
     delete artInflight[key];
     if (cacheOn && r && r.src !== 'manual') { const v = { ...r, t: Date.now() }; artDisk[key] = v; api('/api/artcache', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, val: v }) }).catch(() => {}); }   // sem capa também fica guardado (por uns dias), para não refazer tudo a cada abertura
     return r;
@@ -180,7 +181,8 @@ async function resolveArt0(g) {
   // 1ª rodada (rápidas e com capas reais): libretro + código do jogo (GameTDB/xlenore); no PC, Steam
   const t1 = [], t2 = [];
   if (sys.type === 'pc') { add(t1, 'steam', byId(), true); add(t1, 'steam', steam(3)); }
-  else { if (sys.thumbs) await loadThumbIndex(sys); add(t1, 'libretro', firstOk(boxartUrls(sys, g.name)).then(u => u ? [{ url: u, title: decodeURIComponent(u.split('/').pop()) }] : [])); add(t1, 'code', byId(), true); }
+  else { if (sys.thumbs) await Promise.race([loadThumbIndex(sys), new Promise(r => setTimeout(r, 1200))]);   // índice ainda baixando (1ª vez): não espera, tenta os nomes mais comuns
+    add(t1, 'libretro', firstOk(boxartUrls(sys, g.name)).then(u => u ? [{ url: u, title: decodeURIComponent(u.split('/').pop()) }] : [])); add(t1, 'code', byId(), true); }
   let found = (await run(t1)).sort(relCmp);
   // 2ª rodada (wikis, mais lentas) só se a primeira não achou nada com o nome certo
   if (!found.some(c => c.phrase)) {
