@@ -1,4 +1,4 @@
-// PlayLoop — input.js
+// Koru — input.js
 /* ---------- modo TV de tubo ---------- */
 let crtOn = false; try { crtOn = localStorage.getItem('crt') === '1'; } catch (e) {}
 const TV_ICO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3l4 4 4-4"/><rect x="2" y="7" width="20" height="14" rx="4"/><rect x="5" y="10" width="11" height="8" rx="2.5"/><circle cx="19" cy="12" r=".8"/><circle cx="19" cy="15.5" r=".8"/></svg>', MON_ICO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="1.5"/><path d="M8 21h8M12 17v4"/></svg>';

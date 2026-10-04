@@ -1,4 +1,4 @@
-// PlayLoop — window.js
+// Koru — window.js
 /* ---------- janela (barra de título do Windows) + tela cheia com F11 / Alt+Enter ---------- */
 const host = window.chrome && window.chrome.webview;
 if (host) document.body.classList.add('host');

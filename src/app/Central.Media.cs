@@ -16,7 +16,7 @@ using System.Web.Script.Serialization;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-// PlayLoop — busca de vídeos do YouTube
+// Koru — busca de vídeos do YouTube
 static partial class Central
 {
     // ---- vídeo de fundo: 1º vídeo do YouTube (não-Shorts, que permita incorporação) para "jogo + console + gameplay" ----

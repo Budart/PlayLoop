@@ -1,4 +1,4 @@
-// PlayLoop — osk.js
+// Koru — osk.js
 /* ---------- teclado virtual (QWERTY) para digitar com o controle ---------- */
 let oskOpen = false, oskTarget = null, oskSel = [1, 0], oskShift = false, lastInputPad = false;
 const OSK_ROWS = [

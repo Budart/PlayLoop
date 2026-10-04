@@ -16,7 +16,7 @@ using System.Web.Script.Serialization;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-// PlayLoop — argumentos de tela cheia dos emuladores
+// Koru — argumentos de tela cheia dos emuladores
 static partial class Central
 {
     // argumento de tela cheia conhecido de cada emulador

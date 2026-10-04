@@ -1,4 +1,4 @@
-// PlayLoop — video.js
+// Koru — video.js
 // ---- fundo em vídeo: gameplay do YouTube, começando em 1/4 da duração; leve: só 1 vídeo por vez, só depois de parar no jogo ----
 const SMALL = matchMedia('(max-width: 1050px), (max-height: 620px)');
 let bgKind = 'video', vidTimer = null, vidFor = null;

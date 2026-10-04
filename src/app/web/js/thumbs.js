@@ -1,4 +1,4 @@
-// PlayLoop — thumbs.js
+// Koru — thumbs.js
 /* ---------- capas (libretro-thumbnails, carregadas da internet) ---------- */
 const key = s => s.replace(/\.(png|jpg)$/i, '').replace(/\([^)]*\)|\[[^\]]*\]|\{[^}]*\}/g, ' ').toLowerCase()
                   .replace(/^\s*the\s+/, '').replace(/,\s*the\b/g, '').replace(/&|_/g, ' and ').replace(/[^a-z0-9]/g, '').replace(/and/g, '');

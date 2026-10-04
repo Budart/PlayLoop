@@ -16,7 +16,7 @@ using System.Web.Script.Serialization;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-// PlayLoop — descoberta de jogos, categorias e código do jogo nas ROMs
+// Koru — descoberta de jogos, categorias e código do jogo nas ROMs
 static partial class Central
 {
     static readonly Regex TitleId = new Regex(@"\[([0-9A-Fa-f]{16})\]");

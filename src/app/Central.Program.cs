@@ -16,19 +16,19 @@ using System.Web.Script.Serialization;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-// PlayLoop — ponto de entrada e instância única
+// Koru — ponto de entrada e instância única
 static partial class Central
 {
     static void KillOldScriptServer()
     {
         try
         {
-            using (var q = new ManagementObjectSearcher("SELECT ProcessId, CommandLine FROM Win32_Process WHERE Name = 'powershell.exe' OR Name = 'pwsh.exe' OR Name LIKE '.central-antigo%' OR Name = 'Central de Jogos.exe' OR Name = 'PlayLoop.exe' OR Name = 'Jogo.exe' OR Name = 'Joggo.exe'"))
+            using (var q = new ManagementObjectSearcher("SELECT ProcessId, CommandLine FROM Win32_Process WHERE Name = 'powershell.exe' OR Name = 'pwsh.exe' OR Name LIKE '.central-antigo%' OR Name = 'Central de Jogos.exe' OR Name = 'Koru.exe' OR Name = 'Jogo.exe' OR Name = 'Joggo.exe'"))
                 foreach (ManagementObject p in q.Get())
                 {
                     var cl = (p["CommandLine"] ?? "").ToString();
                     int pid = Convert.ToInt32(p["ProcessId"]);
-                    if (pid != Process.GetCurrentProcess().Id && (cl.Contains("CENTRAL_BAT") || cl.Contains(".central-antigo") || cl.Contains("Central de Jogos.exe") || cl.Contains("\\PlayLoop.exe") || cl.Contains("\\Jogo.exe") || cl.Contains("\\Joggo.exe")))
+                    if (pid != Process.GetCurrentProcess().Id && (cl.Contains("CENTRAL_BAT") || cl.Contains(".central-antigo") || cl.Contains("Central de Jogos.exe") || cl.Contains("\\Koru.exe") || cl.Contains("\\Jogo.exe") || cl.Contains("\\Joggo.exe")))
                         try { Process.GetProcessById(Convert.ToInt32(p["ProcessId"])).Kill(); } catch { }
                 }
             Thread.Sleep(800);
@@ -53,10 +53,10 @@ static partial class Central
         foreach (var old in Directory.GetFiles(Path.GetDirectoryName(ExePath), ".central-antigo*.exe")) { try { File.Delete(old); } catch { } }
         // uma instância só: se já estiver rodando, pede para a outra mostrar a janela e sai
         bool first;
-        var mutex = new Mutex(true, @"Local\PlayLoop.Instance", out first);
-        var showEvt = new EventWaitHandle(false, EventResetMode.AutoReset, @"Local\PlayLoop.Show");
+        var mutex = new Mutex(true, @"Local\Koru.Instance", out first);
+        var showEvt = new EventWaitHandle(false, EventResetMode.AutoReset, @"Local\Koru.Show");
         if (!first) { if (!silent) showEvt.Set(); return; }
-        if (Process.GetProcesses().Any(pr => { try { var n = pr.ProcessName; return pr.Id != Process.GetCurrentProcess().Id && (n == "PlayLoop" || n == "Joggo" || n == "Jogo" || n == "Central de Jogos" || n.StartsWith(".central-antigo")); } catch { return false; } }))
+        if (Process.GetProcesses().Any(pr => { try { var n = pr.ProcessName; return pr.Id != Process.GetCurrentProcess().Id && (n == "Koru" || n == "Joggo" || n == "Jogo" || n == "Central de Jogos" || n.StartsWith(".central-antigo")); } catch { return false; } }))
             KillOldScriptServer();          // versão antiga (com servidor local) ainda aberta
         ThreadPool.SetMinThreads(48, 48);   // várias capas/vídeos baixando ao mesmo tempo não travam a interface
         try { WebHost.Prepare(); } catch { }
@@ -64,7 +64,7 @@ static partial class Central
 
         Application.EnableVisualStyles();
         var menu = new ContextMenuStrip();
-        menu.Items.Add("Abrir o PlayLoop", null, (s, e) => OpenBrowser());
+        menu.Items.Add("Abrir o Koru", null, (s, e) => OpenBrowser());
         menu.Items.Add("Editar configuração", null, (s, e) =>
         {
             OpenBrowser("config");
@@ -76,7 +76,7 @@ static partial class Central
         var tray = new NotifyIcon
         {
             Icon = Icon.ExtractAssociatedIcon(ExePath),
-            Text = "PlayLoop",
+            Text = "Koru",
             ContextMenuStrip = menu,
             Visible = true
         };

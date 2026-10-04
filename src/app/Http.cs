@@ -16,9 +16,9 @@ using System.Web.Script.Serialization;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-[assembly: AssemblyTitle("PlayLoop")]
-[assembly: AssemblyProduct("PlayLoop")]
-[assembly: AssemblyVersion("1.4.14.0")]
+[assembly: AssemblyTitle("Koru")]
+[assembly: AssemblyProduct("Koru")]
+[assembly: AssemblyVersion("1.5.0.0")]
 
 // requisição da página (chega pelo WebView2, sem servidor HTTP/porta)
 class Req

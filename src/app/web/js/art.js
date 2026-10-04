@@ -1,4 +1,4 @@
-// PlayLoop — art.js
+// Koru — art.js
 // ---- mais repositórios (MediaWiki, via servidor): Fandom, PCGamingWiki, StrategyWiki ----
 async function mw(base, q, n) {
   const u = `${base}?action=query&format=json&generator=search&gsrnamespace=0&gsrlimit=${n || 1}&gsrsearch=${encodeURIComponent(q)}&prop=pageimages&piprop=thumbnail|original&pithumbsize=1000`;

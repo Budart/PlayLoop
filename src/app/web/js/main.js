@@ -1,4 +1,4 @@
-// PlayLoop — main.js
+// Koru — main.js
 /* ---------- início ---------- */
 (async () => {
   try {
@@ -17,5 +17,5 @@
     const h = location.hash.slice(1);
     applyCustom(); show('systems'); if (!h && location.pathname !== '/config') bootAnim(); checkFavFiles();
     if (h === 'config' || location.pathname === '/config') openConfig(); else if (h && systems.some(s => s.id === h)) openSystem(h);
-  } catch (e) { document.body.innerHTML = `<div class="empty" style="padding:60px">Não foi possível falar com o servidor local (${esc(e.message)}). Abra o "PlayLoop" pela Área de Trabalho ou pelo menu Iniciar.</div>`; }
+  } catch (e) { document.body.innerHTML = `<div class="empty" style="padding:60px">Não foi possível falar com o servidor local (${esc(e.message)}). Abra o "Koru" pela Área de Trabalho ou pelo menu Iniciar.</div>`; }
 })();

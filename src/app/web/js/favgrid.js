@@ -1,4 +1,4 @@
-// PlayLoop — favgrid.js
+// Koru — favgrid.js
 /* ---------- Favoritos: grade de cards redimensionáveis, com páginas na horizontal ---------- */
 let favGridDim = '4x12';            // linhas x colunas (Configuração → Favoritos)
 const fg = { items: [], place: [], pages: 1, page: 0, sel: 0 };
@@ -1121,7 +1121,7 @@ document.addEventListener('keydown', e => {
 // renomear pelos Favoritos (menu ou F2): mesmo nome usado nas listas
 async function fgRename() {
   const g = fg.items[fg.sel]; if (!g) return;
-  const ok = await askInput('Renomear jogo', 'O nome muda só no PlayLoop (o arquivo continua igual). Deixe vazio para voltar ao original.', 'Salvar', dn(g), 'Nome do jogo');
+  const ok = await askInput('Renomear jogo', 'O nome muda só no Koru (o arquivo continua igual). Deixe vazio para voltar ao original.', 'Salvar', dn(g), 'Nome do jogo');
   if (!ok) return;
   const v = (($('catName') && $('catName').value) || '').trim(), key = 'name|' + coverKey(g), val = (!v || v === tidyName(g.name)) ? '' : v;
   const changed = (covers[key] || '') !== val;

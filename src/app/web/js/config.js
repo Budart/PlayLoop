@@ -1,6 +1,6 @@
-// PlayLoop — config.js
+// Koru — config.js
 /* ---------- SteamGridDB: ajuda + links (abrem no navegador) ---------- */
-const SGDB_HELP = `<div class="sghelp">O <b>SteamGridDB</b> é um site gratuito, feito pela comunidade, com milhares de capas, fundos e logos de jogos em alta qualidade. Para o PlayLoop buscar essas imagens, você precisa de uma <b>chave da API</b> (gratuita):
+const SGDB_HELP = `<div class="sghelp">O <b>SteamGridDB</b> é um site gratuito, feito pela comunidade, com milhares de capas, fundos e logos de jogos em alta qualidade. Para o Koru buscar essas imagens, você precisa de uma <b>chave da API</b> (gratuita):
   <ol><li>Entre no site com a sua conta Steam: <a data-href="https://www.steamgriddb.com/login">steamgriddb.com/login</a></li>
   <li>Abra <a data-href="https://www.steamgriddb.com/profile/preferences/api">Preferências → API</a> e clique em <b>Generate API Key</b>.</li>
   <li>Copie a chave e cole no campo abaixo.</li></ol></div>`;
@@ -33,19 +33,19 @@ const CREDITS = [
   ['Microsoft Edge WebView2', 'Microsoft', 'Motor da janela do aplicativo.', [['Documentação', 'https://developer.microsoft.com/microsoft-edge/webview2/']]],
 ];
 function creditsHtml() {
-  return `<div class="cfcache"><h3>PlayLoop</h3><div class="msg">Front-end para os seus emuladores e jogos. Os jogos, capas, logos e vídeos pertencem aos seus respectivos donos; o PlayLoop apenas os exibe a partir das fontes abaixo.</div></div>` +
+  return `<div class="cfcache"><h3>Koru</h3><div class="msg">Front-end para os seus emuladores e jogos. Os jogos, capas, logos e vídeos pertencem aos seus respectivos donos; o Koru apenas os exibe a partir das fontes abaixo.</div></div>` +
     CREDITS.map(([t, by, what, links]) => `<div class="cfcache cred"><h3>${esc(t)}</h3><div class="by">${esc(by)}</div><div class="msg">${esc(what)}</div><div class="line">${links.map(([l, u]) => `<button class="btn sec sm" data-href="${esc(u)}">🔗 ${esc(l)}</button>`).join('')}</div></div>`).join('') +
-    `<div class="cfcache"><h3>Marcas registradas</h3><div class="msg">Nintendo, PlayStation, Xbox, Sega, Neo Geo, Steam e demais nomes e logos de consoles são marcas registradas de seus respectivos donos e aparecem apenas para identificar cada plataforma. O PlayLoop não é afiliado a nenhuma delas.</div></div>`;
+    `<div class="cfcache"><h3>Marcas registradas</h3><div class="msg">Nintendo, PlayStation, Xbox, Sega, Neo Geo, Steam e demais nomes e logos de consoles são marcas registradas de seus respectivos donos e aparecem apenas para identificar cada plataforma. O Koru não é afiliado a nenhuma delas.</div></div>`;
 }
 // opções com desenho ilustrativo (o rádio fica escondido; o cartão inteiro é clicável)
-const langPv = t => `<svg viewBox="0 0 120 70"><rect width="120" height="70" rx="8" fill="#111a2e"/><text x="60" y="46" text-anchor="middle" font-size="28" font-weight="700" fill="#00D1FF" font-family="Poppins,sans-serif">${t}</text></svg>`;
-const freePv = () => `<svg viewBox="0 0 112 78"><rect width="112" height="78" rx="6" fill="#0b1020"/>${[[6,6,22,30],[31,6,40,22],[74,6,32,30],[31,31,18,24],[52,31,19,40],[6,39,22,33],[74,39,32,18]].map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="#1e293b" stroke="#00D1FF" stroke-opacity=".6"/>`).join('')}</svg>`;
+const langPv = t => `<svg viewBox="0 0 120 70"><rect width="120" height="70" rx="8" fill="#111a2e"/><text x="60" y="46" text-anchor="middle" font-size="28" font-weight="700" fill="#3D7BFF" font-family="Poppins,sans-serif">${t}</text></svg>`;
+const freePv = () => `<svg viewBox="0 0 112 78"><rect width="112" height="78" rx="6" fill="#14161c"/>${[[6,6,22,30],[31,6,40,22],[74,6,32,30],[31,31,18,24],[52,31,19,40],[6,39,22,33],[74,39,32,18]].map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="#23262e" stroke="#3D7BFF" stroke-opacity=".6"/>`).join('')}</svg>`;
 const pick = (name, val, on, svg, title, sub) => `<label class="pick"><input type="radio" name="${name}" value="${val}" ${on ? 'checked' : ''}><div class="pv">${svg}</div><b>${title}</b><small>${sub || ''}</small></label>`;
 const PV = {
-  c3d: `<svg viewBox="0 0 120 90"><defs><linearGradient id="pf" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8B5CF6"/><stop offset="1" stop-color="#00D1FF"/></linearGradient></defs><path d="M38 14 L52 8 L52 82 L38 76 Z" fill="#0b0b0b"/><path d="M52 8 L96 16 L96 76 L52 82 Z" fill="url(#pf)" stroke="#0b0b0b" stroke-width="2"/><path d="M58 20 L90 25 M58 30 L84 34" stroke="#fff" stroke-opacity=".6" stroke-width="3" stroke-linecap="round"/><path d="M45 20 L45 70" stroke="#fff" stroke-opacity=".35" stroke-width="2"/></svg>`,
-  c2d: `<svg viewBox="0 0 120 90"><defs><linearGradient id="pg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8B5CF6"/><stop offset="1" stop-color="#00D1FF"/></linearGradient></defs><rect x="26" y="10" width="72" height="70" rx="5" fill="#0b0b0b"/><rect x="31" y="15" width="11" height="60" fill="#1d1d1d"/><path d="M36.5 22 L36.5 68" stroke="#fff" stroke-opacity=".4" stroke-width="2"/><rect x="43" y="15" width="50" height="60" fill="url(#pg)"/><path d="M49 26 H86 M49 35 H78" stroke="#fff" stroke-opacity=".6" stroke-width="3" stroke-linecap="round"/></svg>`,
-  video: `<svg viewBox="0 0 120 90"><rect x="14" y="14" width="92" height="62" rx="6" fill="#1e293b" stroke="#3B82F6" stroke-width="2"/><circle cx="60" cy="45" r="15" fill="#ff2d2d"/><path d="M55 37 L68 45 L55 53 Z" fill="#fff"/><rect x="22" y="66" width="76" height="3" rx="1.5" fill="#475569"/><rect x="22" y="66" width="30" height="3" rx="1.5" fill="#00D1FF"/></svg>`,
-  image: `<svg viewBox="0 0 120 90"><rect x="14" y="14" width="92" height="62" rx="6" fill="#1e293b" stroke="#3B82F6" stroke-width="2"/><circle cx="84" cy="30" r="7" fill="#fbbf24"/><path d="M18 72 L46 40 L64 58 L76 48 L102 72 Z" fill="#8B5CF6"/></svg>`,
+  c3d: `<svg viewBox="0 0 120 90"><defs><linearGradient id="pf" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2F6BFF"/><stop offset="1" stop-color="#3D7BFF"/></linearGradient></defs><path d="M38 14 L52 8 L52 82 L38 76 Z" fill="#0b0b0b"/><path d="M52 8 L96 16 L96 76 L52 82 Z" fill="url(#pf)" stroke="#0b0b0b" stroke-width="2"/><path d="M58 20 L90 25 M58 30 L84 34" stroke="#fff" stroke-opacity=".6" stroke-width="3" stroke-linecap="round"/><path d="M45 20 L45 70" stroke="#fff" stroke-opacity=".35" stroke-width="2"/></svg>`,
+  c2d: `<svg viewBox="0 0 120 90"><defs><linearGradient id="pg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2F6BFF"/><stop offset="1" stop-color="#3D7BFF"/></linearGradient></defs><rect x="26" y="10" width="72" height="70" rx="5" fill="#0b0b0b"/><rect x="31" y="15" width="11" height="60" fill="#1d1d1d"/><path d="M36.5 22 L36.5 68" stroke="#fff" stroke-opacity=".4" stroke-width="2"/><rect x="43" y="15" width="50" height="60" fill="url(#pg)"/><path d="M49 26 H86 M49 35 H78" stroke="#fff" stroke-opacity=".6" stroke-width="3" stroke-linecap="round"/></svg>`,
+  video: `<svg viewBox="0 0 120 90"><rect x="14" y="14" width="92" height="62" rx="6" fill="#23262e" stroke="#2F6BFF" stroke-width="2"/><circle cx="60" cy="45" r="15" fill="#ff2d2d"/><path d="M55 37 L68 45 L55 53 Z" fill="#fff"/><rect x="22" y="66" width="76" height="3" rx="1.5" fill="#475569"/><rect x="22" y="66" width="30" height="3" rx="1.5" fill="#3D7BFF"/></svg>`,
+  image: `<svg viewBox="0 0 120 90"><rect x="14" y="14" width="92" height="62" rx="6" fill="#23262e" stroke="#2F6BFF" stroke-width="2"/><circle cx="84" cy="30" r="7" fill="#fbbf24"/><path d="M18 72 L46 40 L64 58 L76 48 L102 72 Z" fill="#2F6BFF"/></svg>`,
 };
 function themePv(bg, surf, acc, txt) {
   return `<svg viewBox="0 0 120 90"><rect x="8" y="8" width="104" height="74" rx="8" fill="${bg}" stroke="#475569" stroke-width="1"/><rect x="8" y="8" width="104" height="14" rx="8" fill="${surf}"/><rect x="16" y="30" width="40" height="8" rx="3" fill="${acc}"/><rect x="16" y="44" width="40" height="5" rx="2.5" fill="${txt}" opacity=".7"/><rect x="16" y="54" width="32" height="5" rx="2.5" fill="${txt}" opacity=".45"/><rect x="66" y="30" width="38" height="44" rx="5" fill="${surf}" stroke="${acc}" stroke-width="1.5"/></svg>`;
@@ -53,14 +53,14 @@ function themePv(bg, surf, acc, txt) {
 function gridPv(d) {
   const [R, C] = d.split('x').map(Number), W = 112, H = 78, g = 2.5, cw = (W - g * (C - 1)) / C, ch = (H - g * (R - 1)) / R;
   let s = '';
-  for (let y = 0; y < R; y++) for (let x = 0; x < C; x++) s += `<rect x="${(4 + x * (cw + g)).toFixed(1)}" y="${(6 + y * (ch + g)).toFixed(1)}" width="${cw.toFixed(1)}" height="${ch.toFixed(1)}" rx="1.6" fill="${x < 2 && y < 2 ? '#00D1FF' : '#334155'}"/>`;
+  for (let y = 0; y < R; y++) for (let x = 0; x < C; x++) s += `<rect x="${(4 + x * (cw + g)).toFixed(1)}" y="${(6 + y * (ch + g)).toFixed(1)}" width="${cw.toFixed(1)}" height="${ch.toFixed(1)}" rx="1.6" fill="${x < 2 && y < 2 ? '#3D7BFF' : '#2c3038'}"/>`;
   return `<svg viewBox="0 0 120 90">${s}</svg>`;
 }
 function renderConfig() {
   const cs = cfg.consoles;
   const sec = (id, title, html) => `<div class="cfsec${cfSec === id ? ' on' : ''}" data-sec="${id}"><h2>${title}</h2>${html}</div>`;
   $('cfBody').innerHTML = `<nav class="cfnav">${CF_SECS.map(([id, t]) => `<button class="${cfSec === id ? 'on' : ''}" data-nav="${id}">${t}</button>`).join('')}</nav><div class="cfmain" id="cfMain">` +
-    sec('geral', '🚀 Geral', `<div class="cfcache"><h3>🎨 Tema</h3><div class="picks">${pick('thm', 'blue', !cfg.theme || cfg.theme === 'blue', themePv('#0B1020', '#1E293B', '#00D1FF', '#E5E7EB'), 'Azul', 'padrão')}${pick('thm', 'oled', cfg.theme === 'oled', themePv('#000', '#0d0d0d', '#00D1FF', '#E5E7EB'), 'Preto', 'ideal para telas OLED')}${pick('thm', 'light', cfg.theme === 'light', themePv('#F1F5F9', '#fff', '#2563EB', '#0f172a'), 'Branco', 'claro')}</div><h3 style="margin-top:16px">🌐 Idioma</h3><div class="picks">${pick('lng', 'pt', LANG === 'pt', langPv('PT'), 'Português', '')}${pick('lng', 'en', LANG === 'en', langPv('EN'), 'Inglês', '')}${pick('lng', 'es', LANG === 'es', langPv('ES'), 'Espanhol', '')}</div></div><div class="cfgen">
+    sec('geral', '🚀 Geral', `<div class="cfcache"><h3>🎨 Tema</h3><div class="picks">${pick('thm', 'blue', !cfg.theme || cfg.theme === 'blue', themePv('#14161c', '#23262e', '#3D7BFF', '#E5E7EB'), 'Azul', 'padrão')}${pick('thm', 'oled', cfg.theme === 'oled', themePv('#000', '#0d0d0d', '#3D7BFF', '#E5E7EB'), 'Preto', 'ideal para telas OLED')}${pick('thm', 'light', cfg.theme === 'light', themePv('#F1F5F9', '#fff', '#2563EB', '#14161c'), 'Branco', 'claro')}</div><h3 style="margin-top:16px">🌐 Idioma</h3><div class="picks">${pick('lng', 'pt', LANG === 'pt', langPv('PT'), 'Português', '')}${pick('lng', 'en', LANG === 'en', langPv('EN'), 'Inglês', '')}${pick('lng', 'es', LANG === 'es', langPv('ES'), 'Espanhol', '')}</div></div><div class="cfgen">
       ${fieldHtml(-1, 'root', 'Pasta dos emuladores e jogos', cfg.root || '', 'folder')}
     </div>
     <div class="cfcache">
@@ -109,7 +109,7 @@ function renderConfig() {
         <div id="cfGridDim" style="display:${fgFree ? 'none' : ''}"><h3 style="margin-top:16px">Tamanho da grade</h3>
         <div class="picks">${['4x10', '4x12', '6x14'].map(d => pick('fgd', d, ((cfg.favGrid === '6x12' ? '6x14' : cfg.favGrid) || '4x12') === d, gridPv(d), d.replace('x', ' × '), d === '4x12' ? 'padrão' : (d === '6x14' ? 'mais jogos por página' : 'cards maiores'))).join('')}</div></div>
         <h3 style="margin-top:16px">Fundo da tela</h3>
-        <div class="picks">${pick('fbg', '1', cfg.favBgGame !== false, PV.video.replace('#ff2d2d', '#8B5CF6'), 'Fundo do jogo', 'muda ao selecionar um card')}${pick('fbg', '0', cfg.favBgGame === false, PV.image, 'Fundo fixo', 'uma imagem que você escolhe')}</div>
+        <div class="picks">${pick('fbg', '1', cfg.favBgGame !== false, PV.video.replace('#ff2d2d', '#2F6BFF'), 'Fundo do jogo', 'muda ao selecionar um card')}${pick('fbg', '0', cfg.favBgGame === false, PV.image, 'Fundo fixo', 'uma imagem que você escolhe')}</div>
         <div class="wpsearch" id="wpBox" style="display:${cfg.favBgGame === false ? '' : 'none'}"><div class="line wpbar"><span class="wpico">🔍</span><input id="wpQ" placeholder="Buscar imagem de fundo (ex.: montanhas, synthwave)" autocomplete="off"><button class="btn sec sm" id="wpGo">Buscar</button></div><div class="wpres" id="wpRes"><div class="msg">Escreva o que você quer e aperte Buscar. Só aparecem imagens grandes (resolução de wallpaper).</div></div></div>
         <div class="msg">Cada jogo favorito vira um card. Arraste um card para mudar de lugar (até para outra página), arraste a borda para mudar o tamanho (até a página inteira) ou use o botão direito → Redimensionar.</div></div><div class="cfgrid"><div class="ccard${favCfg().enabled ? '' : ' off'}">
         <div class="top"><button class="icobtn" data-ico="-2" title="Trocar ícone"><img src="${logoUrl(Object.assign({}, FAVSYS, { logo: favCfg().logo || 'builtin:fav' }))}" alt=""><span>trocar ícone</span></button><button class="icobtn bgb" data-bgp="-2" title="Trocar fundo" style="background-image:url('${favCfg().bg ? bgUrlOf({ bg: favCfg().bg }) : FAV_BG}')"><span>trocar fundo</span></button><input value="⭐ Favoritos" disabled><label class="chk2 en"><input type="checkbox" data-en="-2" ${favCfg().enabled ? 'checked' : ''}> Habilitar</label></div>
@@ -208,7 +208,7 @@ async function cacheClear(k) {
 }
 // configurações do console "Favoritos" (cfg.fav = { enabled, logo, bg })
 function favCfg() { if (!cfg.fav) cfg.fav = { enabled: cfg.favConsole !== false }; if (cfg.fav.enabled == null) cfg.fav.enabled = true; return cfg.fav; }
-function confirmDel(i) { return window.confirm(`Remover "${cfg.consoles[i].name}" do PlayLoop? (os arquivos não são apagados)`); }
+function confirmDel(i) { return window.confirm(`Remover "${cfg.consoles[i].name}" do Koru? (os arquivos não são apagados)`); }
 // pastas de jogos/atalhos: uma caixa por pasta (adicionar / excluir); no PC, as lojas viram caixinhas com o caminho editável
 let cfStores = null;
 async function cfLoadStores() { if (cfStores) return; try { cfStores = (await api('/api/setup')).stores || []; } catch (e) { cfStores = []; } if (screen === 'config' && cfStores.length) { const y = $('cfMain').scrollTop; renderConfig(); $('cfMain').scrollTop = y; } }

@@ -1,4 +1,4 @@
-// PlayLoop — artpick.js
+// Koru — artpick.js
 /* ---------- "Mais...": escolher fundo/ícone de console entre todas as imagens do repositório do tema ---------- */
 const ARTPICK = { open: false, kind: '', cb: null, items: [] };
 const ARTLIST_SRC = {

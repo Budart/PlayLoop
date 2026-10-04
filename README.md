@@ -1,4 +1,4 @@
-# PlayLoop
+# Koru
 <img width="2556" height="1349" alt="image" src="https://github.com/user-attachments/assets/266e5020-668a-4791-869c-9f692de8419b" />
 <img width="2560" height="1351" alt="image" src="https://github.com/user-attachments/assets/67b59040-ef05-4354-8d1b-e435b05d00df" />
 <img width="2560" height="1351" alt="image" src="https://github.com/user-attachments/assets/30b4b0f2-8ff5-4dcf-8496-f33633b8d578" />
@@ -15,7 +15,7 @@ Front-end para Windows que reúne emuladores e jogos (ROMs e jogos de PC) em um 
 
 ## Download
 
-Baixe o instalador em **[Releases](../../releases)** e execute `PlayLoop - Instalador.exe`.
+Baixe o instalador em **[Releases](../../releases)** e execute `Koru - Instalador.exe`.
 
 Requisitos: Windows 10/11 com o Microsoft Edge WebView2 Runtime (o instalador instala automaticamente se faltar).
 
@@ -29,8 +29,8 @@ Requisitos: Windows 10/11 com o Microsoft Edge WebView2 Runtime (o instalador in
 Com Mono (`mcs`) ou o compilador C# do .NET Framework:
 
 1. Coloque em `src/app` as DLLs do pacote NuGet [Microsoft.Web.WebView2](https://www.nuget.org/packages/Microsoft.Web.WebView2): `Microsoft.Web.WebView2.Core.dll`, `Microsoft.Web.WebView2.WinForms.dll` e `WebView2Loader.dll` (x64 e x86, renomeadas para `WebView2Loader.x64.dll` / `WebView2Loader.x86.dll`).
-2. `sh src/app/build.sh` → gera `PlayLoop.exe`.
-3. Copie o `PlayLoop.exe` para `src/installer` e rode `sh src/installer/build.sh` → gera `PlayLoop - Instalador.exe`.
+2. `sh src/app/build.sh` → gera `Koru.exe`.
+3. Copie o `Koru.exe` para `src/installer` e rode `sh src/installer/build.sh` → gera `Koru - Instalador.exe`.
 
 ## Dados do usuário
 

@@ -1,6 +1,6 @@
 # Créditos e licenças
 
-O PlayLoop **não inclui** essas imagens no código nem no instalador: elas são buscadas nas fontes abaixo durante o uso (e guardadas no cache local do usuário). Os direitos pertencem aos respectivos autores e donos.
+O Koru **não inclui** essas imagens no código nem no instalador: elas são buscadas nas fontes abaixo durante o uso (e guardadas no cache local do usuário). Os direitos pertencem aos respectivos autores e donos.
 
 ## Tema "carbon" para EmulationStation — logos, fundos e desenhos de controle dos consoles
 - Autor: **Rookervik**, baseado no tema "simple" de **Nils Bonenberger** (http://blog.nilsbyte.de/)
@@ -24,4 +24,4 @@ A arte dos jogos pertence às respectivas editoras/desenvolvedoras.
 - **Microsoft Edge WebView2** — Microsoft
 
 ## Marcas registradas
-Nintendo, PlayStation, Xbox, Sega, Neo Geo, Steam e demais nomes e logos de consoles são marcas registradas de seus respectivos donos e aparecem apenas para identificar cada plataforma. O PlayLoop não é afiliado a nenhuma delas.
+Nintendo, PlayStation, Xbox, Sega, Neo Geo, Steam e demais nomes e logos de consoles são marcas registradas de seus respectivos donos e aparecem apenas para identificar cada plataforma. O Koru não é afiliado a nenhuma delas.

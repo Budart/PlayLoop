@@ -1,4 +1,4 @@
-// PlayLoop — audio.js
+// Koru — audio.js
 /* ---------- sons da interface + músicas (geradas na hora, 100% originais, sem arquivos) ---------- */
 let muted = false; try { muted = localStorage.getItem('mute') === '1'; } catch (e) {}
 let AC = null, master = null, sfxBus = null, musBus = null;

@@ -16,7 +16,7 @@ using System.Web.Script.Serialization;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-// PlayLoop — respostas das requisições da página
+// Koru — respostas das requisições da página
 static partial class Central
 {
     static void Send(Ctx ctx, int code, string type, byte[] body)

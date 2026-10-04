@@ -16,7 +16,7 @@ using System.Web.Script.Serialization;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-// PlayLoop — excluir ROMs e desinstalar jogos de PC
+// Koru — excluir ROMs e desinstalar jogos de PC
 static partial class Central
 {
     // ---- excluir jogo ----

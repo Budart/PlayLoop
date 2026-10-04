@@ -16,7 +16,7 @@ using System.Web.Script.Serialization;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-// PlayLoop — rotas da API usada pela página (/api/...)
+// Koru — rotas da API usada pela página (/api/...)
 static partial class Central
 {
     static void Handle(Ctx ctx)
@@ -295,7 +295,7 @@ static partial class Central
                 foreach (Dictionary<string, object> ac in (object[])auto["consoles"]) { ac["fullscreen"] = false; ac["fsArgs"] = FullscreenArg(Full(S(auto, "root"), S(ac, "emulator"))); }
                 if (S(body, "sgdbKey") != "") { auto["sgdbKey"] = S(body, "sgdbKey"); auto["useSgdb"] = true; }
                 bool runKey = false;
-                try { using (var k = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run")) runKey = k.GetValue("PlayLoop") != null; } catch { }
+                try { using (var k = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run")) runKey = k.GetValue("Koru") != null; } catch { }
                 auto["autostart"] = NeedsSetup ? runKey : !(cfg.ContainsKey("autostart") && cfg["autostart"] is bool && !(bool)cfg["autostart"]);
                 SaveConfigText(Json.Serialize(auto));
                 ApplyAutostart(auto);
@@ -369,7 +369,7 @@ static partial class Central
                     if (!ok || !File.Exists(game)) { SendJson(ctx, Err("Atalho inválido"), 400); return; }
                     Process.Start(new ProcessStartInfo(game) { WorkingDirectory = Path.GetDirectoryName(game), UseShellExecute = true });
                     WebHost.GameStarted(null);
-                    WebHost.FollowForeground();   // jogo de PC (Steam etc.): leva a janela nova para o monitor do PlayLoop
+                    WebHost.FollowForeground();   // jogo de PC (Steam etc.): leva a janela nova para o monitor do Koru
                     SendJson(ctx, new Dictionary<string, object> { { "ok", true } });
                     return;
                 }
@@ -384,7 +384,7 @@ static partial class Central
                 if (fs && fsArgs != "") args = fsArgs + " " + args;
                 var proc = Process.Start(new ProcessStartInfo(emu, args.Replace("{rom}", rom)) { WorkingDirectory = Path.GetDirectoryName(emu), UseShellExecute = true });
                 WebHost.GameStarted(proc);
-                WebHost.FollowToAppScreen(proc);   // abre no mesmo monitor do PlayLoop
+                WebHost.FollowToAppScreen(proc);   // abre no mesmo monitor do Koru
                 SendJson(ctx, new Dictionary<string, object> { { "ok", true } });
             }
             else Send(ctx, 404, "text/plain", Utf8.GetBytes("404"));

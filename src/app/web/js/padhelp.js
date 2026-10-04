@@ -1,4 +1,4 @@
-// PlayLoop — padhelp.js
+// Koru — padhelp.js
 /* ---------- legenda de comandos do controle (rodapé), com os símbolos do controle conectado ---------- */
 let padType = null, padKey = '';
 function detectPad(id) {
@@ -12,7 +12,7 @@ function detectPad(id) {
 // botões pela posição no controle: 0 = baixo, 1 = direita, 2 = esquerda, 3 = cima (mapeamento padrão)
 const FACE = {
   xbox: [['A', '#16a34a'], ['B', '#dc2626'], ['X', '#2563eb'], ['Y', '#ca8a04']],
-  ps:   [['✕', '#60a5fa'], ['○', '#f87171'], ['□', '#f472b6'], ['△', '#34d399']],
+  ps:   [['✕', '#5B8CFF'], ['○', '#f87171'], ['□', '#f472b6'], ['△', '#34d399']],
   nin:  [['B', '#64748b'], ['A', '#64748b'], ['Y', '#64748b'], ['X', '#64748b']],
 };
 const SHOULDER = { xbox: ['LB', 'RB', 'LT', 'RT', 'View', 'Menu'], ps: ['L1', 'R1', 'L2', 'R2', 'Share', 'Options'], nin: ['L', 'R', 'ZL', 'ZR', '−', '+'], gen: ['L1', 'R1', 'L2', 'R2', 'Select', 'Start'] };
@@ -25,7 +25,7 @@ function faceIcon(i) {
   const sym = padType === 'ps'
     ? [`<path d="M8 8l8 8M16 8l-8 8"/>`, `<circle cx="12" cy="12" r="4.6"/>`, `<rect x="7.6" y="7.6" width="8.8" height="8.8" rx=".6"/>`, `<path d="M12 7l5 8.6H7z"/>`][i]
     : `<text x="12" y="16.2" text-anchor="middle" font-size="11" font-weight="700" fill="${c}" stroke="none" font-family="Poppins,Segoe UI,sans-serif">${t}</text>`;
-  return `<svg class="pg pf" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="#1e293b" stroke="${c}" stroke-opacity=".55" stroke-width="1"/><g fill="none" stroke="${c}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">${sym}</g></svg>`;
+  return `<svg class="pg pf" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="#23262e" stroke="${c}" stroke-opacity=".55" stroke-width="1"/><g fill="none" stroke="${c}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">${sym}</g></svg>`;
 }
 const DPAD = '<svg class="pg" viewBox="0 0 24 24"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z" fill="none" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>';
 const STICK = s => `<span class="pb st">${s}</span>`;

@@ -16,10 +16,10 @@ using System.Web.Script.Serialization;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-// PlayLoop — janela do app e diálogos de arquivo/pasta
+// Koru — janela do app e diálogos de arquivo/pasta
 static partial class Central
 {
-    // abre a janela do PlayLoop (WebView2)
+    // abre a janela do Koru (WebView2)
     static void OpenBrowser() { OpenBrowser(""); }
     static void OpenBrowser(string path)
     {

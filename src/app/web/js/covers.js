@@ -1,4 +1,4 @@
-// PlayLoop — covers.js
+// Koru — covers.js
 /* ---------- escolher capa manualmente (estilo TICO) ---------- */
 let modalOpen = false, coverGame = null;
 let bgMode = false, cardMode = false, logoMode = false, cardKind = 'cover';   // cardKind: no card dos Favoritos, buscar 'cover' (capas) ou 'bg' (fundos)   // logoMode: imagem do título na lombada da capa 3D   // cardMode: imagem do card dos Favoritos (capas + fundos)
@@ -164,7 +164,7 @@ async function doLaunch(g) {
       const list = '<ul class="emurec">' + rec.map(([n, u]) => `<li><a data-href="${esc(u)}">${esc(n)}</a><small>${esc(u.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, ''))}</small></li>`).join('') + '</ul>';
       const ans = await ask('Nenhum emulador configurado', `${esc(s.name)} ainda não tem emulador. Os mais recomendados (gratuitos) são:${list}Baixe um deles no site oficial e depois selecione o executável aqui.`, 'Selecionar .exe', null, true);
       if (!ans) return false;
-    } else if (!await ask('Nenhum emulador configurado', `${s.name} ainda não tem emulador. Quer selecionar o executável do emulador agora? O PlayLoop configura tudo e já abre o jogo.`, 'Selecionar emulador')) return false;
+    } else if (!await ask('Nenhum emulador configurado', `${s.name} ainda não tem emulador. Quer selecionar o executável do emulador agora? O Koru configura tudo e já abre o jogo.`, 'Selecionar emulador')) return false;
     let r; try { r = await api('/api/setemu', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ console: g.sid || s.id }) }); } catch (e) { toast(e.message, true); return false; }
     if (!r.ok) return false;
     [s, allSystems.find(x => x.id === s.id), systems.find(x => x.id === s.id)].forEach(x => { if (x) x.emulatorOk = true; });

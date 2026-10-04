@@ -16,7 +16,7 @@ using System.Web.Script.Serialization;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-// PlayLoop — leitura, gravação e normalização da configuração
+// Koru — leitura, gravação e normalização da configuração
 static partial class Central
 {
     static string Resource(string name)

@@ -16,7 +16,7 @@ using System.Web.Script.Serialization;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-// PlayLoop — iniciar com o Windows e desinstalação
+// Koru — iniciar com o Windows e desinstalação
 static partial class Central
 {
     // abrir junto com o Windows (opção "autostart" da configuração; padrão: ligado)
@@ -28,7 +28,7 @@ static partial class Central
             using (var k = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true))
             {
                 try { k.DeleteValue("CentralDeJogos", false); k.DeleteValue("Jogo", false); k.DeleteValue("Joggo", false); } catch { }
-                if (on) k.SetValue("PlayLoop", "\"" + ExePath + "\" silent"); else k.DeleteValue("PlayLoop", false);
+                if (on) k.SetValue("Koru", "\"" + ExePath + "\" silent"); else k.DeleteValue("Koru", false);
             }
         }
         catch { }
@@ -39,20 +39,20 @@ static partial class Central
     static bool AskUninstall(string dataDir, out bool wipe)
     {
         wipe = false;
-        Color bg = Color.FromArgb(11, 16, 32), card = Color.FromArgb(17, 26, 46), text = Color.FromArgb(229, 231, 235), muted = Color.FromArgb(148, 163, 184), red = Color.FromArgb(248, 113, 113);
-        var f = new Form { Text = "Desinstalar PlayLoop", FormBorderStyle = FormBorderStyle.FixedDialog, MaximizeBox = false, MinimizeBox = false, StartPosition = FormStartPosition.CenterScreen,
+        Color bg = Color.FromArgb(20, 22, 28), card = Color.FromArgb(26, 28, 34), text = Color.FromArgb(229, 231, 235), muted = Color.FromArgb(148, 163, 184), red = Color.FromArgb(248, 113, 113);
+        var f = new Form { Text = "Desinstalar Koru", FormBorderStyle = FormBorderStyle.FixedDialog, MaximizeBox = false, MinimizeBox = false, StartPosition = FormStartPosition.CenterScreen,
             AutoScaleDimensions = new SizeF(96f, 96f), AutoScaleMode = AutoScaleMode.Dpi, ClientSize = new Size(520, 300), BackColor = bg, ForeColor = text, Font = new Font("Segoe UI", 10f) };
         try { f.Icon = Icon.ExtractAssociatedIcon(ExePath); } catch { }
-        var title = new Label { Text = "Desinstalar o PlayLoop?", Font = new Font("Segoe UI Semibold", 15f), AutoSize = false, Location = new Point(28, 22), Size = new Size(464, 34) };
+        var title = new Label { Text = "Desinstalar o Koru?", Font = new Font("Segoe UI Semibold", 15f), AutoSize = false, Location = new Point(28, 22), Size = new Size(464, 34) };
         var sub = new Label { Text = "Seus emuladores e jogos não serão apagados.", ForeColor = muted, Location = new Point(28, 58), Size = new Size(464, 22) };
         var box = new Panel { BackColor = card, Location = new Point(28, 96), Size = new Size(464, 118) };
         var chk = new CheckBox { Text = "Apagar também todos os meus dados", Font = new Font("Segoe UI Semibold", 10.5f), Location = new Point(16, 14), Size = new Size(430, 26), Cursor = Cursors.Hand };
         var det = new Label { Text = "Configuração, favoritos, posição e tamanho dos cards, capas, fundos e títulos escolhidos, jogos ocultos e renomeados, cache de imagens e vídeos.", ForeColor = muted, Font = new Font("Segoe UI", 9f), Location = new Point(36, 44), Size = new Size(412, 58) };
         box.Controls.AddRange(new Control[] { chk, det });
         Func<string, Color, Button> mk = (t, c) => { var b = new Button { Text = t, Size = new Size(124, 38), FlatStyle = FlatStyle.Flat, BackColor = c, ForeColor = Color.White, Cursor = Cursors.Hand, Font = new Font("Segoe UI Semibold", 10f) }; b.FlatAppearance.BorderSize = 0; return b; };
-        var no = mk("Cancelar", Color.FromArgb(30, 41, 59)); no.Location = new Point(368, 240); no.DialogResult = DialogResult.Cancel;
-        var ok = mk("Desinstalar", Color.FromArgb(59, 130, 246)); ok.Location = new Point(234, 240); ok.DialogResult = DialogResult.OK;
-        chk.CheckedChanged += (s, e) => { ok.BackColor = chk.Checked ? Color.FromArgb(220, 38, 38) : Color.FromArgb(59, 130, 246); ok.Text = chk.Checked ? "Apagar tudo" : "Desinstalar"; det.ForeColor = chk.Checked ? red : muted; };
+        var no = mk("Cancelar", Color.FromArgb(35, 38, 46)); no.Location = new Point(368, 240); no.DialogResult = DialogResult.Cancel;
+        var ok = mk("Desinstalar", Color.FromArgb(47, 107, 255)); ok.Location = new Point(234, 240); ok.DialogResult = DialogResult.OK;
+        chk.CheckedChanged += (s, e) => { ok.BackColor = chk.Checked ? Color.FromArgb(220, 38, 38) : Color.FromArgb(47, 107, 255); ok.Text = chk.Checked ? "Apagar tudo" : "Desinstalar"; det.ForeColor = chk.Checked ? red : muted; };
         f.Controls.AddRange(new Control[] { title, sub, box, ok, no });
         f.AcceptButton = ok; f.CancelButton = no;
         bool r = f.ShowDialog() == DialogResult.OK;
@@ -65,16 +65,16 @@ static partial class Central
         Application.EnableVisualStyles();
         bool wipe;
         if (!AskUninstall(data, out wipe)) return;
-        foreach (var n in new[] { "PlayLoop", "Joggo", "Jogo" })
+        foreach (var n in new[] { "Koru", "Joggo", "Jogo" })
             foreach (var p in Process.GetProcessesByName(n)) if (p.Id != Process.GetCurrentProcess().Id) try { p.Kill(); p.WaitForExit(3000); } catch { }
-        try { using (var k = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true)) { k.DeleteValue("PlayLoop", false); k.DeleteValue("CentralDeJogos", false); } } catch { }
-        try { Registry.CurrentUser.DeleteSubKeyTree(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\PlayLoop", false); } catch { }
+        try { using (var k = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true)) { k.DeleteValue("Koru", false); k.DeleteValue("CentralDeJogos", false); } } catch { }
+        try { Registry.CurrentUser.DeleteSubKeyTree(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\Koru", false); } catch { }
         foreach (var lnk in new[] {
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "PlayLoop.lnk"),
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "PlayLoop.lnk"),
-            Path.Combine(Path.GetDirectoryName(ExePath), "Desinstalar PlayLoop.lnk") })
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "Koru.lnk"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "Koru.lnk"),
+            Path.Combine(Path.GetDirectoryName(ExePath), "Desinstalar Koru.lnk") })
             try { if (File.Exists(lnk)) File.Delete(lnk); } catch { }
-        try { var sm = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "PlayLoop"); if (Directory.Exists(sm)) Directory.Delete(sm, true); } catch { }
+        try { var sm = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "Koru"); if (Directory.Exists(sm)) Directory.Delete(sm, true); } catch { }
         string extra = "";
         if (wipe)
         {
@@ -91,7 +91,7 @@ static partial class Central
             if (Directory.Exists(data)) extra = " & rmdir /s /q \"" + data + "\"";
         }
         string dir = Path.GetDirectoryName(ExePath);
-        MessageBox.Show(wipe ? "O PlayLoop foi desinstalado e seus dados foram apagados." : "O PlayLoop foi desinstalado.", "PlayLoop");
+        MessageBox.Show(wipe ? "O Koru foi desinstalado e seus dados foram apagados." : "O Koru foi desinstalado.", "Koru");
         Process.Start(new ProcessStartInfo("cmd.exe", "/c timeout /t 2 /nobreak >nul & del /f /q \"" + ExePath + "\" & rmdir \"" + dir + "\"" + extra) { CreateNoWindow = true, WindowStyle = ProcessWindowStyle.Hidden });
     }
 }

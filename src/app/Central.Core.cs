@@ -16,7 +16,7 @@ using System.Web.Script.Serialization;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-// PlayLoop — estado e utilidades compartilhadas (JSON, UTF-8, caminhos, cache)
+// Koru — estado e utilidades compartilhadas (JSON, UTF-8, caminhos, cache)
 static partial class Central
 {
     const string ConfigName = "central-config.json";

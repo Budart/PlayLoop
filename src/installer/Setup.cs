@@ -12,24 +12,24 @@ using System.Web.Script.Serialization;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-[assembly: AssemblyTitle("PlayLoop - Instalador")]
-[assembly: AssemblyProduct("PlayLoop")]
-[assembly: AssemblyVersion("1.4.14.0")]
+[assembly: AssemblyTitle("Koru - Instalador")]
+[assembly: AssemblyProduct("Koru")]
+[assembly: AssemblyVersion("1.5.0.0")]
 
 class Setup : Form
 {
     [DllImport("user32.dll")] static extern bool ReleaseCapture();
     [DllImport("user32.dll")] static extern IntPtr SendMessage(IntPtr h, int msg, int wp, int lp);
 
-    static readonly Color Bg = Color.FromArgb(11, 16, 32), Panel2 = Color.FromArgb(30, 41, 59), Txt = Color.FromArgb(229, 231, 235), Muted = Color.FromArgb(148, 163, 184);
-    static readonly Color Cyan = Color.FromArgb(0, 209, 255), Pink = Color.FromArgb(139, 92, 246);
+    static readonly Color Bg = Color.FromArgb(20, 22, 28), Panel2 = Color.FromArgb(35, 38, 46), Txt = Color.FromArgb(229, 231, 235), Muted = Color.FromArgb(148, 163, 184);
+    static readonly Color Cyan = Color.FromArgb(61, 123, 255), Pink = Color.FromArgb(47, 107, 255);
 
     SoundPlayer player; bool muted;
     TextBox pathBox; CheckBox cDesk, cStart, cAuto, cRun;
     Button installBtn, browseBtn, muteBtn; Label status; ProgressBar bar; Panel art;
     Image logo; float phase; bool done;
 
-    // WebView2 Runtime (motor do Edge usado pela janela do PlayLoop): instala sozinho se faltar
+    // WebView2 Runtime (motor do Edge usado pela janela do Koru): instala sozinho se faltar
     static bool HasWebView2()
     {
         const string id = @"\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}";
@@ -54,13 +54,13 @@ class Setup : Form
     }
     static Stream Res(string n) { return Assembly.GetExecutingAssembly().GetManifestResourceStream(n); }
 
-    // registro da instalação (para descobrir onde parou se algo der errado): %TEMP%\PlayLoop-instalacao.log
-    static readonly string LogFile = Path.Combine(Path.GetTempPath(), "PlayLoop-instalacao.log");
+    // registro da instalação (para descobrir onde parou se algo der errado): %TEMP%\Koru-instalacao.log
+    static readonly string LogFile = Path.Combine(Path.GetTempPath(), "Koru-instalacao.log");
     static void Log(string m) { try { File.AppendAllText(LogFile, DateTime.Now.ToString("HH:mm:ss.fff") + "  " + m + Environment.NewLine); } catch { } }
     static void Crash(object ex)
     {
         Log("ERRO FATAL: " + ex);
-        try { MessageBox.Show("A instalação parou por um erro inesperado:\n\n" + ((ex as Exception) != null ? ((Exception)ex).Message : "" + ex) + "\n\nDetalhes em:\n" + LogFile, "PlayLoop - Instalador", MessageBoxButtons.OK, MessageBoxIcon.Error); } catch { }
+        try { MessageBox.Show("A instalação parou por um erro inesperado:\n\n" + ((ex as Exception) != null ? ((Exception)ex).Message : "" + ex) + "\n\nDetalhes em:\n" + LogFile, "Koru - Instalador", MessageBoxButtons.OK, MessageBoxIcon.Error); } catch { }
     }
 
     [STAThread]
@@ -78,7 +78,7 @@ class Setup : Form
 
     Setup()
     {
-        Text = "PlayLoop - Instalador"; FormBorderStyle = FormBorderStyle.None; StartPosition = FormStartPosition.CenterScreen;
+        Text = "Koru - Instalador"; FormBorderStyle = FormBorderStyle.None; StartPosition = FormStartPosition.CenterScreen;
         ClientSize = new Size(780, 470); BackColor = Bg; ForeColor = Txt; Font = new Font("Segoe UI", 10f);
         Icon = Icon.ExtractAssociatedIcon(Assembly.GetExecutingAssembly().Location);
         DoubleBuffered = true;
@@ -99,20 +99,20 @@ class Setup : Form
         dragBar.MouseDown += Drag; Controls.Add(dragBar);
 
         int x = 336;
-        Controls.Add(new Label { Text = "Instalar o PlayLoop", Font = new Font("Segoe UI Semibold", 20f), Location = new Point(x - 2, 44), AutoSize = true });
+        Controls.Add(new Label { Text = "Instalar o Koru", Font = new Font("Segoe UI Semibold", 20f), Location = new Point(x - 2, 44), AutoSize = true });
         Controls.Add(new Label { Text = "Todos os seus emuladores e jogos num só lugar.", ForeColor = Muted, Location = new Point(x, 88), AutoSize = true });
 
         Controls.Add(new Label { Text = "Pasta de instalação", ForeColor = Muted, Font = new Font("Segoe UI", 9f), Location = new Point(x, 130), AutoSize = true });
         pathBox = new TextBox { Location = new Point(x, 152), Width = 300, BackColor = Panel2, ForeColor = Txt, BorderStyle = BorderStyle.FixedSingle,
-            Text = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "PlayLoop") };
+            Text = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "Koru") };
         Controls.Add(pathBox);
         browseBtn = Btn("Procurar...", new Point(x + 308, 150), 96, false);
-        browseBtn.Click += (s, e) => { var p = FolderPicker.Pick(this, "Onde instalar o PlayLoop", Directory.Exists(Path.GetDirectoryName(pathBox.Text) ?? "") ? Path.GetDirectoryName(pathBox.Text) : null); if (p != null) pathBox.Text = Path.Combine(p, "PlayLoop"); };
+        browseBtn.Click += (s, e) => { var p = FolderPicker.Pick(this, "Onde instalar o Koru", Directory.Exists(Path.GetDirectoryName(pathBox.Text) ?? "") ? Path.GetDirectoryName(pathBox.Text) : null); if (p != null) pathBox.Text = Path.Combine(p, "Koru"); };
 
         cDesk = Chk("Criar atalho na Área de Trabalho", 196);
         cStart = Chk("Criar atalho no menu Iniciar", 224);
         cAuto = Chk("Abrir na inicialização do Windows", 252);
-        cRun = Chk("Abrir o PlayLoop ao terminar", 280);
+        cRun = Chk("Abrir o Koru ao terminar", 280);
 
         bar = new ProgressBar { Location = new Point(x, 330), Size = new Size(404, 8), Style = ProgressBarStyle.Continuous, Visible = false };
         Controls.Add(bar);
@@ -121,7 +121,7 @@ class Setup : Form
 
         installBtn = Btn("Instalar", new Point(x + 244, 400), 160, true);
         installBtn.Click += (s, e) => { if (done) { if (cRun.Checked) Launch(); Close(); } else Install(); };
-        Controls.Add(new Label { Text = "v1.4.14", ForeColor = Muted, Font = new Font("Segoe UI", 8.5f), Location = new Point(x, 412), AutoSize = true });
+        Controls.Add(new Label { Text = "v1.5.0", ForeColor = Muted, Font = new Font("Segoe UI", 8.5f), Location = new Point(x, 412), AutoSize = true });
 
         MouseDown += Drag;
     }
@@ -139,16 +139,16 @@ class Setup : Form
     {
         var b = new Button { Text = glyph, Font = new Font("Segoe MDL2 Assets", 10f), Location = new Point(left, 0), Size = new Size(45, 34),
             FlatStyle = FlatStyle.Flat, BackColor = Bg, ForeColor = Txt, TabStop = false };
-        b.FlatAppearance.BorderSize = 0; b.FlatAppearance.MouseOverBackColor = Color.FromArgb(45, 40, 70);
+        b.FlatAppearance.BorderSize = 0; b.FlatAppearance.MouseOverBackColor = Color.FromArgb(40, 43, 52);
         Controls.Add(b); return b;
     }
     Button Btn(string text, Point p, int w, bool primary)
     {
         var b = new Button { Text = text, Location = p, Size = new Size(w, primary ? 42 : 27), FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand,
-            BackColor = primary ? Color.FromArgb(59, 130, 246) : Panel2, ForeColor = Color.White,
+            BackColor = primary ? Color.FromArgb(47, 107, 255) : Panel2, ForeColor = Color.White,
             Font = primary ? new Font("Segoe UI Semibold", 11f) : new Font("Segoe UI", 9f) };
-        b.FlatAppearance.BorderSize = primary ? 0 : 1; b.FlatAppearance.BorderColor = Color.FromArgb(70, 60, 100);
-        b.FlatAppearance.MouseOverBackColor = primary ? Color.FromArgb(99, 102, 241) : Color.FromArgb(45, 58, 80);
+        b.FlatAppearance.BorderSize = primary ? 0 : 1; b.FlatAppearance.BorderColor = Color.FromArgb(60, 63, 72);
+        b.FlatAppearance.MouseOverBackColor = primary ? Color.FromArgb(47, 107, 255) : Color.FromArgb(45, 48, 56);
         Controls.Add(b); return b;
     }
     CheckBox Chk(string text, int y)
@@ -161,7 +161,7 @@ class Setup : Form
     {
         var g = e.Graphics; g.SmoothingMode = SmoothingMode.AntiAlias; g.InterpolationMode = InterpolationMode.HighQualityBicubic;
         var r = art.ClientRectangle;
-        using (var br = new LinearGradientBrush(r, Color.FromArgb(22, 38, 96), Color.FromArgb(11, 16, 32), 90f)) g.FillRectangle(br, r);
+        using (var br = new LinearGradientBrush(r, Color.FromArgb(28, 32, 40), Color.FromArgb(20, 22, 28), 90f)) g.FillRectangle(br, r);
         // bolhas de luz se movendo
         for (int i = 0; i < 3; i++)
         {
@@ -172,7 +172,7 @@ class Setup : Form
                 path.AddEllipse(cx - rad, cy - rad, rad * 2, rad * 2);
                 using (var pb = new PathGradientBrush(path))
                 {
-                    pb.CenterColor = i == 0 ? Color.FromArgb(90, 150, 60, 255) : i == 1 ? Color.FromArgb(70, 0, 200, 255) : Color.FromArgb(70, 255, 40, 170);
+                    pb.CenterColor = i == 0 ? Color.FromArgb(60, 30, 70, 200) : i == 1 ? Color.FromArgb(70, 47, 107, 255) : Color.FromArgb(50, 61, 123, 255);
                     pb.SurroundColors = new[] { Color.FromArgb(0, 0, 0, 0) };
                     g.FillPath(pb, path);
                 }
@@ -190,7 +190,7 @@ class Setup : Form
             g.DrawString("Play", f, white, x0, 292, StringFormat.GenericTypographic);
             using (var br = new LinearGradientBrush(new RectangleF(x0 + s1.Width, 292, s2.Width, 50), Cyan, Pink, 0f)) g.DrawString("Loop", f, br, x0 + s1.Width, 292, StringFormat.GenericTypographic);
         }
-        using (var f = new Font("Segoe UI", 9f)) using (var b2 = new SolidBrush(Color.FromArgb(160, 200, 190, 230)))
+        using (var f = new Font("Segoe UI", 9f)) using (var b2 = new SolidBrush(Color.FromArgb(160, 200, 205, 215)))
         {
             string t = "TODOS OS SEUS JOGOS, EM UM SÓ LUGAR";
             var sz = g.MeasureString(t, f); g.DrawString(t, f, b2, (r.Width - sz.Width) / 2, 350);
@@ -202,7 +202,7 @@ class Setup : Form
     string InstallDir()
     {
         string d = pathBox.Text.Trim();
-        if (!Path.GetFileName(d.TrimEnd('\\')).Equals("PlayLoop", StringComparison.OrdinalIgnoreCase)) d = Path.Combine(d, "PlayLoop");   // sempre numa pasta própria
+        if (!Path.GetFileName(d.TrimEnd('\\')).Equals("Koru", StringComparison.OrdinalIgnoreCase)) d = Path.Combine(d, "Koru");   // sempre numa pasta própria
         return d;
     }
 
@@ -216,45 +216,57 @@ class Setup : Form
             try
             {
                 SetStatus("Fechando versões abertas...", 8);
-                int me = Process.GetCurrentProcess().Id;   // nunca fecha o próprio instalador (ex.: se o arquivo foi salvo como "PlayLoop.exe")
-                foreach (var n in new[] { "PlayLoop", "Joggo", "Jogo", "Central de Jogos" }) foreach (var p in Process.GetProcessesByName(n)) try { if (p.Id != me) { Log("fechando " + n + " (" + p.Id + ")"); p.Kill(); p.WaitForExit(3000); } } catch (Exception e) { Log("não fechou " + n + ": " + e.Message); }
+                int me = Process.GetCurrentProcess().Id;   // nunca fecha o próprio instalador (ex.: se o arquivo foi salvo como "Koru.exe")
+                foreach (var n in new[] { "Koru", "PlayLoop", "Joggo", "Jogo", "Central de Jogos" }) foreach (var p in Process.GetProcessesByName(n)) try { if (p.Id != me) { Log("fechando " + n + " (" + p.Id + ")"); p.Kill(); p.WaitForExit(3000); } } catch (Exception e) { Log("não fechou " + n + ": " + e.Message); }
                 foreach (var p in Process.GetProcesses()) try { if (p.Id != me && p.ProcessName.StartsWith(".central-antigo")) p.Kill(); } catch { }
                 Thread.Sleep(500);
 
                 SetStatus("Copiando arquivos...", 30);
                 Directory.CreateDirectory(dir);
-                string exe = Path.Combine(dir, "PlayLoop.exe");
+                string exe = Path.Combine(dir, "Koru.exe");
                 Log("destino: " + exe);
-                using (var s = Res("PlayLoop.exe")) using (var o = File.Create(exe)) s.CopyTo(o);
+                using (var s = Res("Koru.exe")) using (var o = File.Create(exe)) s.CopyTo(o);
                 Log("copiado: " + new FileInfo(exe).Length + " bytes");
 
                 SetStatus("Criando atalhos...", 50);
-                if (desk) Shortcut(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "PlayLoop.lnk"), exe);
-                // menu Iniciar: pasta "PlayLoop" com o app e o desinstalador
-                string sm = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "PlayLoop");
-                if (start) { Directory.CreateDirectory(sm); Shortcut(Path.Combine(sm, "PlayLoop.lnk"), exe); Shortcut(Path.Combine(sm, "Desinstalar PlayLoop.lnk"), exe, "--uninstall", "Desinstalar o PlayLoop"); }
-                try { var old = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "PlayLoop.lnk"); if (File.Exists(old)) File.Delete(old); } catch { }
+                if (desk) Shortcut(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "Koru.lnk"), exe);
+                // menu Iniciar: pasta "Koru" com o app e o desinstalador
+                string sm = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "Koru");
+                if (start) { Directory.CreateDirectory(sm); Shortcut(Path.Combine(sm, "Koru.lnk"), exe); Shortcut(Path.Combine(sm, "Desinstalar Koru.lnk"), exe, "--uninstall", "Desinstalar o Koru"); }
+                try { var old = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "Koru.lnk"); if (File.Exists(old)) File.Delete(old); } catch { }
                 // desinstalador também na pasta de instalação
-                Shortcut(Path.Combine(dir, "Desinstalar PlayLoop.lnk"), exe, "--uninstall", "Desinstalar o PlayLoop");
+                Shortcut(Path.Combine(dir, "Desinstalar Koru.lnk"), exe, "--uninstall", "Desinstalar o Koru");
 
                 SetStatus("Verificando o componente WebView2...", 60);
                 EnsureWebView2();
 
                 SetStatus("Registrando no Windows...", 68);
-                using (var k = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\PlayLoop"))
+                using (var k = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\Koru"))
                 {
-                    k.SetValue("DisplayName", "PlayLoop"); k.SetValue("DisplayIcon", exe); k.SetValue("DisplayVersion", "1.4.14");
-                    k.SetValue("Publisher", "PlayLoop"); k.SetValue("InstallLocation", dir);
+                    k.SetValue("DisplayName", "Koru"); k.SetValue("DisplayIcon", exe); k.SetValue("DisplayVersion", "1.5.0");
+                    k.SetValue("Publisher", "Koru"); k.SetValue("InstallLocation", dir);
                     k.SetValue("UninstallString", "\"" + exe + "\" --uninstall"); k.SetValue("NoModify", 1); k.SetValue("NoRepair", 1);
                 }
                 using (var k = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run"))   // em PCs novos a chave pode não existir
                 {
                     try { k.DeleteValue("CentralDeJogos", false); k.DeleteValue("Jogo", false); } catch { }
-                    if (auto) k.SetValue("PlayLoop", "\"" + exe + "\" silent"); else k.DeleteValue("PlayLoop", false);
+                    if (auto) k.SetValue("Koru", "\"" + exe + "\" silent"); else k.DeleteValue("Koru", false);
                 }
                 SaveAutostart(auto);
 
                 SetStatus("Removendo a versão antiga...", 86);
+                // versão anterior com o nome "PlayLoop" (renomeado para Koru): remove app, atalhos, registro e início automático
+                try {
+                    string pd = null; using (var k = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\PlayLoop")) if (k != null) pd = k.GetValue("InstallLocation") as string;
+                    if (string.IsNullOrEmpty(pd)) pd = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "PlayLoop");
+                    if (!pd.TrimEnd('\\').Equals(dir.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase)) { foreach (var f in new[] { "PlayLoop.exe", "Desinstalar PlayLoop.lnk" }) { var p = Path.Combine(pd, f); if (File.Exists(p)) File.Delete(p); } try { Directory.Delete(pd); } catch { } }
+                    else { foreach (var f in new[] { "PlayLoop.exe", "Desinstalar PlayLoop.lnk" }) { var p = Path.Combine(pd, f); if (File.Exists(p)) File.Delete(p); } }
+                    Log("PlayLoop antigo removido de " + pd);
+                } catch (Exception ex) { Log("falha ao remover PlayLoop: " + ex.Message); }
+                try { Registry.CurrentUser.DeleteSubKeyTree(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\PlayLoop", false); } catch { }
+                try { var l = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "PlayLoop.lnk"); if (File.Exists(l)) File.Delete(l); } catch { }
+                try { var sm0 = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "PlayLoop"); if (Directory.Exists(sm0)) Directory.Delete(sm0, true); } catch { }
+                try { using (var k = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true)) k.DeleteValue("PlayLoop", false); } catch { }
                 // versões anteriores ("Joggo")
                 try { Registry.CurrentUser.DeleteSubKeyTree(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\Joggo", false); } catch { }
                 foreach (var l in new[] { Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "Joggo.lnk") }) try { if (File.Exists(l)) File.Delete(l); } catch { }
@@ -269,8 +281,8 @@ class Setup : Form
                 foreach (var f in new[] { "Central de Jogos.exe" }) try { var p = Path.Combine(dsk, f); if (File.Exists(p)) File.Delete(p); } catch { }
                 try { foreach (var f in Directory.GetFiles(dsk, ".central-antigo*.exe")) try { File.Delete(f); } catch { } } catch { }
 
-                SetStatus("Pronto! O PlayLoop foi instalado.", 100);
-                Invoke((Action)(() => { done = true; installBtn.Text = cRun.Checked ? "Abrir o PlayLoop" : "Concluir"; installBtn.Enabled = true; }));
+                SetStatus("Pronto! O Koru foi instalado.", 100);
+                Invoke((Action)(() => { done = true; installBtn.Text = cRun.Checked ? "Abrir o Koru" : "Concluir"; installBtn.Enabled = true; }));
             }
             catch (Exception ex)
             {
@@ -297,9 +309,9 @@ class Setup : Form
         catch { }
     }
 
-    void Launch() { try { Process.Start(new ProcessStartInfo(Path.Combine(InstallDir(), "PlayLoop.exe")) { UseShellExecute = true }); } catch { } }
+    void Launch() { try { Process.Start(new ProcessStartInfo(Path.Combine(InstallDir(), "Koru.exe")) { UseShellExecute = true }); } catch { } }
 
-    static void Shortcut(string lnk, string target, string args = "", string desc = "PlayLoop")
+    static void Shortcut(string lnk, string target, string args = "", string desc = "Koru")
     {
         try
         {

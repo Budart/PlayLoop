@@ -1,4 +1,4 @@
-// PlayLoop — core.js
+// Koru — core.js
 const ART = 'https://raw.githubusercontent.com/fabricecaruso/es-theme-carbon/master/art/';
 const THUMBS = 'https://raw.githubusercontent.com/libretro-thumbnails/';
 const $ = id => document.getElementById(id);
@@ -17,13 +17,13 @@ function bgUrlOf(s) {
   return b || `${ART}background/${s.type === 'pc' ? 'steam' : s.art}.jpg`;   // PC: fundo padrão "steam"
 }
 /* ---------- imagens do tema com reserva: se a original sumir/quebrar, usa a 2ª opção automaticamente ----------
-   1) a própria imagem guardada no cache do PlayLoop (depois da 1ª vez, funciona mesmo se o site sair do ar)
+   1) a própria imagem guardada no cache do Koru (depois da 1ª vez, funciona mesmo se o site sair do ar)
    2) espelho do mesmo repositório (jsDelivr)
    2b) outro repositório com o mesmo tema (RetroPie/es-theme-carbon), direto e pelo jsDelivr
-   3) desenho embutido no app, nas cores do PlayLoop (fundo em degradê / controle genérico) */
+   3) desenho embutido no app, nas cores do Koru (fundo em degradê / controle genérico) */
 const ART_MIRROR = 'https://cdn.jsdelivr.net/gh/fabricecaruso/es-theme-carbon@master/art/';
 const svgUri = s => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s);
-const FALLBACK_BG = svgUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080"><defs><radialGradient id="a" cx="30%" cy="25%" r="80%"><stop offset="0" stop-color="#3B82F6" stop-opacity=".55"/><stop offset=".55" stop-color="#0B1020" stop-opacity="0"/></radialGradient><radialGradient id="b" cx="80%" cy="85%" r="70%"><stop offset="0" stop-color="#8B5CF6" stop-opacity=".5"/><stop offset=".6" stop-color="#0B1020" stop-opacity="0"/></radialGradient><pattern id="g" width="60" height="60" patternUnits="userSpaceOnUse"><path d="M60 0H0v60" fill="none" stroke="#00D1FF" stroke-opacity=".07"/></pattern></defs><rect width="1920" height="1080" fill="#0B1020"/><rect width="1920" height="1080" fill="url(#g)"/><rect width="1920" height="1080" fill="url(#a)"/><rect width="1920" height="1080" fill="url(#b)"/></svg>`);
+const FALLBACK_BG = svgUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080"><defs><radialGradient id="a" cx="30%" cy="25%" r="80%"><stop offset="0" stop-color="#2F6BFF" stop-opacity=".55"/><stop offset=".55" stop-color="#14161c" stop-opacity="0"/></radialGradient><radialGradient id="b" cx="80%" cy="85%" r="70%"><stop offset="0" stop-color="#2F6BFF" stop-opacity=".5"/><stop offset=".6" stop-color="#14161c" stop-opacity="0"/></radialGradient><pattern id="g" width="60" height="60" patternUnits="userSpaceOnUse"><path d="M60 0H0v60" fill="none" stroke="#3D7BFF" stroke-opacity=".07"/></pattern></defs><rect width="1920" height="1080" fill="#14161c"/><rect width="1920" height="1080" fill="url(#g)"/><rect width="1920" height="1080" fill="url(#a)"/><rect width="1920" height="1080" fill="url(#b)"/></svg>`);
 const FALLBACK_CTRL = svgUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 350"><g fill="none" stroke="#F4F4F4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M170 70h260c70 0 120 60 130 140 8 70-30 110-75 110-35 0-55-25-80-60H195c-25 35-45 60-80 60-45 0-83-40-75-110 10-80 60-140 130-140z"/><path d="M150 150v60M120 180h60"/><circle cx="440" cy="155" r="14"/><circle cx="470" cy="185" r="14"/><circle cx="410" cy="185" r="14"/><circle cx="440" cy="215" r="14"/><path d="M265 135h30M305 135h30"/></g></svg>`);
 function artAlts(url) {
   if (!url || typeof url !== 'string') return [];

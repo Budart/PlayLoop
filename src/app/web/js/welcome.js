@@ -1,10 +1,10 @@
-// PlayLoop — welcome.js
+// Koru — welcome.js
 /* ---------- boas-vindas (primeira abertura) ---------- */
 // passo 1: como organizar as pastas (ilustrado) — sem sugerir nenhum caminho
 const WF = '<svg viewBox="0 0 24 24"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4l2 2h9A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z" fill="#f5b942"/></svg>';
-const WE = '<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3" fill="#3b82f6"/><path d="M9 9l6 3-6 3z" fill="#fff"/></svg>';
+const WE = '<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3" fill="#2F6BFF"/><path d="M9 9l6 3-6 3z" fill="#fff"/></svg>';
 const wrow = (lvl, ico, name, note) => `<div class="wt" style="--l:${lvl}">${ico}<b>${name}</b>${note ? `<i>${note}</i>` : ''}</div>`;
-const WEL_TREE = `<span>Uma pasta para cada console. O PlayLoop configura o resto sozinho.</span>
+const WEL_TREE = `<span>Uma pasta para cada console. O Koru configura o resto sozinho.</span>
 <div class="wtree">
   ${wrow(0, WF, 'Emuladores', '')}
   ${wrow(1, WF, 'PlayStation', '')}
@@ -19,7 +19,7 @@ function runWelcome() {
     let suggest = '', stores = []; try { const r = await api('/api/setup'); suggest = r.suggest || ''; stores = (r.stores || []).map(x => ({ ...x, on: !!x.exists })); } catch (e) {}
     const syncPc = () => { picks.pcDirs = stores.filter(x => x.on && x.path.trim()).map(x => x.path.trim()); };
     const steps = [
-      { k: 'root', n: 'Passo 1 de 3', t: 'Onde estão seus emuladores?', p: 'Escolha a pasta principal onde ficam os emuladores e as ROMs (uma subpasta por console). O PlayLoop encontra tudo sozinho.', skip: false },
+      { k: 'root', n: 'Passo 1 de 3', t: 'Onde estão seus emuladores?', p: 'Escolha a pasta principal onde ficam os emuladores e as ROMs (uma subpasta por console). O Koru encontra tudo sozinho.', skip: false },
       { k: 'pc', n: 'Passo 2 de 3', t: 'E os seus jogos de PC?', p: 'Marque a Steam para usar a pasta padrão dos atalhos dela (dá para trocar). Para outras lojas ou pastas, use "Outra pasta...". Se não quiser, é só pular.', skip: true },
       { k: 'sgdbKey', n: 'Passo 3 de 3 · opcional', t: 'Opcional: quer ainda mais opções de capas?', key: true, skip: true },
     ];
@@ -28,7 +28,7 @@ function runWelcome() {
       const s = steps[st];
       $('wStepN').textContent = s.n; $('wTitle').textContent = s.t;
       if (s.key) {   // SteamGridDB: explica, guia com links e recebe a chave
-        $('wText').innerHTML = `<div class="wopt"><b>Este passo é opcional — pode pular.</b> O PlayLoop já encontra capas e fundos sozinho em várias fontes gratuitas. A chave do SteamGridDB só aumenta as opções, e dá para configurar depois em Configuração → Capas e vídeo.</div>` + SGDB_HELP + `<input id="wKey" type="password" autocomplete="new-password" spellcheck="false" placeholder="Cole aqui a chave da API" value="${esc(picks.sgdbKey)}" style="width:100%;margin-top:10px;background:#0e0b1a;border:1px solid #4a3f70;color:#fff;border-radius:8px;padding:10px 12px;font-size:14px">`;
+        $('wText').innerHTML = `<div class="wopt"><b>Este passo é opcional — pode pular.</b> O Koru já encontra capas e fundos sozinho em várias fontes gratuitas. A chave do SteamGridDB só aumenta as opções, e dá para configurar depois em Configuração → Capas e vídeo.</div>` + SGDB_HELP + `<input id="wKey" type="password" autocomplete="new-password" spellcheck="false" placeholder="Cole aqui a chave da API" value="${esc(picks.sgdbKey)}" style="width:100%;margin-top:10px;background:#0e0b1a;border:1px solid #4a3f70;color:#fff;border-radius:8px;padding:10px 12px;font-size:14px">`;
         bindLinks($('wText')); $('wKey').oninput = () => { picks.sgdbKey = $('wKey').value.trim(); $('wNext').disabled = !picks.sgdbKey; };
         $('wPath').style.display = 'none'; $('wPick').style.display = 'none';
       } else { if (s.k === 'root') $('wText').innerHTML = WEL_TREE; else $('wText').textContent = s.p; $('wPath').style.display = ''; $('wPick').style.display = ''; }

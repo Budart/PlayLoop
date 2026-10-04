@@ -35,11 +35,11 @@ static class WebHost
     static bool ready;
     static string pending;
     // a página é servida de um endereço virtual: o WebView2 entrega cada requisição direto ao C# (sem porta, sem servidor)
-    public const string BaseUrl = "https://playloop.example/";
+    public const string BaseUrl = "https://koru.example/";
     public static Action<Ctx> Handler;
     static CoreWebView2Environment env;
 
-    // ---- jogos abrem no mesmo monitor do PlayLoop ----
+    // ---- jogos abrem no mesmo monitor do Koru ----
     static IntPtr FormHandle;
     [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr h, out WRECT r);
     [DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int cx, int cy, uint flags);
@@ -48,7 +48,7 @@ static class WebHost
     [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
     [StructLayout(LayoutKind.Sequential)] struct WRECT { public int L, T, R, B; }
     static Screen AppScreen() { try { return FormHandle != IntPtr.Zero ? Screen.FromHandle(FormHandle) : Screen.PrimaryScreen; } catch { return Screen.PrimaryScreen; } }
-    // move a janela para o monitor do PlayLoop (tela cheia sem borda acompanha o tamanho do monitor)
+    // move a janela para o monitor do Koru (tela cheia sem borda acompanha o tamanho do monitor)
     static void Place(IntPtr h)
     {
         if (h == IntPtr.Zero || h == FormHandle || !IsWindowVisible(h)) return;
@@ -80,7 +80,7 @@ static class WebHost
             }
         }) { IsBackground = true }.Start();
     }
-    // jogo de PC (Steam, Epic, atalho...): a janela nova em primeiro plano vai para o monitor do PlayLoop
+    // jogo de PC (Steam, Epic, atalho...): a janela nova em primeiro plano vai para o monitor do Koru
     public static void FollowForeground()
     {
         IntPtr start = GetForegroundWindow();
@@ -96,7 +96,7 @@ static class WebHost
                     {
                         uint pid; GetWindowThreadProcessId(fg, out pid);
                         string n = ""; try { n = Process.GetProcessById((int)pid).ProcessName.ToLowerInvariant(); } catch { }
-                        bool store = n.Contains("steam") || n.Contains("epicgames") || n == "explorer" || n.Contains("galaxyclient") || n.Contains("eadesktop") || n.Contains("ubisoftconnect") || n == "playloop";
+                        bool store = n.Contains("steam") || n.Contains("epicgames") || n == "explorer" || n.Contains("galaxyclient") || n.Contains("eadesktop") || n.Contains("ubisoftconnect") || n == "koru";
                         if (!store) { if (!found) { found = true; stopAt = DateTime.Now.AddSeconds(20); WatchGame((int)pid, fg); } Place(fg); }
                     }
                 }
@@ -152,7 +152,7 @@ static class WebHost
     {
         form = new HostForm
         {
-            Text = "PlayLoop",
+            Text = "Koru",
             FormBorderStyle = FormBorderStyle.Sizable,
             BackColor = Color.FromArgb(18, 18, 18),
             StartPosition = FormStartPosition.CenterScreen,
@@ -195,15 +195,15 @@ static class WebHost
             {
                 form.Hide();
                 if (ex is WebView2RuntimeNotFoundException) ShowMissingRuntime(ex.Message);
-                else MessageBox.Show("Não foi possível abrir a janela do PlayLoop:\n" + ex.Message, "PlayLoop", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                else MessageBox.Show("Não foi possível abrir a janela do Koru:\n" + ex.Message, "Koru", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         };
     }
 
     public static void ShowMissingRuntime(string detail)
     {
-        if (MessageBox.Show("O PlayLoop precisa do Microsoft Edge WebView2 Runtime, que não foi encontrado neste PC (" + detail + ").\n\nAbrir a página de download agora?",
-            "PlayLoop", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
+        if (MessageBox.Show("O Koru precisa do Microsoft Edge WebView2 Runtime, que não foi encontrado neste PC (" + detail + ").\n\nAbrir a página de download agora?",
+            "Koru", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
             try { Process.Start("https://developer.microsoft.com/microsoft-edge/webview2/#download-section"); } catch { }
     }
 
@@ -282,7 +282,7 @@ static class WebHost
     {
         if (!GameOn) return;
         GameOn = false; Post("game:off");
-        // o jogo fechou: se nenhuma outra janela tomou a frente, o PlayLoop volta a ter o foco
+        // o jogo fechou: se nenhuma outra janela tomou a frente, o Koru volta a ter o foco
         try
         {
             IntPtr fg = GetForegroundWindow(); string n = "";
@@ -291,7 +291,7 @@ static class WebHost
         }
         catch { }
     }
-    // ---------- botão Home do controle (Guide do Xbox / PS via Steam ou DS4Windows): traz o PlayLoop para a frente ----------
+    // ---------- botão Home do controle (Guide do Xbox / PS via Steam ou DS4Windows): traz o Koru para a frente ----------
     [DllImport("xinput1_4.dll", EntryPoint = "#100")] static extern int XInputGetStateEx14(int i, byte[] st);
     [DllImport("xinput1_3.dll", EntryPoint = "#100")] static extern int XInputGetStateEx13(int i, byte[] st);
     static void StartGuidePoll()

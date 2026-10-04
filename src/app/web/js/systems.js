@@ -1,4 +1,4 @@
-// PlayLoop — systems.js
+// Koru — systems.js
 /* ---------- sistemas ---------- */
 function renderSystems() {
   $('track').innerHTML = systems.map((s, i) => `<div class="sys" data-i="${i}">${logo(s)}</div>`).join('');
