@@ -719,7 +719,11 @@ async function fgBgRender(l, url, g) {
   const sc = o ? cover * o.z : manual ? Math.min(cover, Math.max(contain, 1)) : cover;
   const px = o ? o.x : 50, py = o ? o.y : 50, dw = iw * sc, dh = ih * sc;
   l.style.backgroundImage = `url("${src.replace(/"/g, '%22')}")`; l._fit = { src, iw, ih, dw, dh, px, py };   // usado na animação de abrir o jogo
+  l.querySelectorAll('.bgfill').forEach(e => e.remove());
   if (dw >= W - .5 && dh >= H - .5) { l.style.backgroundSize = `${dw}px ${dh}px`; l.style.backgroundPosition = `${px}% ${py}%`; return; }
+  // já preenche na hora (só CSS): a própria imagem ampliada e embaçada atrás; o canvas abaixo troca por bordas esticadas quando conseguir
+  l.style.backgroundSize = `${dw}px ${dh}px`; l.style.backgroundPosition = `${px}% ${py}%`; l.style.backgroundRepeat = 'no-repeat';
+  { const fill = document.createElement('div'); fill.className = 'bgfill'; fill.style.backgroundImage = `url("${src.replace(/"/g, '%22')}")`; l.prepend(fill); }
   try {
     const k = Math.min(1, 1920 / W), cw = Math.round(W * k), ch = Math.round(H * k), w = dw * k, h = dh * k;
     const x0 = (cw - w) * px / 100, y0 = (ch - h) * py / 100, x1 = x0 + w, y1 = y0 + h;
@@ -741,12 +745,9 @@ async function fgBgRender(l, url, g) {
     m.filter = `blur(${f / 2}px)`; m.fillStyle = '#000'; m.fillRect(x0 + (x0 > 0 ? f / 2 : -f), y0 + (y0 > 0 ? f / 2 : -f), w - (x0 > 0 ? f / 2 : -f) - (x1 < cw ? f / 2 : -f), h - (y0 > 0 ? f / 2 : -f) - (y1 < ch ? f / 2 : -f));
     s2.drawImage(mk, 0, 0); x.drawImage(sh, 0, 0);
     if (l.parentNode !== $('fgBg')) return;
-    l.style.backgroundImage = `url("${cv.toDataURL('image/jpeg', .9)}")`; l.style.backgroundSize = '100% 100%'; l.style.backgroundPosition = 'center';
-  } catch (er) {   // sem acesso aos pixels: preenche as sobras com a própria imagem esticada e embaçada (só CSS, leve)
-    if (l.parentNode !== $('fgBg')) return;
-    l.style.backgroundSize = `${dw}px ${dh}px`; l.style.backgroundPosition = `${px}% ${py}%`; l.style.backgroundRepeat = 'no-repeat';
-    const fill = document.createElement('div'); fill.className = 'bgfill'; fill.style.backgroundImage = `url("${src.replace(/"/g, '%22')}")`; l.prepend(fill);
-  }
+    const du = cv.toDataURL('image/jpeg', .9);
+    l.style.backgroundImage = `url("${du}")`; l.style.backgroundSize = '100% 100%'; l.style.backgroundPosition = 'center'; l.querySelectorAll('.bgfill').forEach(e => e.remove());
+  } catch (er) {}   // sem acesso aos pixels: fica o preenchimento embaçado (CSS) já aplicado acima
 }
 function fgApplyBgOfs(l, url, g) { return fgBgRender(l, url, g); }
 const fgOfs = g => { const v = covers['fofs|' + coverKey(g)]; if (!v) return null; const [x, y, z] = v.split(',').map(Number); return { x, y, z: z || 1 }; };
@@ -1130,3 +1131,5 @@ async function fgRename() {
   toast(val ? `Renomeado para "${val}"` : 'Nome original restaurado'); sfx('ok');
   const keep = fg.sel; renderFavGrid(); fgSelect(Math.min(keep, fg.items.length - 1), true);
 }
+// janela mudou de tamanho: refaz o encaixe/preenchimento do fundo atual
+{ let t = 0; window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => { const host = $('fgBg'), l = host && [...host.querySelectorAll('.bgl')].pop(); if (l && host._url && host._g) fgBgRender(l, host._url, host._g); }, 250); }); }
