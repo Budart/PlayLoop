@@ -3,7 +3,17 @@
 let favGridDim = '4x12';            // linhas x colunas (Configuração → Favoritos)
 const fg = { items: [], place: [], pages: 1, page: 0, sel: 0 };
 let fgInfoOpen = false;
-const fgDim = () => { const [r, c] = (favGridDim || '4x12').split('x').map(Number); return { R: r || 4, C: c || 12 }; };
+// grade fixa: tamanho escolhido nas configurações. Grade livre: automática pela proporção da tela —
+// 7 linhas e quantas colunas couberem com células quadradas (16:9 ≈ 7 × 16, 4:3 ≈ 7 × 11, 21:9 ≈ 7 × 22)
+let fgFreeDimCache = null;
+function fgFreeDim() {
+  const v = $('fgView') && $('fgView').getBoundingClientRect();
+  const w = v && v.width > 50 ? v.width : innerWidth * .95, h = v && v.height > 50 ? v.height : innerHeight * .72, gap = 20, pad = 36, R = 7;
+  const cell = (h - pad - gap * (R - 1)) / R, C = Math.max(8, Math.min(30, Math.floor((w - pad + gap) / (cell + gap))));
+  if (!fgFreeDimCache || fgFreeDimCache.C !== C) fgFreeDimCache = { R, C };
+  return fgFreeDimCache;
+}
+const fgDim = () => { if (fgFree) return fgFreeDim(); const [r, c] = (favGridDim || '4x12').split('x').map(Number); return { R: r || 4, C: c || 12 }; };
 const fgSize = g => { const v = covers['fsz|' + coverKey(g)]; if (!v) return { w: 1, h: 1 }; const [w, h] = v.split(',').map(Number); const { R, C } = fgDim(); return { w: Math.max(1, Math.min(C, w || 1)), h: Math.max(1, Math.min(R, h || 1)) }; };
 
 // posição escolhida pelo usuário (arrastando): 'fpos|chave' = "página,coluna,linha"
@@ -12,7 +22,7 @@ const fgPos = g => { const v = covers['fpos|' + coverKey(g)]; if (!v) return nul
 // ---------- modo livre ("não alinhar à grade"): cards com tamanho/posição livres, em unidades de célula (1 = célula + espaço) ----------
 let fgFree = true; try { fgFree = localStorage.getItem('fgfree') !== '0'; } catch (e) {}
 const FR_MIN = .6, FR_MAX = Infinity, FR_STEP = .25;   // sem teto: o limite é o tamanho da página
-const fgFr = g => { const v = covers['ffree|' + coverKey(g)]; if (!v) return null; const [p, x, y, w, h] = v.split(',').map(Number); return { p, x, y, w, h }; };
+const fgFr = g => { const v = covers['ffree|' + coverKey(g)]; if (!v) return null; let [p, x, y, w, h] = v.split(',').map(Number); const { R, C } = fgDim(); w = Math.min(w, C); h = Math.min(h, R); x = Math.max(0, Math.min(x, C - w)); y = Math.max(0, Math.min(y, R - h)); return { p, x, y, w, h }; };   // tela com outra proporção: o card continua dentro da página
 function fgSetFr(g, q) {
   const key = 'ffree|' + coverKey(g), r2 = n => Math.round(n * 10000) / 10000, val = q ? `${q.p},${r2(q.x)},${r2(q.y)},${r2(q.w)},${r2(q.h)}` : '';
   if (val) covers[key] = val; else delete covers[key];
@@ -256,7 +266,7 @@ function fgGeom(pg) {
   const { R, C } = fgDim(), r = pg.getBoundingClientRect(), gap = 20, cell = parseFloat(getComputedStyle($('fgTrack')).getPropertyValue('--cell')) || 100;
   return { ox: r.left + (r.width - (C * cell + (C - 1) * gap)) / 2, oy: r.top + (r.height - (R * cell + (R - 1) * gap)) / 2, pitch: cell + gap, cell, gap };
 }
-window.addEventListener('resize', () => { if (screen === 'favgrid') fgCell(); });
+window.addEventListener('resize', () => { if (screen !== 'favgrid') return; const c0 = fgFreeDimCache && fgFreeDimCache.C; if (fgFree && fgFreeDim().C !== c0) renderFavGrid(); else fgCell(); });   // grade livre: muda o nº de colunas com a proporção da janela
 // 1º os cards com lugar fixo (arrastados), depois os demais no primeiro espaço livre (linha por linha); não coube → próxima página
 function fgLayout() {
   const { R, C } = fgDim(), pages = [];

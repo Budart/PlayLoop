@@ -102,12 +102,12 @@ function renderConfig() {
     sec('favoritos', '⭐ Favoritos', `<div class="cfcache"><h3>Grade dos favoritos</h3>
         <h3 style="margin-top:0">Organização dos cards</h3>
         <div class="picks">${pick('fgm', 'free', fgFree, freePv(), 'Livre', 'tamanho e posição à vontade (mais lenta)')}${pick('fgm', 'grid', !fgFree, gridPv('4x12'), 'Grade fixa', 'cards encaixados na grade (mais leve)')}</div>
-        <h3 style="margin-top:16px">Tamanho da grade</h3>
-        <div class="picks">${['4x10', '4x12', '6x14'].map(d => pick('fgd', d, ((cfg.favGrid === '6x12' ? '6x14' : cfg.favGrid) || '4x12') === d, gridPv(d), d.replace('x', ' × '), d === '4x12' ? 'padrão' : (d === '6x14' ? 'mais jogos por página' : 'cards maiores'))).join('')}</div>
+        <div id="cfGridDim" style="display:${fgFree ? 'none' : ''}"><h3 style="margin-top:16px">Tamanho da grade</h3>
+        <div class="picks">${['4x10', '4x12', '6x14'].map(d => pick('fgd', d, ((cfg.favGrid === '6x12' ? '6x14' : cfg.favGrid) || '4x12') === d, gridPv(d), d.replace('x', ' × '), d === '4x12' ? 'padrão' : (d === '6x14' ? 'mais jogos por página' : 'cards maiores'))).join('')}</div></div>
         <h3 style="margin-top:16px">Fundo da tela</h3>
         <div class="picks">${pick('fbg', '1', cfg.favBgGame !== false, PV.video.replace('#ff2d2d', '#8B5CF6'), 'Fundo do jogo', 'muda ao selecionar um card')}${pick('fbg', '0', cfg.favBgGame === false, PV.image, 'Fundo fixo', 'uma imagem que você escolhe')}</div>
         <div class="wpsearch" id="wpBox" style="display:${cfg.favBgGame === false ? '' : 'none'}"><div class="line wpbar"><span class="wpico">🔍</span><input id="wpQ" placeholder="Buscar imagem de fundo (ex.: montanhas, synthwave)" autocomplete="off"><button class="btn sec sm" id="wpGo">Buscar</button></div><div class="wpres" id="wpRes"><div class="msg">Escreva o que você quer e aperte Buscar. Só aparecem imagens grandes (resolução de wallpaper).</div></div></div>
-        <div class="msg">Cada jogo favorito vira um card. Arraste um card para mudar de lugar (até para outra página), arraste a borda direita/de baixo para aumentar (até 4 × 4) ou use o botão direito → Redimensionar.</div></div><div class="cfgrid"><div class="ccard${favCfg().enabled ? '' : ' off'}">
+        <div class="msg">Cada jogo favorito vira um card. Arraste um card para mudar de lugar (até para outra página), arraste a borda para mudar o tamanho (até a página inteira) ou use o botão direito → Redimensionar.</div></div><div class="cfgrid"><div class="ccard${favCfg().enabled ? '' : ' off'}">
         <div class="top"><button class="icobtn" data-ico="-2" title="Trocar ícone"><img src="${logoUrl(Object.assign({}, FAVSYS, { logo: favCfg().logo || 'builtin:fav' }))}" alt=""><span>trocar ícone</span></button><button class="icobtn bgb" data-bgp="-2" title="Trocar fundo" style="background-image:url('${favCfg().bg ? bgUrlOf({ bg: favCfg().bg }) : FAV_BG}')"><span>trocar fundo</span></button><input value="⭐ Favoritos" disabled><label class="chk2 en"><input type="checkbox" data-en="-2" ${favCfg().enabled ? 'checked' : ''}> Habilitar</label></div>
         <div class="icopick" id="ip-2" style="display:none"></div>
         <div class="msg">Grade com todos os jogos que você marcou com ⭐. Arraste na tela inicial para mudar a posição deste console.</div>
@@ -120,7 +120,7 @@ function renderConfig() {
   $('cfBody').querySelectorAll('input[name=fbg]').forEach(r => r.onchange = () => { cfg.favBgGame = r.value === '1'; favBgGame = cfg.favBgGame; $('wpBox').style.display = favBgGame ? 'none' : ''; });
   $('wpGo').onclick = () => wpSearch($('wpQ').value);
   $('wpQ').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); wpSearch($('wpQ').value); } });
-  $('cfBody').querySelectorAll('input[name=fgm]').forEach(r => r.onchange = async () => { const ok = await fgSetMode(r.value === 'free'); if (!ok) $('cfBody').querySelector(`input[name=fgm][value="${fgFree ? 'free' : 'grid'}"]`).checked = true; });
+  $('cfBody').querySelectorAll('input[name=fgm]').forEach(r => r.onchange = async () => { const ok = await fgSetMode(r.value === 'free'); if (!ok) $('cfBody').querySelector(`input[name=fgm][value="${fgFree ? 'free' : 'grid'}"]`).checked = true; $('cfGridDim').style.display = fgFree ? 'none' : ''; });   // tamanho da grade só existe na grade fixa
   $('cfBody').querySelectorAll('input[name=fgd]').forEach(r => r.onchange = () => { cfg.favGrid = r.value; favGridDim = r.value; });
   $('cfBody').querySelectorAll('[data-k]').forEach(el => el.oninput = () => setField(+el.dataset.i, el.dataset.k, el.value));
   $('cfBody').querySelectorAll('[data-browse]').forEach(el => el.onclick = () => browse(el));
