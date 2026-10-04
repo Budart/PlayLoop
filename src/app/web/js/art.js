@@ -66,15 +66,27 @@ function cachedArt(g) {
   const key = coverKey(g);
   if (covers[key]) return { box: covers[key], snap: null, src: 'manual', ratio: artDisk[key] && artDisk[key].ratio, logo: artDisk[key] && artDisk[key].logo };
   if (artCache[key]) return artCache[key];
-  if (cacheOn && artDisk[key] && artDisk[key].v === 2 && (sgdbOn || artDisk[key].src !== 'sgdb')) return artCache[key] = artDisk[key];   // v2: capas reais primeiro (resultados antigos são refeitos uma vez)   // ignora capas antigas da Wikipédia
+  const d = artDisk[key]; if (cacheOn && d && d.v === 2 && (sgdbOn || d.src !== 'sgdb') && (d.box || (d.t && Date.now() - d.t < 7 * 864e5))) return artCache[key] = d;   // v2: capas reais primeiro (resultados antigos são refeitos uma vez)   // ignora capas antigas da Wikipédia
   return null;
 }
-async function resolveArt(g) {
+// fila de buscas: no máximo 3 ao mesmo tempo; o pedido mais recente (o que está na tela/selecionado) vai na frente;
+// pedidos repetidos do mesmo jogo esperam a mesma busca
+const artInflight = {}, artQueue = []; let artRunning = 0;
+function artPump() {
+  while (artRunning < 3 && artQueue.length) {
+    const job = artQueue.pop(); artRunning++;
+    resolveArt0(job.g).then(job.ok, () => job.ok(null)).finally(() => { artRunning--; artPump(); });
+  }
+}
+function resolveArt(g) {
   const key = coverKey(g);
-  const c = cachedArt(g); if (c) return c;
-  const r = await resolveArt0(g);
-  if (cacheOn && r && r.box && r.src !== 'manual') { artDisk[key] = r; api('/api/artcache', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, val: r }) }).catch(() => {}); }
-  return r;
+  const c = cachedArt(g); if (c) return Promise.resolve(c);
+  if (artInflight[key]) { const j = artQueue.find(x => x.key === key); if (j) { artQueue.splice(artQueue.indexOf(j), 1); artQueue.push(j); } return artInflight[key]; }   // pediu de novo: sobe na fila
+  return artInflight[key] = new Promise(ok => { artQueue.push({ key, g, ok }); artPump(); }).then(r => {
+    delete artInflight[key];
+    if (cacheOn && r && r.src !== 'manual') { const v = { ...r, t: Date.now() }; artDisk[key] = v; api('/api/artcache', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, val: v }) }).catch(() => {}); }   // sem capa também fica guardado (por uns dias), para não refazer tudo a cada abertura
+    return r;
+  });
 }
 // mede a imagem (largura × altura); null se não carregar
 const imgSize = (url, ms) => new Promise(ok => { const i = new Image(); const t = setTimeout(() => ok(null), ms || 6000);
@@ -151,7 +163,7 @@ async function resolveArt0(g) {
   const key = coverKey(g);
   if (covers[key]) return { box: covers[key], snap: null, src: 'manual' };
   if (artCache[key]) return artCache[key];
-  const q = cleanTitle(dn(g)) || dn(g);
+  const q = cleanTitle(dn(g)) || dn(g), sys = (typeof sysOf === 'function' && sysOf(g)) || {};   // console do próprio jogo (Favoritos misturam consoles)
   // capas: fontes "reais" primeiro (scans/artes oficiais); SteamGridDB (artes da comunidade) só se nada servir.
   // fundos e títulos: SteamGridDB primeiro quando ligado. Ele começa em paralelo para não atrasar nada.
   const sgP = sgdbOn ? sgdbArt(g).catch(() => null) : Promise.resolve(null);
@@ -168,7 +180,7 @@ async function resolveArt0(g) {
   // 1ª rodada (rápidas e com capas reais): libretro + código do jogo (GameTDB/xlenore); no PC, Steam
   const t1 = [], t2 = [];
   if (sys.type === 'pc') { add(t1, 'steam', byId(), true); add(t1, 'steam', steam(3)); }
-  else { add(t1, 'libretro', firstOk(boxartUrls(sys, g.name)).then(u => u ? [{ url: u, title: decodeURIComponent(u.split('/').pop()) }] : [])); add(t1, 'code', byId(), true); }
+  else { if (sys.thumbs) await loadThumbIndex(sys); add(t1, 'libretro', firstOk(boxartUrls(sys, g.name)).then(u => u ? [{ url: u, title: decodeURIComponent(u.split('/').pop()) }] : [])); add(t1, 'code', byId(), true); }
   let found = (await run(t1)).sort(relCmp);
   // 2ª rodada (wikis, mais lentas) só se a primeira não achou nada com o nome certo
   if (!found.some(c => c.phrase)) {

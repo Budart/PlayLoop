@@ -59,7 +59,7 @@ function sortGrid() {
 }
 let coverLvl = 1, coverLast = 0;   // "Mais +": cada clique busca mais fundo em cada fonte
 async function searchCovers(more) {
-  const q = $('cq').value.trim(), res = $('cres'), s = sys, L = more ? ++coverLvl : (coverLvl = 1), y = res.scrollTop;
+  const q = $('cq').value.trim(), res = $('cres'), s = (coverGame && sysOf(coverGame)) || sys, L = more ? ++coverLvl : (coverLvl = 1), y = res.scrollTop;
   if (!more) { res.innerHTML = ''; coverLast = 0; } else { const m = res.querySelector('.it.more'); if (m) { m.classList.add('busy'); m.querySelector('span').textContent = 'Buscando...'; } }
   if (!q) return;
   if (!more) $('cmsg').textContent = 'Buscando...';
@@ -69,15 +69,14 @@ async function searchCovers(more) {
   const toBg = u => u.replace('/Named_Boxarts/', '/Named_Snaps/').replace(/library_600x900(_2x)?\.jpg$/, 'library_hero.jpg');
   const add = (url, label, src) => { for (const u of [conv(url)]) if (!items.some(i => i.url === u)) items.push({ url: u, label, src, ...relevance(q, label) }); };
   // SteamGridDB ligado: só capas (grids) ou fundos (heroes) de lá, ordenados como na escolha automática
-  if (sgdbOn) {
+  // SteamGridDB corre em paralelo com as outras fontes (e cada jogo dele também)
+  const sgP = !sgdbOn ? Promise.resolve([]) : (async () => {
     try {
       const games = (await sg('/api/v2/search/autocomplete/' + encodeURIComponent(q))).map(x => ({ x, ...relevance(q, x.name) })).sort((a, b) => (b.phrase - a.phrase) || (b.overlap - a.overlap)).slice(0, 3 * L);
-      for (const gm of games) {
-        const list = logoMode ? await sg(`/api/v2/logos/game/${gm.x.id}?${STATIC}`) : bgLike ? await sg(`/api/v2/heroes/game/${gm.x.id}?${STATIC}`) : await sgdbGrids(gm.x.id);
-        list.forEach(x => { if (!items.some(i => i.url === x.url)) items.push({ url: x.url, label: gm.x.name, src: 'SteamGridDB · ★' + (x.score || 0), phrase: gm.phrase, overlap: gm.overlap }); });
-      }
-    } catch (e) { $('cmsg').textContent = 'SteamGridDB: ' + e.message; }
-  }
+      const lists = await Promise.all(games.map(gm => (logoMode ? sg(`/api/v2/logos/game/${gm.x.id}?${STATIC}`) : bgLike ? sg(`/api/v2/heroes/game/${gm.x.id}?${STATIC}`) : sgdbGrids(gm.x.id)).catch(() => [])));
+      return games.flatMap((gm, k) => lists[k].map(x => ({ url: x.url, label: gm.x.name, src: 'SteamGridDB · ★' + (x.score || 0), phrase: gm.phrase, overlap: gm.overlap })));
+    } catch (e) { $('cmsg').textContent = 'SteamGridDB: ' + e.message; return []; }
+  })();
   const N = (sgdbOn ? 6 : 10) * L;   // demais fontes: 6 de cada com o SteamGridDB ligado (10 sem ele); mais a cada "Mais"
   {
   if (logoMode) {   // títulos: logos do Steam e da libretro (Named_Logos)
@@ -85,27 +84,28 @@ async function searchCovers(more) {
     await loadThumbIndex(s); const ix = s.thumbs && thumbIndex[s.thumbs];
     if (ix && ix.names) { const ws = q.toLowerCase().split(/\s+/).filter(Boolean); ix.names.filter(n => ws.every(w => n.toLowerCase().includes(w))).slice(0, N).forEach(n => items.push({ url: `${THUMBS}${s.thumbs}/master/Named_Logos/${encodeURIComponent(n)}`, label: n.replace(/\.png$/i, ''), src: 'libretro', ...relevance(q, n) })); }
   } else {
+  // todas as fontes ao mesmo tempo (antes uma esperava a outra); a ordem de entrada na lista continua a mesma
+  const safe = p => p.catch(() => []), fake = { name: q };
+  const [, idu, st, wk, fd, pg, sw] = await Promise.all([
+    loadThumbIndex(s),
+    safe(idCovers(coverGame).then(async us => { const u = await firstOk(us); return u ? [u] : []; })),
+    safe(steamSearch(q)), safe(wikiMain(q, N)), safe(fandomImage(fake, N)),
+    safe(mw('https://www.pcgamingwiki.com/w/api.php', q, N)), safe(mw('https://strategywiki.org/w/api.php', q, N))]);
   // 1) acervo libretro (busca por palavras no índice do console)
-  await loadThumbIndex(s);
   const idx = s.thumbs && thumbIndex[s.thumbs];
   if (idx && idx.names) {
     const words = q.toLowerCase().split(/\s+/).filter(Boolean);
     idx.names.filter(n => words.every(w => n.toLowerCase().includes(w))).slice(0, N)
       .forEach(n => add(`${THUMBS}${s.thumbs}/master/Named_Boxarts/${encodeURIComponent(n)}`, n.replace(/\.png$/i, ''), 'libretro'));
   }
-  // 1b) repositório pelo código do jogo (GameTDB / xlenore)
-  for (const u of await idCovers(coverGame)) if (await loadImg(u)) { add(u, 'Código do jogo', /gametdb/.test(u) ? 'GameTDB' : /steam/.test(u) ? 'Steam' : 'xlenore'); break; }
-  // 1c) Steam
-  for (const it of (await steamSearch(q)).slice(0, N)) add(`${STEAM}${it.id}/library_600x900_2x.jpg`, it.name, 'Steam');
-  // 1e) Wikipédia — só a imagem principal dos artigos de jogos
-  for (const p of await wikiMain(q, N)) add(p.img, p.title, p.src);
-  // 1d) Fandom, PCGamingWiki e StrategyWiki
-  const fake = { name: q };
-  for (const p of await fandomImage(fake, N)) add(p.img, p.title, p.src);
-  for (const p of await mw('https://www.pcgamingwiki.com/w/api.php', q, N)) add(p.img, p.title, 'PCGamingWiki');
-  for (const p of await mw('https://strategywiki.org/w/api.php', q, N)) add(p.img, p.title, 'StrategyWiki');
+  // 1b) código do jogo (GameTDB / xlenore), 1c) Steam, 1e) Wikipédia, 1d) Fandom, PCGamingWiki e StrategyWiki
+  idu.forEach(u => add(u, 'Código do jogo', /gametdb/.test(u) ? 'GameTDB' : /steam/.test(u) ? 'Steam' : 'xlenore'));
+  st.slice(0, N).forEach(it => add(`${STEAM}${it.id}/library_600x900_2x.jpg`, it.name, 'Steam'));
+  wk.forEach(p => add(p.img, p.title, p.src)); fd.forEach(p => add(p.img, p.title, p.src));
+  pg.forEach(p => add(p.img, p.title, 'PCGamingWiki')); sw.forEach(p => add(p.img, p.title, 'StrategyWiki'));
   }
   }
+  (await sgP).forEach(x => { if (!items.some(i => i.url === x.url)) items.push(x); });
   if (modalOpen === false) return;
   $('cmsg').textContent = items.length ? `${items.length} imagens encontradas — clique para usar ${logoMode ? 'como título' : 'como capa'}.` : 'Nada encontrado. Tente outro nome, ou cole o link de uma imagem.';
   const from = more ? coverLast : 0, html = items.slice(from).map((it, i0) => { const i = i0 + from; return `<div class="it" data-i="${i}" data-ph="${it.phrase}" data-ov="${it.overlap.toFixed(3)}"><img src="${esc(it.url)}" alt="" onload="this.nextElementSibling.textContent=this.naturalWidth+'×'+this.naturalHeight;this.parentNode.dataset.px=this.naturalWidth*this.naturalHeight;this.parentNode.dataset.ar=this.naturalWidth/this.naturalHeight;sortGrid()" onerror="this.parentNode.remove()"><div class="dim">…</div><div>${esc(it.label)}</div><div class="src">${esc(it.src)}</div></div>`; }).join('');

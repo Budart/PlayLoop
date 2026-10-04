@@ -453,8 +453,9 @@ function selectGame(i, force) {
   clearTimeout(artTimer); artTimer = setTimeout(() => showArt(g), 90);   // evita baixar capa a cada tecla ao rolar rápido
 }
 const artCache = {};
-const loadImg = url => new Promise(ok => { const i = new Image(); i.onload = () => ok(i.naturalWidth > 1 ? url : null); i.onerror = () => ok(null); i.src = url; });
-async function firstOk(urls) { for (const u of urls) { const r = await loadImg(u); if (r) return r; } return null; }
+const loadImg = (url, ms) => new Promise(ok => { const i = new Image(), t = setTimeout(() => { i.src = ''; ok(null); }, ms || 8000); i.onload = () => { clearTimeout(t); ok(i.naturalWidth > 1 ? url : null); }; i.onerror = () => { clearTimeout(t); ok(null); }; i.src = url; });
+// testa todas ao mesmo tempo, mas devolve a primeira da lista que existir (mantém a preferência)
+async function firstOk(urls) { const ps = (urls || []).map(u => loadImg(u)); for (const p of ps) { const r = await p; if (r) return r; } return null; }
 const cleanTitle = n => n.replace(/\([^)]*\)|\[[^\]]*\]|\{[^}]*\}/g, ' ').replace(/www\.\S+|\b(BR|PTBR|PT-BR|Decrypted|USA|Europe|Rev ?\d*)\b/gi, ' ')
   .replace(/^(.*), The\b/, 'The $1').replace(/[_]+/g, ' ').replace(/\s+/g, ' ').trim();
 

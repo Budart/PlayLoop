@@ -3,17 +3,30 @@
 const key = s => s.replace(/\.(png|jpg)$/i, '').replace(/\([^)]*\)|\[[^\]]*\]|\{[^}]*\}/g, ' ').toLowerCase()
                   .replace(/^\s*the\s+/, '').replace(/,\s*the\b/g, '').replace(/&|_/g, ' and ').replace(/[^a-z0-9]/g, '').replace(/and/g, '');
 const rank = n => (/\(USA|\(World/.test(n) ? 0 : /\(Brazil/.test(n) ? 1 : /\(Europe/.test(n) ? 2 : /\(Japan/.test(n) ? 3 : 4) + (/Beta|Proto|Demo|Sample|Kiosk|Rev /.test(n) ? 10 : 0);
-async function loadThumbIndex(s) {
-  if (!s.thumbs || thumbIndex[s.thumbs]) return;
-  thumbIndex[s.thumbs] = { loading: true };
-  try {
-    const root = await (await fetch(`https://api.github.com/repos/libretro-thumbnails/${s.thumbs}/contents/`)).json();
-    const dir = root.find(e => e.name === 'Named_Boxarts');
-    const tree = await (await fetch(`https://api.github.com/repos/libretro-thumbnails/${s.thumbs}/git/trees/${dir.sha}`)).json();
-    const map = new Map();
-    for (const e of tree.tree) { const k = key(e.path); if (!k) continue; const cur = map.get(k); if (!cur || rank(e.path) < rank(cur)) map.set(k, e.path); }
-    thumbIndex[s.thumbs] = { map, keys: [...map.keys()], names: tree.tree.map(e => e.path) };
-  } catch (e) { thumbIndex[s.thumbs] = { failed: true }; }
+// índice de nomes da libretro por console: baixado uma vez (todos esperam o mesmo download) e guardado no PC por 7 dias
+const thumbIdxP = {};
+function thumbIdxBuild(names) {
+  const map = new Map();
+  for (const p of names) { const k = key(p); if (!k) continue; const cur = map.get(k); if (!cur || rank(p) < rank(cur)) map.set(k, p); }
+  return { map, keys: [...map.keys()], names };
+}
+function loadThumbIndex(s) {
+  if (!s || !s.thumbs) return Promise.resolve();
+  const r = s.thumbs; if (thumbIndex[r] && !thumbIndex[r].loading) return Promise.resolve();
+  if (thumbIdxP[r]) return thumbIdxP[r];
+  thumbIndex[r] = { loading: true };
+  return thumbIdxP[r] = (async () => {
+    try { const c = JSON.parse(localStorage.getItem('tidx|' + r) || 'null'); if (c && c.names && Date.now() - c.t < 7 * 864e5) { thumbIndex[r] = thumbIdxBuild(c.names); return; } } catch (e) {}
+    try {
+      const root = await (await fetch(`https://api.github.com/repos/libretro-thumbnails/${r}/contents/`)).json();
+      const dir = root.find(e => e.name === 'Named_Boxarts');
+      const tree = await (await fetch(`https://api.github.com/repos/libretro-thumbnails/${r}/git/trees/${dir.sha}`)).json();
+      const names = tree.tree.map(e => e.path);
+      thumbIndex[r] = thumbIdxBuild(names);
+      try { localStorage.setItem('tidx|' + r, JSON.stringify({ t: Date.now(), names })); } catch (e) {}
+    } catch (e) { thumbIndex[r] = { failed: true }; }
+    delete thumbIdxP[r];
+  })();
 }
 function boxartUrls(s, name) {
   if (!s.thumbs) return [];
