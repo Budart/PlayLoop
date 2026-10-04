@@ -238,6 +238,7 @@ document.addEventListener('keydown', e => {
     $('list').classList.toggle('multi', multi.size > 1 || multiKeep); vRender(); multiInfo();
     return;
   }
+  if (screen === 'favgrid' && e.ctrlKey && (e.key === 'PageUp' || e.key === 'PageDown') && fg.pages > 1) { e.preventDefault(); fgMovePage(fg.page, fg.page + (e.key === 'PageUp' ? -1 : 1)); return; }
   const map = { ArrowLeft:'left', ArrowRight:'right', ArrowUp:'up', ArrowDown:'down', Enter:'ok', Escape:'back', PageUp:'pgup', PageDown:'pgdn', Home:'home', End:'end' };
   const inSearch = document.activeElement === $('q');
   // Ctrl + Espaço: marca/desmarca o jogo em foco na seleção em lote (Ctrl + setas andam sem perder a seleção)

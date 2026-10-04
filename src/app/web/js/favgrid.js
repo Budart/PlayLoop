@@ -347,7 +347,7 @@ function renderFavGrid() {
   }
   $('fgTrack').innerHTML = html;
   $('fgDots').innerHTML = fg.pages > 1 ? `<button class="fgnav" data-nv="-1"></button>` + Array.from({ length: fg.pages }, (_, p) => `<span class="${p === fg.page ? 'on' : ''}" data-p="${p}">${p + 1}</span>`).join('') + `<button class="fgnav" data-nv="1"></button>` : '';
-  $('fgDots').querySelectorAll('[data-p]').forEach(d => d.onclick = () => fgPage(+d.dataset.p));
+  $('fgDots').querySelectorAll('[data-p]').forEach(fgDotBind);
   $('fgDots').querySelectorAll('[data-nv]').forEach(b => b.onclick = () => { b.blur(); fgInput(+b.dataset.nv < 0 ? 'pgup' : 'pgdn'); });
   fgNavKey = ''; fgNavPaint();
   fgPage(fg.place[fg.sel] ? fg.place[fg.sel].p : 0, true);
@@ -1133,3 +1133,27 @@ async function fgRename() {
 }
 // janela mudou de tamanho: refaz o encaixe/preenchimento do fundo atual
 { let t = 0; window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => { const host = $('fgBg'), l = host && [...host.querySelectorAll('.bgl')].pop(); if (l && host._url && host._g) fgBgRender(l, host._url, host._g); }, 250); }); }
+
+// páginas: reordenar arrastando a bolinha (ou Ctrl+PageUp/PageDown na página atual)
+function fgMovePage(from, to) {
+  if (from === to || from < 0 || to < 0 || from >= fg.pages || to >= fg.pages) return;
+  const ord = [...Array(fg.pages).keys()]; ord.splice(to, 0, ord.splice(from, 1)[0]);
+  const np = []; ord.forEach((old, n) => np[old] = n);
+  fg.items.forEach((g, i) => { const pl = fg.place[i]; if (!pl) return; const q = { ...pl, p: np[pl.p] }; if (fgFree) fgSetFr(g, q); else fgSetPos(g, { p: q.p, x: q.x, y: q.y }); });
+  renderFavGrid(); fgPage(to); const i = fg.place.findIndex(p => p && p.p === to); if (i >= 0) fgSelect(i, true); sfx('tick');
+}
+function fgDotBind(d) {
+  d.onpointerdown = e => {
+    if (e.button !== 0) return; const from = +d.dataset.p, x0 = e.clientX; let drag = false, to = from;
+    const dots = [...$('fgDots').querySelectorAll('[data-p]')];
+    const mv = ev => {
+      if (!drag && Math.abs(ev.clientX - x0) < 6) return; drag = true; d.classList.add('drag');
+      d.style.transform = `translateX(${ev.clientX - x0}px) scale(1.15)`;
+      to = dots.filter(o => o !== d && o.getBoundingClientRect().left + o.offsetWidth / 2 < ev.clientX).length;
+      dots.forEach(o => o.classList.toggle('gap', o !== d && dots.filter(z => z !== d).indexOf(o) === to));
+    };
+    const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up);
+      if (!drag) { fgPage(from); return; } d.style.transform = ''; d.classList.remove('drag'); dots.forEach(o => o.classList.remove('gap')); fgMovePage(from, to); };
+    addEventListener('pointermove', mv); addEventListener('pointerup', up);
+  };
+}
