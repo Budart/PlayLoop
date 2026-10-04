@@ -169,7 +169,7 @@ async function showArt(g) {
     });
     lastArt = { g, url: front, ratio: lastArt.ratio, done: true, soft: true };
     // depois do esmaecimento, a caixa ganha o formato da capa encontrada (animado, sem girar nem redesenhar)
-    const rr = ratio !== undefined ? Promise.resolve(ratio) : (pr || loadRatio(front));
+    const rr = (ratio ? Promise.resolve(ratio) : (pr || loadRatio(front))).then(x => x || loadRatio(a.box)).then(x => x || loadDims(a.box).then(d => d && d.w / d.h)).catch(() => null);   // mede pela imagem original se o cache falhar
     rr.then(r2 => { if (r2 && my === artReq && lastArt.g === g) { lastArt.ratio = r2; setTimeout(() => { if (my === artReq) morphCase(g, front, r2); }, 350); } });
     { const lg = covers['logo|' + coverKey(g)] || a.logo; if (lg) spineLogo(lg, my); }
   } else
