@@ -11,10 +11,10 @@ function openCover(isBg) {
   $('cgame').textContent = g.name; $('cq').value = covers['name|' + coverKey(g)] || cleanTitle(g.name);   // nome dado pelo usuário tem prioridade na busca $('curl').value = '';
   if (cardMode) { const el = $('fgTrack') && $('fgTrack').querySelector(`.fgcard[data-i="${fg.sel}"]`), r = el && el.getBoundingClientRect(); cardKind = sgdbOn && r && r.width > r.height * 16 / 9 ? 'bg' : 'cover'; }   // fundos só com SteamGridDB e card mais largo que 16:9
   ckindPaint();
-  $('coverModal').classList.add('on'); $('coverModal').classList.toggle('logo', logoMode); $('cq').focus(); $('cq').select();
+  $('coverModal').classList.add('on'); $('coverModal').classList.toggle('logo', logoMode); $('coverModal').classList.toggle('bgs', bgMode || (cardMode && cardKind === 'bg')); $('cq').focus(); $('cq').select();
   searchCovers();
 }
-function ckindPaint() { const k = $('ckind'); k.style.display = cardMode ? '' : 'none'; k.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.k === cardKind)); }
+function ckindPaint() { $('coverModal').classList.toggle('bgs', bgMode || (cardMode && cardKind === 'bg')); const k = $('ckind'); k.style.display = cardMode ? '' : 'none'; k.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.k === cardKind)); }
 function setCardKind(k) { if (!cardMode || k === cardKind) return; cardKind = k; ckindPaint(); sfx('tick'); searchCovers(); }
 $('ckind').querySelectorAll('button').forEach(b => b.onclick = () => setCardKind(b.dataset.k));
 function closeCover() { sfx('back'); modalOpen = false; $('coverModal').classList.remove('on'); }
@@ -104,7 +104,7 @@ async function searchCovers(more) {
   await Promise.all(tasks);
   if (tok !== coverTok || modalOpen === false) return;
   const n = coverItems.length;
-  $('cmsg').textContent = n ? `${n} imagens encontradas — clique para usar ${logoMode ? 'como título' : 'como capa'}.` : 'Nada encontrado. Tente outro nome, ou cole o link de uma imagem.';
+  $('cmsg').textContent = n ? `${n} imagens encontradas — clique para usar ${logoMode ? 'como título' : bgLike ? 'como fundo' : 'como capa'}.` : 'Nada encontrado. Tente outro nome, ou cole o link de uma imagem.';
   const old = res.querySelector('.it.more'); if (old) old.remove();
   if (n && (found || !more)) { const m = document.createElement('div'); m.className = 'it more'; m.innerHTML = '<b>＋</b><span>Mais</span>'; m.onclick = e => { e.stopPropagation(); if (!m.classList.contains('busy')) searchCovers(true); }; res.appendChild(m); }
   else if (more) $('cmsg').textContent = `${n} imagens — não há mais resultados para essa busca.`;

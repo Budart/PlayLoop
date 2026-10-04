@@ -745,3 +745,7 @@ body.th-light .fgdots .fgnav { color:#3A322B; border-color:rgba(46,39,33,.25); }
 .texfade.on { opacity:1; }
 .cw.morph, .cw.morph *:not(.rot):not(.flip) { transition:width .8s cubic-bezier(.22,.9,.24,1), height .8s cubic-bezier(.22,.9,.24,1), left .8s cubic-bezier(.22,.9,.24,1), top .8s cubic-bezier(.22,.9,.24,1), transform .8s cubic-bezier(.22,.9,.24,1), border-radius .8s, font-size .8s !important; }
 .fpbar { bottom:92px !important; }   /* acima da legenda dos controles */
+/* escolha de fundos: cards maiores e deitados (16:9) */
+#coverModal.bgs .cgrid { grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:14px; }
+#coverModal.bgs .cgrid .it img { height:auto; aspect-ratio:16/9; object-fit:cover; border-radius:5px; }
+#coverModal.bgs .cgrid .it.more { min-height:0; aspect-ratio:16/9; }
