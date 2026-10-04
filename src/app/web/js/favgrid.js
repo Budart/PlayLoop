@@ -65,26 +65,47 @@ function fgLayoutFree() {
 function fgPinFree() { fg.items.forEach((g, i) => { const q = fgFr(g), pl = fg.place[i]; if (pl && (!q || q.p !== pl.p || Math.abs(q.x - pl.x) > .005 || Math.abs(q.y - pl.y) > .005 || Math.abs(q.w - pl.w) > .005 || Math.abs(q.h - pl.h) > .005)) fgSetFr(g, pl); }); }
 const frStyle = pl => `grid-column:1 / -1;grid-row:1 / -1;position:absolute;left:calc(${pl.x} * (var(--cell) + 20px));top:calc(${pl.y} * (var(--cell) + 20px));width:calc(${pl.w} * (var(--cell) + 20px) - 20px);height:calc(${pl.h} * (var(--cell) + 20px) - 20px)`;
 // lote: os cards mantêm a arrumação relativa (linhas/colunas) e ficam encostados no card que está sendo puxado
+// lote: os cards ficam em fila como texto (esquerda → direita, de cima para baixo), encostados no card que está sendo puxado;
+// quem não couber na linha desce para o começo da linha de baixo
 function frBatchLayout(list, w, h, aq) {
-  const { R, C } = fgDim(), anc = aq || fg.place[list[0]], out = {};
+  const { R, C } = fgDim(), anc = aq || fg.place[list[0]], out = {}, e = 1e-6;
+  const ww = Math.min(w, C), hh = Math.min(h, R);
   const items = list.map(k => ({ k, q: fg.place[k] })).filter(o => o.q && o.q.p === fg.place[list[0]].p);
-  const rows = []; items.slice().sort((a, b) => a.q.y - b.q.y).forEach(o => { const r = rows.find(r => Math.abs(r.y - o.q.y) < .5); if (r) r.m.push(o); else rows.push({ y: o.q.y, m: [o] }); });
-  rows.forEach(r => r.m.sort((a, b) => a.q.x - b.q.x));
-  const ra = rows.findIndex(r => r.m.some(o => o.k === list[0])), ca = rows[ra].m.findIndex(o => o.k === list[0]);
-  rows.forEach((r, ri) => r.m.forEach((o, ci) => {
-    const ww = Math.min(w, C), hh = Math.min(h, R);
-    out[o.k] = { p: anc.p, x: Math.max(0, Math.min(C - ww, anc.x + (ci - ca) * w)), y: Math.max(0, Math.min(R - hh, anc.y + (ri - ra) * h)), w: ww, h: hh };
-  }));
+  // ordem de leitura original: linhas (por altura) e, dentro delas, da esquerda para a direita
+  items.sort((a, b) => (Math.abs(a.q.y - b.q.y) < .5 ? 0 : a.q.y - b.q.y) || a.q.x - b.q.x);
+  const ka = Math.max(0, items.findIndex(o => o.k === list[0]));
+  const before = Math.min(ka, Math.floor(anc.x / ww + e));           // quantos cabem à esquerda do card puxado, na mesma linha
+  const x0 = Math.max(0, anc.x - before * ww), cap = Math.max(1, Math.floor((C - x0) / ww + e));
+  const ac = Math.min(before, cap - 1);                               // coluna do card puxado na fila
+  items.forEach((o, k) => {
+    const d = k - ka, pos = ac + d, line = Math.floor(pos / cap), col = ((pos % cap) + cap) % cap;
+    const x = Math.max(0, Math.min(C - ww, x0 + col * ww)), y = Math.max(0, Math.min(R - hh, anc.y + line * hh));
+    out[o.k] = k === ka ? { p: anc.p, x: anc.x, y: anc.y, w: ww, h: hh } : { p: anc.p, x, y, w: ww, h: hh };
+  });
   list.forEach(k => { if (!out[k]) { const o = fg.place[k]; out[k] = { p: o.p, x: o.x, y: o.y, w: Math.min(w, C - o.x), h: Math.min(h, R - o.y) }; } });   // de outra página: fica onde está
   return out;
 }
 // prévia ao redimensionar (1 card ou lote): mostra na hora onde cada card empurrado vai parar (nada é salvo até soltar)
+function frFitAfter(placed, w, h, p0, ox, oy) {
+  const { R, C } = fgDim(), e = .001;
+  for (let p = p0; p < p0 + 60; p++) {
+    const on = placed.filter(q => q && q.p === p);
+    const xs = [...new Set([0, ...on.map(q => q.x + q.w), ...(p === p0 ? [ox] : [])])].filter(x => x >= 0 && x + w <= C + e);
+    const ys = [...new Set([0, ...on.map(q => q.y + q.h), ...(p === p0 ? [oy] : [])])].filter(y => y >= 0 && y + h <= R + e);
+    const cs = []; for (const y of ys) for (const x of xs) if (p > p0 || y > oy + e || (Math.abs(y - oy) <= e && x >= ox - e)) cs.push({ p, x, y, w, h });
+    cs.sort((a, b) => (a.y - b.y) || (a.x - b.x));
+    const c = cs.find(c => !on.some(q => frHit(c, q))); if (c) return c;
+  }
+  return frFit(placed, w, h, p0);
+}
 function frResizePlan(list, w, h, aq) {   // mesma conta para a prévia e para o resultado final
   const { R, C } = fgDim(), set = new Set(list), placed = [], res = {};
   const bl = frBatchLayout(list, w, h, aq); if (aq) bl[list[0]] = { p: aq.p, x: aq.x, y: aq.y, w: aq.w, h: aq.h };
   list.forEach(k => { const q = bl[k]; if (placed.some(r => r.p === q.p && frHit(r, q))) { res[k] = null; } else { placed.push(q); res[k] = q; } });
   fg.place.forEach((r, k) => { if (!set.has(k)) { if (placed.some(q => q.p === r.p && frHit(q, r))) res[k] = null; else placed.push(r); } });
-  Object.keys(res).forEach(k => { if (res[k] === null) { const r = fg.place[k], s2 = set.has(+k) ? { w: Math.min(w, C), h: Math.min(h, R) } : r; res[k] = frFit(placed, s2.w, s2.h, r.p); placed.push(res[k]); } });
+  // empurrados: em ordem de leitura, cada um vai para o próximo espaço livre DEPOIS de onde estava (mesma linha à direita, ou linhas de baixo, começando pela esquerda)
+  Object.keys(res).filter(k => res[k] === null).map(Number).sort((a, b) => { const p = fg.place[a], q = fg.place[b]; return (p.p - q.p) || (Math.abs(p.y - q.y) < .5 ? 0 : p.y - q.y) || p.x - q.x; })
+    .forEach(k => { const r = fg.place[k], s2 = set.has(k) ? { w: Math.min(w, C), h: Math.min(h, R) } : r; res[k] = frFitAfter(placed, s2.w, s2.h, r.p, r.x, r.y); placed.push(res[k]); });
   return res;
 }
 function frPreviewResize(list, w, h, aq) {
