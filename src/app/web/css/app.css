@@ -741,3 +741,5 @@ body.th-light .fgdots .fgnav { color:#3A322B; border-color:rgba(46,39,33,.25); }
 /* card sem imagem (buscando ou sem capa): capa genérica colorida, sem animação de carregamento */
 .fgcard:not(.has) .fgimg { animation:none !important; background:radial-gradient(120% 80% at 15% 10%, hsla(var(--gh2),90%,65%,.5), transparent 60%), radial-gradient(90% 70% at 90% 95%, hsla(var(--gh),85%,55%,.45), transparent 65%), linear-gradient(155deg, hsl(var(--gh),55%,22%), hsl(var(--gh2),45%,12%) 60%, #07080d) !important; }
 .fgcard:not(.has) .fgimg::after { content:""; position:absolute; inset:0; background-image:repeating-linear-gradient(135deg, rgba(255,255,255,.035) 0 2px, transparent 2px 14px); }
+.texfade { position:absolute; inset:0; background:center/cover no-repeat; opacity:0; transition:opacity .7s ease; pointer-events:none; }
+.texfade.on { opacity:1; }

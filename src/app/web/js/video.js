@@ -160,6 +160,16 @@ async function showArt(g) {
   if (ratio === null && front !== a.box) { front = a.box; pr = loadRatio(front); ratio = await Promise.race([pr, new Promise(r => setTimeout(() => r(undefined), 300))]); }   // cache falhou (ex.: Fandom): usa direto da internet
   if (my !== artReq) return;
   if (ratio && cacheOn && artDisk[coverKey(g)] && artDisk[coverKey(g)].ratio !== ratio) { artDisk[coverKey(g)].ratio = ratio; api('/api/artcache', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key: coverKey(g), val: artDisk[coverKey(g)] }) }).catch(() => {}); }   // guarda o formato para desenhar na hora da próxima vez
+  // capa real chegando por cima da genérica: troca suave na mesma caixa (sem girar, sem redesenhar, rotação continua)
+  if (!front && lastArt && lastArt.g === g && box.querySelector('.generic')) { lastArt = { g, url: null, done: true }; }   // continua a genérica que já está na tela (sem redesenhar)
+  else if (front && lastArt && lastArt.g === g && !lastArt.url && box.querySelector('.generic')) {
+    box.querySelectorAll('.generic').forEach(el => {
+      const f = el.parentNode, d = document.createElement('div'); d.className = 'texfade'; d.style.backgroundImage = `url("${front.replace(/"/g, '%22')}")`;
+      f.appendChild(d); requestAnimationFrame(() => requestAnimationFrame(() => d.classList.add('on')));
+    });
+    lastArt = { g, url: front, ratio: lastArt.ratio, done: true, soft: true };
+    { const lg = covers['logo|' + coverKey(g)] || a.logo; if (lg) spineLogo(lg, my); }
+  } else
   if (pre && pre.url === front && (pre.ratio || 0) === (ratio || pre.ratio || 0)) { { const lg = covers['logo|' + coverKey(g)] || a.logo; if (lg) spineLogo(lg, my); } }   // já está na tela: não redesenha
   else {
   lastArt = { g, url: front, ratio, done: true };
