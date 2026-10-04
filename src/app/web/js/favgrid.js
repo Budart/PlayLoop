@@ -123,7 +123,9 @@ function frPreviewResize(list, w, h, aq) {
 function frResizeMany(list, w, h, aq) {
   const res = frResizePlan(list, w, h, aq);
   Object.keys(res).forEach(k => fgSetFr(fg.items[+k], res[k]));   // grava exatamente o que a prévia mostrou
+  const keep = list.length > 1 ? [...fgMulti].map(k => fg.items[k]) : [];   // lote continua selecionado depois de soltar
   sfx('ok'); renderFavGrid();
+  keep.forEach(g => { const k = fg.items.indexOf(g); if (k >= 0) fgMulti.add(k); }); if (keep.length) fgMultiDom();
 }
 // mover vários cards de uma vez: todos andam o mesmo tanto que o card arrastado (presos às bordas); quem ficar por baixo vai para um espaço livre
 function fgMoveMany(i, t) {
@@ -461,7 +463,7 @@ function fgBind(el) {
       if (mode.includes('b')) hh = Math.max(1, Math.min(R - pl.y, Math.round(pl.h + (ev.clientY - sy) / ch)));
       el.style.gridColumn = `${pl.x + 1} / span ${w}`; el.style.gridRow = `${pl.y + 1} / span ${hh}`;
     };
-    h.onpointerup = () => { h.onpointermove = h.onpointerup = null; el.classList.remove('rz'); if (fgMulti.size > 1 && fgMulti.has(i)) { const sel = [...fgMulti].map(k => fg.items[k]); sel.forEach(g => { const key = 'fsz|' + coverKey(g), val = (w === 1 && hh === 1) ? '' : `${w},${hh}`; if (val) covers[key] = val; else delete covers[key]; api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, url: val }) }).catch(() => {}); fgSetPos(g, null); }); sfx('ok'); renderFavGrid(); return; } fgResize(fg.items[i], w, hh); };
+    h.onpointerup = () => { h.onpointermove = h.onpointerup = null; el.classList.remove('rz'); if (fgMulti.size > 1 && fgMulti.has(i)) { const sel = [...fgMulti].map(k => fg.items[k]); sel.forEach(g => { const key = 'fsz|' + coverKey(g), val = (w === 1 && hh === 1) ? '' : `${w},${hh}`; if (val) covers[key] = val; else delete covers[key]; api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, url: val }) }).catch(() => {}); fgSetPos(g, null); }); sfx('ok'); renderFavGrid(); sel.forEach(g => { const k = fg.items.indexOf(g); if (k >= 0) fgMulti.add(k); }); fgMultiDom(); return; } fgResize(fg.items[i], w, hh); };
   });
 }
 function fgResize(g, w, h) {
