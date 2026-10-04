@@ -1121,7 +1121,9 @@ async function fgRename() {
   const ok = await askInput('Renomear jogo', 'O nome muda só no PlayLoop (o arquivo continua igual). Deixe vazio para voltar ao original.', 'Salvar', dn(g), 'Nome do jogo');
   if (!ok) return;
   const v = (($('catName') && $('catName').value) || '').trim(), key = 'name|' + coverKey(g), val = (!v || v === tidyName(g.name)) ? '' : v;
+  const changed = (covers[key] || '') !== val;
   if (val) covers[key] = val; else delete covers[key];
+  if (changed) artForget(g);   // busca as imagens de novo pelo nome novo
   try { await api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, url: val }) }); } catch (e) { toast(e.message, true); }
   toast(val ? `Renomeado para "${val}"` : 'Nome original restaurado'); sfx('ok');
   const keep = fg.sel; renderFavGrid(); fgSelect(Math.min(keep, fg.items.length - 1), true);

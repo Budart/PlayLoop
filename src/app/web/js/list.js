@@ -22,7 +22,9 @@ function startRename(i) {
     const v = inp.value.trim(), key = 'name|' + coverKey(g);
     if (save) {
       const val = (!v || v === tidyName(g.name)) ? '' : v;   // igual ao nome automático: não precisa guardar (o nome completo do arquivo pode ser guardado de propósito)
+      const changed = (covers[key] || '') !== val;
       if (val) covers[key] = val; else delete covers[key];
+      if (changed) { artForget(g); if (lastArt && lastArt.g === g) lastArt = null; }
       try { await api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, url: val }) }); } catch (e) { toast(e.message, true); }
       toast(val ? `Renomeado para "${val}"` : 'Nome original restaurado'); sfx('ok');
     }

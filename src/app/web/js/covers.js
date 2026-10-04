@@ -8,7 +8,7 @@ function openCover(isBg) {
   coverGame = g; modalOpen = true; cardMode = isBg === 'card'; logoMode = isBg === 'logo'; bgMode = !!isBg && !cardMode && !logoMode;
   $('ctitle').textContent = logoMode ? '🏷 Imagem do título (lombada)' : cardMode ? '🖼 Imagem do card' : bgMode ? '🌄 Escolher imagem de fundo' : '🖼 Escolher capa';
   $('creset').textContent = logoMode ? 'Voltar para o título automático' : cardMode ? 'Voltar para a imagem automática' : bgMode ? 'Voltar para o fundo automático' : 'Voltar para a capa automática';
-  $('cgame').textContent = g.name; $('cq').value = cleanTitle(g.name); $('curl').value = '';
+  $('cgame').textContent = g.name; $('cq').value = covers['name|' + coverKey(g)] || cleanTitle(g.name);   // nome dado pelo usuário tem prioridade na busca $('curl').value = '';
   if (cardMode) { const el = $('fgTrack') && $('fgTrack').querySelector(`.fgcard[data-i="${fg.sel}"]`), r = el && el.getBoundingClientRect(); cardKind = sgdbOn && r && r.width > r.height * 16 / 9 ? 'bg' : 'cover'; }   // fundos só com SteamGridDB e card mais largo que 16:9
   ckindPaint();
   $('coverModal').classList.add('on'); $('coverModal').classList.toggle('logo', logoMode); $('cq').focus(); $('cq').select();

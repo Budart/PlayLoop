@@ -208,7 +208,7 @@ async function resolveArt0(g) {
   // libretro: pelo nome do arquivo (confiável) e pelas palavras do nome, como na busca manual
   if (!pc && S.thumbs) {
     source(Promise.race([loadThumbIndex(S), new Promise(r => setTimeout(r, 800))]).then(() => {
-      const base = `${THUMBS}${S.thumbs}/master/Named_Boxarts/`, ix = thumbIndex[S.thumbs], out = boxartUrls(S, g.name).map(u => ({ url: u, title: q }));
+      const base = `${THUMBS}${S.thumbs}/master/Named_Boxarts/`, ix = thumbIndex[S.thumbs], out = [...new Set([...(covers['name|' + key] ? boxartUrls(S, covers['name|' + key]) : []), ...boxartUrls(S, g.name)])].map(u => ({ url: u, title: q }));   // nome renomeado primeiro, depois o do arquivo
       if (ix && ix.names) { const ws = q.toLowerCase().split(/\s+/).filter(w => w.length > 1); ix.names.filter(n => ws.every(w => n.toLowerCase().includes(w))).slice(0, 4).forEach(n => out.push({ url: base + encodeURIComponent(n), title: n.replace(/\.png$/i, '') })); }
       return out;
     }), 'libretro', false);
@@ -349,3 +349,10 @@ setInterval(() => {
     [...document.querySelectorAll('#fgTrack .fgcard:not(.has)')].slice(0, 4).forEach(el => fgArt(+el.dataset.i, el));
   }
 }, 2000);
+
+// renomeou: as imagens automáticas (capa, fundo, título) são buscadas de novo com o nome novo
+function artForget(g) {
+  const key = coverKey(g);
+  for (const k of [key, 'bga|' + key]) { delete artCache[k]; if (artDisk[k]) { delete artDisk[k]; api('/api/artcache', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key: k, val: null }) }).catch(() => {}); } }
+  delete bgFind['bga|' + key]; if (typeof sgdbCache !== 'undefined') delete sgdbCache[key];
+}
