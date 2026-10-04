@@ -60,7 +60,7 @@ const KB = {
   sysmove: [['← →', 'mover console'], ['Espaço', 'soltar'], ['Esc', 'cancelar']],
   top: [['← →', 'escolher'], ['Enter', 'abrir'], ['↓ Esc', 'voltar']],
   systems: [['← →', 'escolher console'], ['↑', 'topo'], ['Ctrl+← →', 'mover console'], ['M', 'som'], ['Enter', 'entrar'], ['A-Z', 'buscar'], ['F1', 'configuração']],
-  games: [['↑ ↓', 'navegar'], ['→', 'menu'], ['Enter', 'jogar'], ['PgUp PgDn', 'pular'], ['F2', 'renomear'], ['A-Z', 'buscar'], ['F3', 'grade / lista'], ['Esc', 'voltar']],
+  games: [['↑ ↓', 'navegar'], ['→', 'menu'], ['Enter', 'jogar'], ['Ctrl+Espaço', 'selecionar'], ['PgUp PgDn', 'pular'], ['F2', 'renomear'], ['A-Z', 'buscar'], ['F3', 'grade / lista'], ['Esc', 'voltar']],
   favgrid: [['Setas', 'navegar'], ['Enter', 'jogar'], ['Espaço', 'mover'], ['I', 'info'], ['Esc', 'voltar'], ['Alt+arrastar', 'imagem do card'], ['Ctrl+redimensionar', 'proporção'], ['Arrastar no vazio', 'selecionar vários', ['Ctrl+Z', 'desfazer'], ['F3', 'lista']]],
   fgmove: [['Setas', 'mover card'], ['Espaço', 'soltar'], ['Esc', 'cancelar']],
   config: [['Clique', 'escolher'], ['F1', 'configuração'], ['Esc', 'voltar']],

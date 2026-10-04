@@ -239,6 +239,8 @@ document.addEventListener('keydown', e => {
   }
   const map = { ArrowLeft:'left', ArrowRight:'right', ArrowUp:'up', ArrowDown:'down', Enter:'ok', Escape:'back', PageUp:'pgup', PageDown:'pgdn', Home:'home', End:'end' };
   const inSearch = document.activeElement === $('q');
+  // Ctrl + Espaço: marca/desmarca o jogo em foco na seleção em lote (Ctrl + setas andam sem perder a seleção)
+  if (screen === 'games' && e.ctrlKey && e.key === ' ' && !inSearch && shown[gIdx]) { e.preventDefault(); multiKeep = true; toggleMulti(shown[gIdx], true); if (!multi.size) multiKeep = false; $('list').classList.toggle('multi', multi.size > 0); sfx('tick'); return; }
   // → no fim do texto da busca: abre o menu do jogo em foco (ou do lote), mesmo depois de digitar
   if (inSearch && screen === 'games' && e.key === 'ArrowRight' && !e.shiftKey && $('q').selectionStart === $('q').value.length) { e.preventDefault(); input('right'); return; }   // fim do texto: → vai para ordenação / subcategorias
   if (map[e.key] && !(inSearch && ['left','right','home','end'].includes(map[e.key]))) {

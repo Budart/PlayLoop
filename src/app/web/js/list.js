@@ -34,7 +34,8 @@ function startRename(i) {
 // ---- seleção em lote (Ctrl / Shift + clique) ----
 const multi = new Set(); let anchor = -1;
 function toggleMulti(g, keep) { if (!g) return; if (multi.has(g)) multi.delete(g); else multi.add(g); if (multi.size < 2 && !keep) multi.clear(); vRender(); multiInfo(); }
-function clearMulti() { if (!multi.size) return false; multi.clear(); anchor = -1; vRender(); multiInfo(); return true; }
+let multiKeep = false;   // seleção por Ctrl+Espaço: vale mesmo com 1 jogo só
+function clearMulti() { multiKeep = false; if (!multi.size) return false; multi.clear(); anchor = -1; vRender(); multiInfo(); return true; }
 function multiInfo() { const n = multi.size; $('count').textContent = n > 1 ? `${n} selecionados` : $('count').dataset.t || $('count').textContent; }
 const postCover = (key, url) => api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, url }) }).catch(() => {});
 async function batchFav(on) {
@@ -42,8 +43,12 @@ async function batchFav(on) {
   for (const g of list) { const key = 'fav|' + coverKey(g); if (on) covers[key] = '1'; else delete covers[key]; }
   sfx(on ? 'ok' : 'back'); toast(`${list.length} jogos ${on ? 'favoritados' : 'removidos dos favoritos'}`);
   await Promise.all(list.map(g => postCover('fav|' + coverKey(g), on ? '1' : '')));
-  refilterKeep();
+  const nb = on ? nextBelow(new Set(list)) : null; multi.clear(); multiKeep = false;
+  if (nb) refilterTo(nb); else refilterKeep();
 }
+// jogo logo abaixo do foco que não está entre os afetados (ou o de cima, se acabou a lista)
+function nextBelow(ex) { const i0 = gIdx; return shown.slice(i0 + 1).find(x => !ex.has(x)) || shown.slice(0, i0).reverse().find(x => !ex.has(x)) || null; }
+function refilterTo(g) { filter(); const j = shown.indexOf(g); selectGame(j >= 0 ? j : Math.min(gIdx, shown.length - 1), true); }
 async function batchHide(on) {
   const list = [...multi];
   list.forEach(g => { const k = coverKey(g); if (on) hidden.add(k); else hidden.delete(k); });
@@ -178,8 +183,9 @@ async function toggleFav(g) {
   const key = 'fav|' + coverKey(g), on = covers[key] !== '1';
   if (on) covers[key] = '1'; else { delete covers[key]; clearFavLayout(g); }
   sfx(on ? 'ok' : 'back');
+  const nb = on && screen === 'games' && shown[gIdx] === g ? nextBelow(new Set([g])) : null;   // favoritou o jogo em foco: segue para o de baixo
   try { await api('/api/cover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, url: on ? '1' : '' }) }); } catch (e) { toast(e.message, true); }
-  refilterKeep();
+  if (nb) refilterTo(nb); else refilterKeep();
 }
 async function toggleHidden(g) {
   const k = coverKey(g), hiding = !hidden.has(k), i0 = shown.indexOf(g);
@@ -408,7 +414,7 @@ function filter() {
       if (isCol) return;
       gr.items.forEach(g => {
         const i = shown.push(g) - 1, isHid = !!gr.hid, fav = isFavG(g);
-        vItems.push({ h: vRowH, i, mk: () => `<div class="row${isHid ? ' hid' : ''}${indent ? ' sub' : ''}${multi.has(g) ? ' sel' : ''}" data-i="${i}" draggable="true">${multi.size > 1 ? `<span class="ck${multi.has(g) ? ' on' : ''}" data-ck="${i}"></span>` : ''}${globalMode ? `<span class="tag">${esc(sname(g.sid))}</span>` : ''}<span class="nm">${esc(dn(g))}</span>${ecat(g) && !grouped && !globalMode ? `<span class="cat">${esc(ecat(g))}</span>` : ''}<span class="eye" data-eye="${i}" title="${isHid ? 'Mostrar jogo' : 'Ocultar jogo'}">${isHid ? EYE_ON : EYE_OFF}</span><span class="pen" data-pen="${i}" title="Renomear (F2)">${PEN}</span>${isHid ? '' : `<span class="star${fav ? ' on' : ''}" data-star="${i}" title="${fav ? 'Remover dos favoritos' : 'Favoritar'}">${STAR}</span>`}</div>` });
+        vItems.push({ h: vRowH, i, mk: () => `<div class="row${isHid ? ' hid' : ''}${indent ? ' sub' : ''}${multi.has(g) ? ' sel' : ''}" data-i="${i}" draggable="true">${multi.size > 1 || multiKeep ? `<span class="ck${multi.has(g) ? ' on' : ''}" data-ck="${i}"></span>` : ''}${globalMode ? `<span class="tag">${esc(sname(g.sid))}</span>` : ''}<span class="nm">${esc(dn(g))}</span>${ecat(g) && !grouped && !globalMode ? `<span class="cat">${esc(ecat(g))}</span>` : ''}<span class="eye" data-eye="${i}" title="${isHid ? 'Mostrar jogo' : 'Ocultar jogo'}">${isHid ? EYE_ON : EYE_OFF}</span><span class="pen" data-pen="${i}" title="Renomear (F2)">${PEN}</span>${isHid ? '' : `<span class="star${fav ? ' on' : ''}" data-star="${i}" title="${fav ? 'Remover dos favoritos' : 'Favoritar'}">${STAR}</span>`}</div>` });
       });
     });
   };
@@ -427,7 +433,7 @@ function filter() {
   } else renderGroups(makeGroups(match, false), '', false);
   $('count').dataset.t = `${nvis} / ${src.length}`; $('count').textContent = $('count').dataset.t;
   for (const g of [...multi]) if (!shown.includes(g)) multi.delete(g);
-  if (multi.size < 2) multi.clear(); $('list').classList.toggle('multi', multi.size > 1); multiInfo();
+  if (multi.size < 2 && !multiKeep) multi.clear(); if (!multi.size) multiKeep = false; $('list').classList.toggle('multi', multi.size > 1 || multiKeep); multiInfo();
   $('list').classList.toggle('g', globalMode);
   $('catBtn').style.display = globalMode ? 'none' : '';   // subcategorias são de cada console
   vEmpty = `<div class="empty">${favMode ? 'Nenhum jogo favoritado ainda — use a ⭐ ao lado de um jogo.' : globalMode && !q ? 'Digite o nome de um jogo.' : 'Nenhum jogo encontrado.'}</div>`;
