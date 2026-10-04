@@ -18,7 +18,7 @@ using Microsoft.Win32;
 
 [assembly: AssemblyTitle("PlayLoop")]
 [assembly: AssemblyProduct("PlayLoop")]
-[assembly: AssemblyVersion("1.2.5.0")]
+[assembly: AssemblyVersion("1.2.6.0")]
 
 // requisição da página (chega pelo WebView2, sem servidor HTTP/porta)
 class Req

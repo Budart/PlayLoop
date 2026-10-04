@@ -65,8 +65,8 @@ const cp = u => (cacheOn && u && /^https?:/.test(u)) ? '/api/img?u=' + encodeURI
 function cachedArt(g) {
   const key = coverKey(g);
   if (covers[key]) return { box: covers[key], snap: null, src: 'manual', ratio: artDisk[key] && artDisk[key].ratio, logo: artDisk[key] && artDisk[key].logo };
-  if (artCache[key]) return artCache[key];
-  const d = artDisk[key]; if (cacheOn && d && d.v === 2 && (sgdbOn || d.src !== 'sgdb') && (d.box || (d.t && Date.now() - d.t < 864e5))) return artCache[key] = d;   // v2: capas reais primeiro (resultados antigos são refeitos uma vez)   // ignora capas antigas da Wikipédia
+  if (artCache[key]) { const a = artCache[key]; if (a.box || !a.t || Date.now() - a.t < 60000) return a; delete artCache[key]; }   // capa genérica nunca é definitiva: depois de 1 min tenta de novo
+  const d = artDisk[key]; if (cacheOn && d && d.v === 2 && (sgdbOn || d.src !== 'sgdb') && d.box) return artCache[key] = d;   // v2: capas reais primeiro (resultados antigos são refeitos uma vez)   // ignora capas antigas da Wikipédia
   return null;
 }
 // fila de buscas: no máximo 3 ao mesmo tempo; o pedido mais recente (o que está na tela/selecionado) vai na frente;
@@ -85,9 +85,8 @@ function resolveArt(g, now) {   // now: jogo em foco — passa na frente de tudo
   if (artInflight[key]) { const j = artQueue.find(x => x.key === key); if (j) { artQueue.splice(artQueue.indexOf(j), 1); artQueue.push(j); } return artInflight[key]; }   // pediu de novo: sobe na fila
   return artInflight[key] = new Promise(ok => { if (now) resolveArt0(g).then(ok, () => ok(null)); else { artQueue.push({ key, g, ok }); artPump(); } }).then(r => {
     delete artInflight[key];
-    const s0 = (typeof sysOf === 'function' && sysOf(g)) || {}, idxOk = !s0.thumbs || (thumbIndex[s0.thumbs] && thumbIndex[s0.thumbs].map);
-    if (r && !r.box && !idxOk) delete artCache[key];   // sem capa porque o índice ainda não tinha baixado: tenta de novo na próxima vez
-    else if (cacheOn && r && r.src !== 'manual' && (r.box || idxOk)) { const v = { ...r, t: Date.now() }; artDisk[key] = v; api('/api/artcache', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, val: v }) }).catch(() => {}); }   // sem capa também fica guardado (por uns dias), para não refazer tudo a cada abertura
+    if (r && !r.box) { artCache[key] = { ...r, t: Date.now() }; return r; }   // sem capa: só em memória por 1 min (nunca salvo como definitivo)
+    if (cacheOn && r && r.src !== 'manual') { const v = { ...r, t: Date.now() }; artDisk[key] = v; api('/api/artcache', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, val: v }) }).catch(() => {}); }   // sem capa também fica guardado (por uns dias), para não refazer tudo a cada abertura
     return r;
   });
 }
@@ -311,3 +310,15 @@ async function findBg(g) {
     return bgFind[key] = u;
   })();
 }
+
+// enquanto houver capa genérica na tela, continua procurando a imagem de verdade (a cada 40 s; só o que está visível)
+setInterval(() => {
+  if (document.hidden || (typeof gameOn !== 'undefined' && gameOn)) return;
+  if (typeof screen === 'undefined') return;
+  if (screen === 'games' && typeof shown !== 'undefined') {
+    const g = shown[gIdx];
+    if (g && lastArt && lastArt.g === g && !lastArt.url && !covers[coverKey(g)]) resolveArt(g, true).then(a => { if (a && a.box && shown[gIdx] === g && screen === 'games') showArt(g); });
+  } else if (screen === 'favgrid' && typeof fgArt === 'function') {
+    [...document.querySelectorAll('#fgTrack .fgcard:not(.has)')].slice(0, 4).forEach(el => fgArt(+el.dataset.i, el));
+  }
+}, 40000);
