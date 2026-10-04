@@ -325,7 +325,7 @@ function renderFavGrid() {
 async function fgArt(i, el) {
   const g = fg.items[i], pl = fg.place[i], custom = covers['fcard|' + coverKey(g)] || covers[coverKey(g)];   // fundo escolhido só para o card (fcard|) > capa compartilhada com os consoles
   let url = custom;
-  if (!url) { const a = cachedArt(g) || await resolveArt(g).catch(() => null); if (a) url = (pl.w > pl.h && a.snap) ? a.snap : a.box; }
+  if (!url) { const a = cachedArt(g) || await resolveArt(g).catch(() => null); if (a) { const r = el.getBoundingClientRect(), ar = r.height > 0 ? r.width / r.height : pl.w / pl.h; url = (sgdbOn && ar > 16 / 9 && a.snap) ? a.snap : a.box; } }   // fundo só com SteamGridDB e card mais largo que 16:9; senão, capa
   const im = el.querySelector('.fgimg');
   if (url) { im.style.backgroundImage = `url("${cp(url).replace(/"/g, '%22')}")`; el.classList.add('has'); el._url = url; fgApplyOfs(el, g); }
 }
