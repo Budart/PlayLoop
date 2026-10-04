@@ -186,26 +186,32 @@ async function resolveArt0(g) {
   if (sys.type === 'pc') { add(t1, 'steam', byId(), true); add(t1, 'steam', steam(3)); }
   else { if (sys.thumbs) await Promise.race([loadThumbIndex(sys), new Promise(r => setTimeout(r, 1200))]);   // índice ainda baixando (1ª vez): não espera, tenta os nomes mais comuns
     add(t1, 'libretro', firstOk(boxartUrls(sys, g.name)).then(u => u ? [{ url: u, title: decodeURIComponent(u.split('/').pop()) }] : []), true); add(t1, 'code', byId(), true); }   // libretro achada pelo nome do arquivo: confiável
-  let found = (await run(t1)).sort(relCmp);
-  // 2ª rodada (wikis, mais lentas) só se a primeira não achou nada com o nome certo
-  if (!found.some(c => c.phrase)) {
-    add(t2, 'fandom', repo('fandom')); add(t2, 'strategywiki', repo('strategywiki')); add(t2, 'pcgw', repo('pcgw')); add(t2, 'wikimain', wiki());
-    if (sys.type !== 'pc') add(t2, 'steam', steam(3));
-    found = found.concat(await run(t2)).sort(relCmp);
+  // fontes oficiais têm até 3 s; passou disso sem capa, usa a do SteamGridDB (se houver) em vez de esperar mais
+  const t1P = run(t1).then(l => l.sort(relCmp));
+  let found = await Promise.race([t1P, new Promise(r => setTimeout(() => r(null), 3000))]);
+  let sg = null, best = found && found[0];
+  if (!best && sgdbOn) { sg = await sgP; if (sg && sg.box) best = { url: sg.box, src: 'sgdb' }; }
+  if (!best) {
+    found = found || await t1P; best = found[0];
+    // 2ª rodada (wikis, mais lentas) só se a primeira não achou nada com o nome certo
+    if (!found.some(c => c.phrase)) {
+      add(t2, 'fandom', repo('fandom')); add(t2, 'strategywiki', repo('strategywiki')); add(t2, 'pcgw', repo('pcgw')); add(t2, 'wikimain', wiki());
+      if (sys.type !== 'pc') add(t2, 'steam', steam(3));
+      found = found.concat(await run(t2)).sort(relCmp); best = found[0];
+    }
   }
-  const sg = await sgP;
-  let best = found[0];
-  // nunca ficar sem capa: SteamGridDB > a mais parecida de qualquer fonte > busca na Steam sem exigir o nome exato
-  if (!best && !(sg && sg.box)) best = raw.filter(c => c.overlap >= .3).sort(relCmp)[0];
-  if (!best && !(sg && sg.box)) { const st = (await run([sized('steam', await steam(1).catch(() => []))])), any = raw.sort(relCmp)[0]; best = st[0] || any; }
+  if (!sg) sg = await sgP;
+  if (!best && sg && sg.box) best = { url: sg.box, src: 'sgdb' };
+  // nunca ficar sem capa: a mais parecida de qualquer fonte > busca na Steam sem exigir o nome exato
+  if (!best) best = raw.filter(c => c.overlap >= .3).sort(relCmp)[0];
+  if (!best) { const st = (await run([sized('steam', await steam(1).catch(() => []))])), any = raw.sort(relCmp)[0]; best = st[0] || any; }
   let box = best ? best.url : null, src = best ? best.src : 'generica', snap = null, logo = null;
-  if (!box && sg && sg.box) { box = sg.box; src = 'sgdb'; }
   if (src === 'code') src = /gametdb/.test(box) ? 'gametdb' : /steam/.test(box) ? 'steam' : 'xlenore';
   // fundo: SteamGridDB (hero) > tela do jogo (libretro) > arte da Steam
   if (sg && sg.snap) snap = sg.snap;
   else if (box && /Named_Boxarts/.test(box)) snap = await firstOk([box.replace('/Named_Boxarts/', '/Named_Snaps/'), box.replace('/Named_Boxarts/', '/Named_Titles/')]);
   else if (box && /steamstatic/.test(box)) snap = await firstOk([box.replace(/\/[^/]+$/, '/library_hero.jpg')]);
-  if (!snap && sys.type !== 'pc') { const lib = found.find(f => f.src === 'libretro'); if (lib) snap = await firstOk([lib.url.replace('/Named_Boxarts/', '/Named_Snaps/')]); }
+  if (!snap && sys.type !== 'pc') { const lib = (found || []).find(f => f.src === 'libretro'); if (lib) snap = await firstOk([lib.url.replace('/Named_Boxarts/', '/Named_Snaps/')]); }
   // título (logo): SteamGridDB > logo oficial da libretro (Named_Logos) ou da Steam — uma tentativa só, sem buscas extras
   if (sg && sg.logo) logo = sg.logo;
   else if (box && /Named_Boxarts/.test(box)) logo = await firstOk([box.replace('/Named_Boxarts/', '/Named_Logos/')]);
