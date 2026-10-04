@@ -344,7 +344,7 @@ function vRender() {
   while (k < vItems.length && y < top + h + 300) { html += vItems[k].mk ? vItems[k].mk() : vItems[k].html; y += vItems[k].h; k++; }
   let rest = 0; for (let j = k; j < vItems.length; j++) rest += vItems[j].h;
   L.innerHTML = `<div style="height:${padTop}px"></div>${html}<div style="height:${rest}px"></div>`;
-  L.classList.toggle('multi', multi.size > 1);
+  L.classList.toggle('multi', multi.size > 1 || multiKeep);
   const cur = L.querySelector(`.row[data-i="${gIdx}"]`); if (cur) cur.classList.add('cur');
   if (dragGame) { const d = L.querySelector(`.row[data-i="${shown.indexOf(dragGame)}"]`); if (d) d.classList.add('dragging'); }
 }

@@ -153,7 +153,7 @@ function input(a) {
     if (a === 'up' && gIdx <= 0) { qi.focus(); qi.classList.add('padsel'); sfx('tick'); return; }
     if ((a === 'up' || a === 'down') && padPrev.fav && shown[gIdx]) {   // □ segurado: seleciona os jogos por onde passa
       multi.add(shown[gIdx]); selectGame(gIdx + (a === 'up' ? -1 : 1)); if (shown[gIdx]) multi.add(shown[gIdx]);
-      $('list').classList.toggle('multi', multi.size > 1); vRender(); multiInfo(); return;
+      $('list').classList.toggle('multi', multi.size > 1 || multiKeep); vRender(); multiInfo(); return;
     }
     if (a === 'up') selectGame(gIdx - 1); else if (a === 'down') selectGame(gIdx + 1);
     else if (a === 'pgup' || a === 'left') selectGame(gIdx - 10); else if (a === 'pgdn') selectGame(gIdx + 10);
@@ -161,7 +161,7 @@ function input(a) {
     else if (a === 'ok') listLaunch(); else if (a === 'back') back(); else if (a === 'cover') openCover();
     else if (a === 'fav' && shown[gIdx]) {   // □: marca/desmarca o jogo em foco (segurando □ e andando, marca os percorridos)
       const g = shown[gIdx]; if (multi.has(g)) multi.delete(g); else multi.add(g);
-      anchor = gIdx; $('list').classList.toggle('multi', multi.size > 1); vRender(); multiInfo(); sfx('tick');
+      anchor = gIdx; $('list').classList.toggle('multi', multi.size > 1 || multiKeep); vRender(); multiInfo(); sfx('tick');
     }
     else if ((a === 'menu' || a === 'right') && shown[gIdx]) {   // → (ou △): menu de contexto; com lote selecionado, o menu do lote
       ensureVisible(gIdx); const el = $('list').querySelector('.row.cur'), r = el ? el.getBoundingClientRect() : $('list').getBoundingClientRect();
@@ -235,7 +235,7 @@ document.addEventListener('keydown', e => {
     selectGame(Math.max(0, Math.min(shown.length - 1, gIdx + sm)));
     multi.clear(); const a = Math.min(anchor, gIdx), b = Math.max(anchor, gIdx);
     for (let k = a; k <= b; k++) multi.add(shown[k]);
-    $('list').classList.toggle('multi', multi.size > 1); vRender(); multiInfo();
+    $('list').classList.toggle('multi', multi.size > 1 || multiKeep); vRender(); multiInfo();
     return;
   }
   const map = { ArrowLeft:'left', ArrowRight:'right', ArrowUp:'up', ArrowDown:'down', Enter:'ok', Escape:'back', PageUp:'pgup', PageDown:'pgdn', Home:'home', End:'end' };
