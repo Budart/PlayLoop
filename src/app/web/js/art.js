@@ -65,8 +65,8 @@ const cp = u => (cacheOn && u && /^https?:/.test(u)) ? '/api/img?u=' + encodeURI
 function cachedArt(g) {
   const key = coverKey(g);
   if (covers[key]) return { box: covers[key], snap: null, src: 'manual', ratio: artDisk[key] && artDisk[key].ratio, logo: artDisk[key] && artDisk[key].logo };
-  if (artCache[key]) { const a = artCache[key]; if (a.box || !a.t || Date.now() - a.t < 3000) return a; delete artCache[key]; }   // capa genérica nunca é definitiva: depois de 1 min tenta de novo
-  const d = artDisk[key]; if (cacheOn && d && d.v === 2 && (sgdbOn || d.src !== 'sgdb') && d.box) return artCache[key] = d;   // v2: capas reais primeiro (resultados antigos são refeitos uma vez)   // ignora capas antigas da Wikipédia
+  if (artCache[key]) { const a = artCache[key]; if (a.box || !a.t || Date.now() - a.t < 2000) return a; delete artCache[key]; }   // capa genérica nunca é definitiva: depois de 1 min tenta de novo
+  const d = artDisk[key]; if (cacheOn && d && (d.v === 2 || d.v === 3) && d.box) return artCache[key] = d;   // v2: capas reais primeiro (resultados antigos são refeitos uma vez)   // ignora capas antigas da Wikipédia
   return null;
 }
 // fila de buscas: no máximo 3 ao mesmo tempo; o pedido mais recente (o que está na tela/selecionado) vai na frente;
@@ -162,61 +162,76 @@ async function sgdbArt(g) {
   return { box: grid ? grid.url : null, snap: heroes[0] ? heroes[0].url : null, logo: logos[0] ? logos[0].url : null };
 }
 function genHash(n) { let h = 0; for (const ch of (n || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; }   // cor da capa genérica (fixa por jogo)
+// escolha automática da capa — as MESMAS fontes da busca manual, todas ao mesmo tempo.
+// Cada imagem achada é testada (carrega?) em paralelo; a melhor que carregar vence:
+//  • capa oficial (libretro / código do jogo) com o nome certo → na hora
+//  • depois de 2 s → a melhor com nome parecido de qualquer fonte (inclui SteamGridDB)
+//  • se tudo terminar sem nome parecido → a que carregou de qualquer jeito (nunca genérica se alguma imagem existe)
+// Fundo e título são completados depois, sem atrasar a capa.
+const SRC_PRIO = { libretro: 6, code: 6, steam: 4, sgdb: 3, wikimain: 2, fandom: 2, pcgw: 2, strategywiki: 2 };
 async function resolveArt0(g) {
   const key = coverKey(g);
   if (covers[key]) return { box: covers[key], snap: null, src: 'manual' };
-  if (artCache[key]) return artCache[key];
-  const q = cleanTitle(dn(g)) || dn(g), sys = (typeof sysOf === 'function' && sysOf(g)) || {};   // console do próprio jogo (Favoritos misturam consoles)
-  // capas: fontes "reais" primeiro (scans/artes oficiais); SteamGridDB (artes da comunidade) só se nada servir.
-  // fundos e títulos: SteamGridDB primeiro quando ligado. Ele começa em paralelo para não atrasar nada.
+  if (artCache[key] && artCache[key].box) return artCache[key];
+  const q = cleanTitle(dn(g)) || dn(g), S = (typeof sysOf === 'function' && sysOf(g)) || {}, pc = S.type === 'pc', t0 = Date.now();
   const sgP = sgdbOn ? sgdbArt(g).catch(() => null) : Promise.resolve(null);
-  const sized = async (src, list, trusted) => {   // list: [{url, title}]
-    const out = await Promise.all(list.map(async it => { const r = await imgSize(it.url); return r ? { ...r, src, title: it.title, ...(trusted ? { phrase: 1, overlap: 1 } : relevance(q, it.title)) } : null; }));
-    return out.filter(Boolean);
+  const cands = [];
+  let pending = 0, finish;
+  const out = new Promise(r => finish = r);
+  const level = c => c.trusted || c.phrase ? 2 : c.overlap >= .6 ? 1 : 0;
+  const score = c => level(c) * 100 + (SRC_PRIO[c.src] || 1) * 10 + Math.min(9, (c.overlap || 0) * 9);
+  const pick = minLevel => { const ok = cands.filter(c => c.ok && level(c) >= minLevel); ok.sort((x, y) => score(y) - score(x)); return ok[0]; };
+  let decided = false;
+  const decide = final => {
+    if (decided) return;
+    const off = cands.filter(c => c.ok && level(c) === 2 && SRC_PRIO[c.src] === 6).sort((x, y) => score(y) - score(x))[0];
+    const late = Date.now() - t0 >= 2000;
+    const c = off || (late ? pick(1) : null) || (final ? pick(0) : null);
+    if (c || final) { decided = true; finish(c || null); }
   };
-  let raw = [];   // tudo que carregou, mesmo com nome só parecido (usado como último recurso)
-  const run = tasks => Promise.all(tasks).then(l => { const all = [].concat(...l); raw = raw.concat(all); return all.filter(c => c.phrase || c.overlap >= .6); });   // descarta quem bate só com parte do nome
-  const add = (arr, src, p, trusted) => arr.push(p.then(list => sized(src, list || [], trusted)).catch(() => []));
-  const repo = (k, n) => EXTRA_REPOS.find(r => r.key === k).find(g).then(l => l.slice(0, n || 3).map(p => ({ url: p.img, title: p.title })));
-  const steam = n => steamSearch(q).then(items => Promise.all(items.slice(0, n).map(async it => { const u = await firstOk(steamUrls(it.id)); return u ? { url: u, title: it.name } : null; }))).then(l => l.filter(Boolean));
-  const wiki = () => wikiMain(q, 2).then(l => l.map(p => ({ url: p.img, title: p.title })));
-  const byId = () => idCovers(g).then(async urls => { const u = await firstOk(urls); return u ? [{ url: u, title: q }] : []; });
-  // 1ª rodada (rápidas e com capas reais): libretro + código do jogo (GameTDB/xlenore); no PC, Steam
-  const t1 = [], t2 = [];
-  if (sys.type === 'pc') { add(t1, 'steam', byId(), true); add(t1, 'steam', steam(3)); }
-  else { if (sys.thumbs) await Promise.race([loadThumbIndex(sys), new Promise(r => setTimeout(r, 1200))]);   // índice ainda baixando (1ª vez): não espera, tenta os nomes mais comuns
-    add(t1, 'libretro', firstOk(boxartUrls(sys, g.name)).then(u => u ? [{ url: u, title: decodeURIComponent(u.split('/').pop()) }] : []), true); add(t1, 'code', byId(), true); }   // libretro achada pelo nome do arquivo: confiável
-  // fontes oficiais têm até 3 s; passou disso sem capa, usa a do SteamGridDB (se houver) em vez de esperar mais
-  const t1P = run(t1).then(l => l.sort(relCmp));
-  let found = await Promise.race([t1P, new Promise(r => setTimeout(() => r(null), 3000))]);
-  let sg = null, best = found && found[0];
-  if (!best && sgdbOn) { sg = await sgP; if (sg && sg.box) best = { url: sg.box, src: 'sgdb' }; }
-  if (!best) {
-    found = found || await t1P; best = found[0];
-    // 2ª rodada (wikis, mais lentas) só se a primeira não achou nada com o nome certo
-    if (!found.some(c => c.phrase)) {
-      add(t2, 'fandom', repo('fandom')); add(t2, 'strategywiki', repo('strategywiki')); add(t2, 'pcgw', repo('pcgw')); add(t2, 'wikimain', wiki());
-      if (sys.type !== 'pc') add(t2, 'steam', steam(3));
-      found = found.concat(await run(t2)).sort(relCmp); best = found[0];
+  const tmr = setTimeout(() => decide(false), 2000);
+  const addC = (list, src, trusted) => {
+    for (const it of list || []) {
+      if (!it || !it.url || cands.some(c => c.url === it.url)) continue;
+      const c = { url: it.url, src, trusted: !!trusted, ...relevance(q, it.title || q) }; cands.push(c); pending++;
+      loadImg(it.url, 4000).then(ok => { c.ok = !!ok; pending--; decide(false); if (!pending && !sources) decide(true); });
     }
+  };
+  let sources = 0;
+  const source = (p, src, trusted) => { sources++; Promise.resolve(p).then(l => addC(l, src, trusted), () => {}).finally(() => { sources--; if (!pending && !sources) decide(true); }); };
+  // libretro: pelo nome do arquivo (confiável) e pelas palavras do nome, como na busca manual
+  if (!pc && S.thumbs) {
+    source(Promise.race([loadThumbIndex(S), new Promise(r => setTimeout(r, 800))]).then(() => {
+      const base = `${THUMBS}${S.thumbs}/master/Named_Boxarts/`, ix = thumbIndex[S.thumbs], out = boxartUrls(S, g.name).map(u => ({ url: u, title: q }));
+      if (ix && ix.names) { const ws = q.toLowerCase().split(/\s+/).filter(w => w.length > 1); ix.names.filter(n => ws.every(w => n.toLowerCase().includes(w))).slice(0, 4).forEach(n => out.push({ url: base + encodeURIComponent(n), title: n.replace(/\.png$/i, '') })); }
+      return out;
+    }), 'libretro', false);
+    // os achados pelo nome do arquivo entram como confiáveis
   }
-  if (!sg) sg = await sgP;
-  if (!best && sg && sg.box) best = { url: sg.box, src: 'sgdb' };
-  // nunca ficar sem capa: a mais parecida de qualquer fonte > busca na Steam sem exigir o nome exato
-  if (!best) best = raw.filter(c => c.overlap >= .3).sort(relCmp)[0];
-  if (!best) { const st = (await run([sized('steam', await steam(1).catch(() => []))])), any = raw.sort(relCmp)[0]; best = st[0] || any; }
-  let box = best ? best.url : null, src = best ? best.src : 'generica', snap = null, logo = null;
+  source(idCovers(g).then(us => us.map(u => ({ url: u, title: q }))), pc ? 'steam' : 'code', true);
+  source(steamSearch(q).then(l => l.slice(0, 3).map(it => ({ url: `${STEAM}${it.id}/library_600x900_2x.jpg`, title: it.name }))), 'steam', false);
+  source(wikiMain(q, 2).then(l => l.map(p => ({ url: p.img, title: p.title }))), 'wikimain', false);
+  source(fandomImage({ name: q }, 2).then(l => l.map(p => ({ url: p.img, title: p.title }))), 'fandom', false);
+  source(mw('https://www.pcgamingwiki.com/w/api.php', q, 2).then(l => l.map(p => ({ url: p.img, title: p.title }))), 'pcgw', false);
+  source(mw('https://strategywiki.org/w/api.php', q, 2).then(l => l.map(p => ({ url: p.img, title: p.title }))), 'strategywiki', false);
+  if (sgdbOn) source(sgP.then(a => a && a.box ? [{ url: a.box, title: q }] : []), 'sgdb', true);
+  const best = await out; clearTimeout(tmr);
+  // libretro achada pelo nome exato do arquivo conta como oficial confiável
+  let box = best ? best.url : null, src = best ? best.src : 'generica';
   if (src === 'code') src = /gametdb/.test(box) ? 'gametdb' : /steam/.test(box) ? 'steam' : 'xlenore';
-  // fundo: SteamGridDB (hero) > tela do jogo (libretro) > arte da Steam
-  if (sg && sg.snap) snap = sg.snap;
-  else if (box && /Named_Boxarts/.test(box)) snap = await firstOk([box.replace('/Named_Boxarts/', '/Named_Snaps/'), box.replace('/Named_Boxarts/', '/Named_Titles/')]);
-  else if (box && /steamstatic/.test(box)) snap = await firstOk([box.replace(/\/[^/]+$/, '/library_hero.jpg')]);
-  if (!snap && sys.type !== 'pc') { const lib = (found || []).find(f => f.src === 'libretro'); if (lib) snap = await firstOk([lib.url.replace('/Named_Boxarts/', '/Named_Snaps/')]); }
-  // título (logo): SteamGridDB > logo oficial da libretro (Named_Logos) ou da Steam — uma tentativa só, sem buscas extras
-  if (sg && sg.logo) logo = sg.logo;
-  else if (box && /Named_Boxarts/.test(box)) logo = await firstOk([box.replace('/Named_Boxarts/', '/Named_Logos/')]);
-  else if (box && /steamstatic/.test(box)) logo = await firstOk([box.replace(/\/[^/]+$/, '/logo.png')]);
-  return artCache[key] = { box, snap, src, v: 2, ...(logo ? { logo } : {}) };
+  const r = artCache[key] = { box, snap: null, src, v: 3 };
+  // fundo e título em segundo plano: SteamGridDB > libretro (Snaps/Titles/Logos) > Steam
+  (async () => {
+    const sg = await sgP; let snap = sg && sg.snap, logo = sg && sg.logo;
+    if (!snap && box && /Named_Boxarts/.test(box)) snap = await firstOk([box.replace('/Named_Boxarts/', '/Named_Snaps/'), box.replace('/Named_Boxarts/', '/Named_Titles/')]);
+    else if (!snap && box && /steamstatic/.test(box)) snap = await firstOk([box.replace(/\/[^/]+$/, '/library_hero.jpg')]);
+    if (!logo && box && /Named_Boxarts/.test(box)) logo = await firstOk([box.replace('/Named_Boxarts/', '/Named_Logos/')]);
+    else if (!logo && box && /steamstatic/.test(box)) logo = await firstOk([box.replace(/\/[^/]+$/, '/logo.png')]);
+    if (!snap && !logo) return;
+    Object.assign(r, snap ? { snap } : {}, logo ? { logo } : {});
+    if (cacheOn && box && artDisk[key]) { artDisk[key] = { ...artDisk[key], ...r }; api('/api/artcache', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, val: artDisk[key] }) }).catch(() => {}); }
+  })();
+  return r;
 }
 /* ---------- case 3D: proporção e laterais de cada console ---------- */
 const CASES = {
@@ -327,4 +342,4 @@ setInterval(() => {
   } else if (screen === 'favgrid' && typeof fgArt === 'function') {
     [...document.querySelectorAll('#fgTrack .fgcard:not(.has)')].slice(0, 4).forEach(el => fgArt(+el.dataset.i, el));
   }
-}, 3000);
+}, 2000);
