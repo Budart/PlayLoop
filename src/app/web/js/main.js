@@ -19,3 +19,18 @@
     if (h === 'config' || location.pathname === '/config') openConfig(); else if (h && systems.some(s => s.id === h)) openSystem(h);
   } catch (e) { document.body.innerHTML = `<div class="empty" style="padding:60px">Não foi possível falar com o servidor local (${esc(e.message)}). Abra o "Koru" pela Área de Trabalho ou pelo menu Iniciar.</div>`; }
 })();
+
+/* ---------- Tradutor de Tela ---------- */
+async function openTradutor() {
+  sfx('ok');
+  try { const r = await api('/api/tradutor', { method:'POST' }); if (r && r.ok) toast('Abrindo o Tradutor de Tela...'); else toast((r && r.msg) || 'Não foi possível abrir o Tradutor de Tela', true); } catch (e) { toast(e.message, true); }
+}
+(() => {
+  const b = $('trBtn'); if (!b) return; b.onclick = openTradutor;
+  const HELLO = { pt: 'Olá!', en: 'Hello!', es: '¡Hola!' };
+  let t1 = 0, t2 = 0; const el = $('trHello');
+  const show = () => { clearTimeout(t1); clearTimeout(t2); el.classList.remove('out'); el.textContent = 'こんにちは！';
+    t1 = setTimeout(() => { el.classList.add('out'); t2 = setTimeout(() => { el.textContent = HELLO[LANG] || HELLO.pt; el.classList.remove('out'); }, 450); }, 2000); };
+  b.parentNode.addEventListener('mouseenter', show);
+  new MutationObserver(() => { if (b.classList.contains('padsel')) show(); }).observe(b, { attributes:true, attributeFilter:['class'] });
+})();

@@ -100,7 +100,7 @@ function cfgPad(a) {
 }
 /* ---------- barra do topo na home (busca, config, som, TV) via ↑ ---------- */
 let topSel = -1;
-const TOP_IDS = ['gq', 'gear', 'mute', 'crtBtn'];
+const TOP_IDS = ['gq', 'gear', 'mute', 'crtBtn', 'trBtn'];
 function topMark(i) {
   topSel = i; TOP_IDS.forEach((id, k) => $(id) && $(id).classList.toggle('padsel', k === i));
   if (i >= 0) sfx('tick');
@@ -136,6 +136,7 @@ function input(a) {
   if (screen === 'systems' && topSel >= 0) { topInput(a); return; }
   if (screen === 'systems') {
     if (a === 'up') { topMark(0); return; }
+    if (a === 'menu') { openTradutor(); return; }
     if (a === 'left') selectSystem(sysIdx - 1); else if (a === 'right') selectSystem(sysIdx + 1);
     else if (a === 'ok') openSystem();
   } else {
@@ -190,6 +191,7 @@ document.addEventListener('keydown', e => {
     return;   // Enter/Espaço apertam o botão em foco (comportamento nativo)
   }
   if ($('ctx').classList.contains('on')) { e.preventDefault(); if (e.key === 'ArrowDown') ctxMove(1); else if (e.key === 'ArrowUp') ctxMove(-1); else if (e.key === 'Enter' || e.key === ' ') ctxOk(); else if (e.key === 'ArrowRight') ctxRight(); else if (e.key === 'Escape' || e.key === 'ArrowLeft') ctxLeft(); return; }
+  if (e.key === 'F4' && screen === 'systems') { e.preventDefault(); openTradutor(); return; }
   if (e.key === 'F1' && screen === 'favgrid' && !modalOpen && !$('ctx').classList.contains('on') && typeof fp !== 'undefined' && !fp.open) { e.preventDefault(); fgInput('menu'); return; }
   if (e.key === 'F1') { e.preventDefault(); if (screen !== 'config' && screen !== 'welcome') { if (modalOpen) closeCover(); openConfig(); } return; }
   if (screen === 'welcome' || renaming) return;
